@@ -487,17 +487,55 @@ function initScrollHandler() {
 }
 
 /**
+ * Shows the loading spinner overlay.
+ */
+function showLoading() {
+    let loader = document.getElementById('loading-overlay');
+    if (!loader) {
+        loader = document.createElement('div');
+        loader.id = 'loading-overlay';
+        loader.innerHTML = `
+            <div class="spinner-container">
+                <div class="spinner"></div>
+                <p>Optimizing your vacation plan...</p>
+            </div>
+        `;
+        document.body.appendChild(loader);
+    }
+    loader.style.display = 'flex';
+}
+
+/**
+ * Hides the loading spinner overlay.
+ */
+function hideLoading() {
+    const loader = document.getElementById('loading-overlay');
+    if (loader) {
+        loader.style.display = 'none';
+    }
+}
+
+/**
  * Resets the current plan to the optimal plan and updates the UI.
  */
 function resetToOptimal() {
-    const blocks = findOptimalPlan(currentYear, currentAllowance);
-    bookedDates.clear();
-    blocks.forEach(block => {
-        block.bookedDates.forEach(d => {
-            bookedDates.add(toLocalISOString(d));
-        });
-    });
-    updateUI();
+    showLoading();
+
+    // Use setTimeout to allow loading UI to render before heavy computation
+    setTimeout(() => {
+        try {
+            const blocks = findOptimalPlan(currentYear, currentAllowance);
+            bookedDates.clear();
+            blocks.forEach(block => {
+                block.bookedDates.forEach(d => {
+                    bookedDates.add(toLocalISOString(d));
+                });
+            });
+            updateUI();
+        } finally {
+            hideLoading();
+        }
+    }, 50);
 }
 
 /**
@@ -717,4 +755,32 @@ function renderCalendar() {
     });
 }
 
-init();
+// Initialize application with error handling
+try {
+    init();
+} catch (error) {
+    console.error('Failed to initialize application:', error);
+
+    // Display user-friendly error message
+    const container = document.querySelector('.container');
+    if (container) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 4rem 2rem;">
+                <h1 style="color: var(--text-color); margin-bottom: 1rem;">Unable to Load Application</h1>
+                <p style="color: var(--text-color); opacity: 0.8; margin-bottom: 2rem;">
+                    We're sorry, but something went wrong. Please try refreshing the page.
+                </p>
+                <button onclick="location.reload()" style="
+                    background: var(--accent-color);
+                    color: white;
+                    border: none;
+                    padding: 1rem 2rem;
+                    font-size: 1rem;
+                    font-weight: 600;
+                    border-radius: 50px;
+                    cursor: pointer;
+                ">Refresh Page</button>
+            </div>
+        `;
+    }
+}

@@ -1,6 +1,50 @@
 export default {
     async fetch(request, env) {
-        // Fallback to assets
-        return env.ASSETS.fetch(request);
+        try {
+            const response = await env.ASSETS.fetch(request);
+            const newHeaders = new Headers(response.headers);
+
+            // Security Headers
+            newHeaders.set('X-Content-Type-Options', 'nosniff');
+            newHeaders.set('X-Frame-Options', 'DENY');
+            newHeaders.set('X-XSS-Protection', '1; mode=block');
+            newHeaders.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+            newHeaders.set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+
+            // Content Security Policy
+            newHeaders.set('Content-Security-Policy',
+                "default-src 'self'; " +
+                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+                "font-src https://fonts.gstatic.com; " +
+                "img-src 'self' data:; " +
+                "script-src 'self'; " +
+                "connect-src 'self';"
+            );
+
+            // Cache Control based on file type
+            const url = new URL(request.url);
+            const pathname = url.pathname;
+
+            if (pathname.endsWith('.css') || pathname.endsWith('.js')) {
+                // Long-term caching for static assets
+                newHeaders.set('Cache-Control', 'public, max-age=31536000, immutable');
+            } else if (pathname.endsWith('.html') || pathname === '/') {
+                // Short-term caching for HTML
+                newHeaders.set('Cache-Control', 'public, max-age=3600, must-revalidate');
+            } else if (pathname.match(/\.(ico|png|jpg|jpeg|svg|webp)$/)) {
+                // Medium-term caching for images
+                newHeaders.set('Cache-Control', 'public, max-age=86400');
+            }
+
+            return new Response(response.body, {
+                status: response.status,
+                statusText: response.statusText,
+                headers: newHeaders
+            });
+        } catch (error) {
+            // Error handling
+            console.error('Worker error:', error);
+            return new Response('Internal Server Error', { status: 500 });
+        }
     },
 };
