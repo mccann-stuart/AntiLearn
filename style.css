@@ -1,0 +1,410 @@
+:root {
+    --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --glass-bg: rgba(255, 255, 255, 0.1);
+    --glass-border: rgba(255, 255, 255, 0.2);
+    --text-color: #ffffff;
+    --card-bg: rgba(255, 255, 255, 0.15);
+    --accent-color: #ffd700;
+    --success-color: #4ade80;
+}
+
+body {
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    background: var(--bg-gradient);
+    color: var(--text-color);
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+h1 {
+    font-size: 3rem;
+    font-weight: 800;
+    margin: 0;
+    text-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.subtitle {
+    font-size: 1.2rem;
+    opacity: 0.9;
+    margin-top: 0.5rem;
+}
+
+.stats-container {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin-bottom: 3rem;
+}
+
+.stat-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    padding: 1.5rem 2.5rem;
+    border-radius: 16px;
+    text-align: center;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+}
+
+.stat-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--accent-color);
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.8;
+}
+
+.recommendations {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-bottom: 4rem;
+}
+
+.rec-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 2rem;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.rec-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.45);
+}
+
+.rec-badge {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: var(--accent-color);
+    color: #333;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 0.8rem;
+}
+
+.rec-dates {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.rec-details {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--glass-border);
+}
+
+.detail-item {
+    text-align: center;
+}
+
+.detail-num {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.detail-text {
+    font-size: 0.8rem;
+    opacity: 0.8;
+}
+
+.calendar-section {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border-radius: 24px;
+    padding: 2rem;
+    margin-top: 3rem;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 2rem;
+}
+
+.month {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    padding: 1rem;
+}
+
+.month-name {
+    text-align: center;
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+.days-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    text-align: center;
+    font-size: 0.8rem;
+}
+
+.day-header {
+    font-weight: 600;
+    opacity: 0.7;
+    padding-bottom: 0.5rem;
+}
+
+.day {
+    padding: 0.5rem 0;
+    border-radius: 4px;
+}
+
+.day.weekend {
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.day.holiday {
+    background: rgba(255, 99, 71, 0.6);
+    color: white;
+    font-weight: bold;
+    cursor: help;
+}
+
+.day.leave {
+    background: var(--success-color);
+    color: #004d40;
+    font-weight: bold;
+}
+
+.controls {
+    text-align: center;
+    margin-top: 2rem;
+}
+
+button {
+    background: white;
+    color: #667eea;
+    border: none;
+    padding: 1rem 2rem;
+    font-size: 1rem;
+    font-weight: 700;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* --- New Sticky Header Styles --- */
+
+#sticky-header {
+    transition: all 0.3s ease;
+    width: 100%;
+    z-index: 1000;
+}
+
+#sticky-placeholder {
+    height: 0;
+    transition: height 0.3s ease;
+}
+
+/* Restored Inline Styles */
+#year-select {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: none;
+    font-family: inherit;
+    font-weight: 600;
+    color: #667eea;
+    cursor: pointer;
+}
+
+#allowance-input {
+    width: 80px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid var(--accent-color);
+    color: var(--accent-color);
+    font-size: 2.5rem;
+    font-weight: 700;
+    text-align: center;
+    font-family: inherit;
+}
+
+.rec-title {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+/* --- Scrolled State --- */
+
+body.scrolled #sticky-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 10vh;
+    /* Constraint: 1/10th of screen */
+    background: rgba(102, 126, 234, 0.95);
+    /* Match gradient start */
+    backdrop-filter: blur(15px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2rem;
+    box-sizing: border-box;
+}
+
+/* Header Content Transformation */
+body.scrolled header {
+    margin-bottom: 0;
+    text-align: left;
+    flex: 0 0 auto;
+    margin-right: 2rem;
+}
+
+body.scrolled .header-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+body.scrolled h1 {
+    font-size: 1.2rem;
+    /* Shrink title */
+    margin: 0;
+    text-shadow: none;
+}
+
+body.scrolled .subtitle {
+    display: none;
+    /* Hide subtitle */
+}
+
+body.scrolled .year-group label {
+    display: none;
+}
+
+body.scrolled #year-select {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.9rem;
+}
+
+/* Stats Transformation */
+body.scrolled .stats-container {
+    margin-bottom: 0;
+    gap: 1.5rem;
+    flex: 0 0 auto;
+}
+
+body.scrolled .stat-card {
+    background: transparent;
+    backdrop-filter: none;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-direction: row-reverse;
+    /* Label first, then value */
+}
+
+body.scrolled .stat-value {
+    font-size: 1.2rem;
+}
+
+body.scrolled #allowance-input {
+    font-size: 1.2rem;
+    width: 40px;
+    border-bottom: 1px solid var(--accent-color);
+}
+
+body.scrolled .stat-label {
+    font-size: 0.8rem;
+    opacity: 0.9;
+    margin-bottom: 0;
+    /* Override default if any */
+}
+
+/* Recommendations Transformation */
+body.scrolled .recommendations-section {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    overflow: hidden;
+    height: 100%;
+}
+
+body.scrolled .rec-title {
+    display: none;
+}
+
+body.scrolled .recommendations {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 0;
+    grid-template-columns: none;
+    /* Reset grid */
+}
+
+body.scrolled .rec-card {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    min-width: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+body.scrolled .rec-card:hover {
+    transform: none;
+    box-shadow: none;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+body.scrolled .rec-badge {
+    position: static;
+    font-size: 0.7rem;
+    padding: 0.1rem 0.4rem;
+}
+
+body.scrolled .rec-dates {
+    font-size: 0.9rem;
+    margin-bottom: 0;
+}
+
+body.scrolled .rec-details {
+    display: none;
+    /* Hide details in compact view */
+}
