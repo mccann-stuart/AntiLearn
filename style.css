@@ -1,11 +1,12 @@
 :root {
-    --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    --glass-bg: rgba(255, 255, 255, 0.1);
-    --glass-border: rgba(255, 255, 255, 0.2);
-    --text-color: #ffffff;
-    --card-bg: rgba(255, 255, 255, 0.15);
-    --accent-color: #ffd700;
-    --success-color: #4ade80;
+    --bg-gradient: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);
+    --glass-bg: rgba(255, 255, 255, 0.05);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --text-color: #f5f5f7;
+    --card-bg: rgba(255, 255, 255, 0.08);
+    --accent-color: #0071e3;
+    --success-color: #30d158;
+    --hover-bg: rgba(255, 255, 255, 0.12);
 }
 
 body {
@@ -39,6 +40,7 @@ h1 {
     font-size: 1.2rem;
     opacity: 0.9;
     margin-top: 0.5rem;
+    transition: opacity 0.3s ease, max-height 0.3s ease, margin 0.3s ease;
 }
 
 .stats-container {
@@ -99,7 +101,7 @@ h1 {
     top: 1rem;
     right: 1rem;
     background: var(--accent-color);
-    color: #333;
+    color: white;
     padding: 0.25rem 0.75rem;
     border-radius: 20px;
     font-weight: 700;
@@ -118,6 +120,7 @@ h1 {
     margin-top: 1.5rem;
     padding-top: 1.5rem;
     border-top: 1px solid var(--glass-border);
+    transition: opacity 0.3s ease, max-height 0.3s ease, margin 0.3s ease, padding 0.3s ease;
 }
 
 .detail-item {
@@ -186,15 +189,16 @@ h1 {
 }
 
 .day.holiday {
-    background: rgba(255, 99, 71, 0.6);
-    color: white;
+    background: rgba(255, 255, 255, 0.15);
+    color: var(--text-color);
     font-weight: bold;
     cursor: help;
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .day.leave {
     background: var(--success-color);
-    color: #004d40;
+    color: #1a1a1a;
     font-weight: bold;
 }
 
@@ -204,27 +208,29 @@ h1 {
 }
 
 button {
-    background: white;
-    color: #667eea;
-    border: none;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-color);
+    border: 1px solid rgba(255, 255, 255, 0.15);
     padding: 1rem 2rem;
     font-size: 1rem;
-    font-weight: 700;
+    font-weight: 600;
     border-radius: 50px;
     cursor: pointer;
     transition: all 0.2s;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(10px);
 }
 
 button:hover {
+    background: rgba(255, 255, 255, 0.15);
     transform: scale(1.05);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
 }
 
 /* --- New Sticky Header Styles --- */
 
 #sticky-header {
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease, opacity 0.3s ease, background-color 0.3s ease, height 0.3s ease, box-shadow 0.3s ease;
     width: 100%;
     z-index: 1000;
 }
@@ -238,11 +244,22 @@ button:hover {
 #year-select {
     padding: 0.5rem 1rem;
     border-radius: 8px;
-    border: none;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.1);
     font-family: inherit;
     font-weight: 600;
-    color: #667eea;
+    color: var(--text-color);
     cursor: pointer;
+    transition: padding 0.3s ease, font-size 0.3s ease, background 0.2s ease;
+    backdrop-filter: blur(10px);
+}
+
+#year-select:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.year-group label {
+    transition: opacity 0.3s ease, max-height 0.3s ease, margin 0.3s ease;
 }
 
 #allowance-input {
@@ -260,6 +277,7 @@ button:hover {
 .rec-title {
     text-align: center;
     margin-bottom: 2rem;
+    transition: opacity 0.3s ease, max-height 0.3s ease, margin 0.3s ease;
 }
 
 /* --- Scrolled State --- */
@@ -271,10 +289,10 @@ body.scrolled #sticky-header {
     width: 100%;
     height: 10vh;
     /* Constraint: 1/10th of screen */
-    background: rgba(102, 126, 234, 0.95);
+    background: rgba(26, 26, 26, 0.95);
     /* Match gradient start */
     backdrop-filter: blur(15px);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -304,12 +322,18 @@ body.scrolled h1 {
 }
 
 body.scrolled .subtitle {
-    display: none;
-    /* Hide subtitle */
+    opacity: 0;
+    max-height: 0;
+    margin: 0;
+    overflow: hidden;
+    /* Hide subtitle smoothly */
 }
 
 body.scrolled .year-group label {
-    display: none;
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    margin: 0;
 }
 
 body.scrolled #year-select {
@@ -365,7 +389,10 @@ body.scrolled .recommendations-section {
 }
 
 body.scrolled .rec-title {
-    display: none;
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    margin: 0;
 }
 
 body.scrolled .recommendations {
@@ -377,13 +404,15 @@ body.scrolled .recommendations {
 }
 
 body.scrolled .rec-card {
-    padding: 0.5rem 1rem;
+    padding: 0.5rem 0.75rem;
     border-radius: 8px;
     background: rgba(255, 255, 255, 0.1);
     min-width: auto;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 0.5rem;
+    justify-content: center;
+    gap: 0.25rem;
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -396,15 +425,24 @@ body.scrolled .rec-card:hover {
 body.scrolled .rec-badge {
     position: static;
     font-size: 0.7rem;
-    padding: 0.1rem 0.4rem;
+    padding: 0.15rem 0.5rem;
+    text-align: center;
+    margin: 0;
 }
 
 body.scrolled .rec-dates {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     margin-bottom: 0;
+    text-align: center;
+    white-space: nowrap;
 }
 
 body.scrolled .rec-details {
-    display: none;
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+    border: none;
     /* Hide details in compact view */
 }

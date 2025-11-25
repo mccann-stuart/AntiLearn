@@ -396,7 +396,7 @@ function overlap(b1, b2) {
 // --- MAIN UI ---
 
 let currentAllowance = 25;
-let currentYear = 2025;
+let currentYear = new Date().getFullYear();
 let bookedDates = new Set();
 
 /**
@@ -405,7 +405,20 @@ let bookedDates = new Set();
 function init() {
     const yearSelect = document.getElementById('year-select');
     if (yearSelect) {
-        yearSelect.value = currentYear;
+        // Dynamically populate years (current year + 1 to 5 years forward)
+        yearSelect.innerHTML = '';
+        const currentYearNow = new Date().getFullYear();
+        for (let i = 0; i <= 5; i++) {
+            const year = currentYearNow + i;
+            const option = document.createElement('option');
+            option.value = year;
+            option.textContent = year;
+            if (year === currentYear) {
+                option.selected = true;
+            }
+            yearSelect.appendChild(option);
+        }
+
         yearSelect.addEventListener('change', (e) => {
             currentYear = parseInt(e.target.value);
             resetToOptimal();
@@ -439,8 +452,9 @@ function initScrollHandler() {
     const header = document.getElementById('sticky-header');
     const placeholder = document.getElementById('sticky-placeholder');
     const threshold = 100; // Scroll threshold
+    let ticking = false;
 
-    window.addEventListener('scroll', () => {
+    function handleScroll() {
         if (window.scrollY > threshold && !document.body.classList.contains('scrolled')) {
             // Capture height before it shrinks
             const height = header.offsetHeight;
@@ -449,6 +463,14 @@ function initScrollHandler() {
         } else if (window.scrollY <= threshold && document.body.classList.contains('scrolled')) {
             document.body.classList.remove('scrolled');
             placeholder.style.height = '0';
+        }
+        ticking = false;
+    }
+
+    window.addEventListener('scroll', () => {
+        if (!ticking) {
+            window.requestAnimationFrame(handleScroll);
+            ticking = true;
         }
     });
 }
