@@ -5,7 +5,11 @@
 
 // --- HOLIDAYS ---
 
-// Helper to format date as YYYY-MM-DD using local time
+/**
+ * Formats a date object into a YYYY-MM-DD string in the local timezone.
+ * @param {Date} date The date to format.
+ * @returns {string} The formatted date string.
+ */
 function toLocalISOString(date) {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -13,6 +17,11 @@ function toLocalISOString(date) {
     return `${year}-${month}-${day}`;
 }
 
+/**
+ * Calculates the date of Easter Sunday for a given year using the anonymous Gregorian algorithm.
+ * @param {number} year The year to calculate Easter for.
+ * @returns {Date} The date of Easter Sunday.
+ */
 function getEasterDate(year) {
     const a = year % 19;
     const b = Math.floor(year / 100);
@@ -31,6 +40,12 @@ function getEasterDate(year) {
     return new Date(year, month - 1, day);
 }
 
+/**
+ * Generates a list of UK bank holidays for a given year.
+ * Handles substitute days for holidays falling on weekends.
+ * @param {number} year The year to generate holidays for.
+ * @returns {Array<{date: string, name: string}>} A list of holiday objects.
+ */
 function getUKHolidays(year) {
     const holidays = [];
 
@@ -103,6 +118,11 @@ function getUKHolidays(year) {
 // Cache holidays for performance
 const holidaysCache = new Map();
 
+/**
+ * Retrieves UK bank holidays for a given year, using a cache to avoid re-computation.
+ * @param {number} year The year to get holidays for.
+ * @returns {Array<{date: string, name: string}>} A list of holiday objects.
+ */
 function getHolidaysForYear(year) {
     if (!holidaysCache.has(year)) {
         holidaysCache.set(year, getUKHolidays(year));
@@ -110,11 +130,21 @@ function getHolidaysForYear(year) {
     return holidaysCache.get(year);
 }
 
+/**
+ * Checks if a given date falls on a weekend.
+ * @param {Date} date The date to check.
+ * @returns {boolean} True if the date is a Saturday or Sunday.
+ */
 function isWeekend(date) {
     const day = date.getDay();
     return day === 0 || day === 6;
 }
 
+/**
+ * Checks if a given date is a UK bank holiday.
+ * @param {Date} date The date to check.
+ * @returns {boolean} True if the date is a holiday.
+ */
 function isHoliday(date) {
     const year = date.getFullYear();
     const holidays = getHolidaysForYear(year);
@@ -122,6 +152,11 @@ function isHoliday(date) {
     return holidays.some(h => h.date === dateString);
 }
 
+/**
+ * Retrieves the name of the holiday for a given date.
+ * @param {Date} date The date to check.
+ * @returns {string|null} The name of the holiday or null if it's not a holiday.
+ */
 function getHolidayName(date) {
     const year = date.getFullYear();
     const holidays = getHolidaysForYear(year);
@@ -132,18 +167,36 @@ function getHolidayName(date) {
 
 // --- OPTIMIZER ---
 
+/**
+ * Determines the type of a given day (workday, weekend, or holiday).
+ * @param {Date} date The date to classify.
+ * @returns {('workday'|'weekend'|'holiday')} The type of the day.
+ */
 function getDayType(date) {
     if (isHoliday(date)) return 'holiday';
     if (isWeekend(date)) return 'weekend';
     return 'workday';
 }
 
+/**
+ * Adds a specified number of days to a date.
+ * @param {Date} date The starting date.
+ * @param {number} days The number of days to add.
+ * @returns {Date} The new date.
+ */
 function addDays(date, days) {
     const result = new Date(date);
     result.setDate(result.getDate() + days);
     return result;
 }
 
+/**
+ * Calculates a continuous block of time off based on a starting workday and a number of leave days.
+ * It expands the block to include adjacent weekends and holidays.
+ * @param {Date} startDate The proposed start date for booking leave.
+ * @param {number} leaveDaysToUse The number of workdays to book as leave.
+ * @returns {{startDate: Date, endDate: Date, leaveDaysUsed: number, totalDaysOff: number, efficiency: number, bookedDates: Array<Date>}|null} An object detailing the leave block, or null if no valid block could be created.
+ */
 function calculateContinuousLeave(startDate, leaveDaysToUse) {
     let leaveDaysBooked = [];
     let current = new Date(startDate);
@@ -201,6 +254,13 @@ function calculateContinuousLeave(startDate, leaveDaysToUse) {
     };
 }
 
+/**
+ * Finds the best combination of up to 3 leave blocks to maximize days off within a given allowance.
+ * It prioritizes using the full allowance and then maximizing the total time off.
+ * @param {number} year The year to plan for.
+ * @param {number} allowance The total number of leave days available.
+ * @returns {Array<{startDate: Date, endDate: Date, leaveDaysUsed: number, totalDaysOff: number, efficiency: number, bookedDates: Array<Date>}>} A sorted array of the best leave blocks found.
+ */
 function findOptimalPlan(year, allowance) {
     const candidates = [];
     const startOfYear = new Date(year, 0, 1);
@@ -323,6 +383,12 @@ function findOptimalPlan(year, allowance) {
     return bestCombo;
 }
 
+/**
+ * Checks if two leave blocks overlap.
+ * @param {object} b1 The first leave block.
+ * @param {object} b2 The second leave block.
+ * @returns {boolean} True if the blocks overlap.
+ */
 function overlap(b1, b2) {
     return b1.startDate <= b2.endDate && b1.endDate >= b2.startDate;
 }
@@ -333,6 +399,9 @@ let currentAllowance = 25;
 let currentYear = 2025;
 let bookedDates = new Set();
 
+/**
+ * Initializes the application, sets up event listeners, and performs the initial render.
+ */
 function init() {
     const yearSelect = document.getElementById('year-select');
     if (yearSelect) {
@@ -363,6 +432,9 @@ function init() {
     initScrollHandler();
 }
 
+/**
+ * Sets up a scroll listener to handle the sticky header's appearance.
+ */
 function initScrollHandler() {
     const header = document.getElementById('sticky-header');
     const placeholder = document.getElementById('sticky-placeholder');
@@ -381,6 +453,9 @@ function initScrollHandler() {
     });
 }
 
+/**
+ * Resets the current plan to the optimal plan and updates the UI.
+ */
 function resetToOptimal() {
     const blocks = findOptimalPlan(currentYear, currentAllowance);
     bookedDates.clear();
@@ -392,6 +467,9 @@ function resetToOptimal() {
     updateUI();
 }
 
+/**
+ * Triggers a full refresh of the UI components.
+ */
 function updateUI() {
     document.getElementById('calendar-year-title').textContent = `${currentYear} Calendar`;
 
@@ -400,6 +478,10 @@ function updateUI() {
     renderCalendar();
 }
 
+/**
+ * Analyzes the currently selected `bookedDates` to identify continuous blocks of time off.
+ * @returns {Array<object>} A sorted array of leave block objects derived from the current plan.
+ */
 function analyzeCurrentPlan() {
     const dates = Array.from(bookedDates).sort();
     if (dates.length === 0) return [];
@@ -447,6 +529,9 @@ function analyzeCurrentPlan() {
     return blocks;
 }
 
+/**
+ * Renders the statistics section (days used, total days off).
+ */
 function renderStats() {
     const used = bookedDates.size;
     const blocks = analyzeCurrentPlan();
@@ -464,10 +549,18 @@ function renderStats() {
     document.getElementById('days-off').textContent = totalOff;
 }
 
+/**
+ * Formats a date for display in the recommendations.
+ * @param {Date} date The date to format.
+ * @returns {string} The formatted date string (e.g., "5 May").
+ */
 function formatDate(date) {
     return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
+/**
+ * Renders the top 3 recommendation cards based on the current plan.
+ */
 function renderRecommendations() {
     const container = document.getElementById('recommendations');
     container.innerHTML = '';
@@ -512,6 +605,9 @@ function renderRecommendations() {
     });
 }
 
+/**
+ * Renders the full calendar view for the selected year, highlighting weekends, holidays, and booked leave days.
+ */
 function renderCalendar() {
     const container = document.getElementById('calendar');
     container.innerHTML = '';
