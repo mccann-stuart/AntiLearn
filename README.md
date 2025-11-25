@@ -12,14 +12,30 @@ A simple web application to help you find the most efficient way to use your ann
 
 ## Getting Started
 
-To get a local copy up and running, simply clone the repository and open the `index.html` file in your web browser.
+### Local Development
+
+To get a local copy up and running, open the `public/index.html` file in your web browser:
 
 ```bash
-git clone https://github.com/your-username/uk-vacation-maximiser.git
-cd uk-vacation-maximiser
+# Clone this repository (if published)
+cd AntiLearn
+
+# Open in browser
+open public/index.html
+# or on Linux: xdg-open public/index.html
 ```
 
-Then, open the `index.html` file in your browser of choice.
+### Production Deployment
+
+This application is configured for deployment on Cloudflare Pages/Workers:
+
+```bash
+# Install Wrangler CLI (if not already installed)
+npm install -g wrangler
+
+# Deploy to Cloudflare
+npx wrangler pages deploy public
+```
 
 ## Usage
 
