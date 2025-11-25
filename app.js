@@ -454,15 +454,26 @@ function initScrollHandler() {
     const threshold = 100; // Scroll threshold
     let ticking = false;
 
+    // Capture the original header height BEFORE any transformations
+    let originalHeight = null;
+
     function handleScroll() {
         if (window.scrollY > threshold && !document.body.classList.contains('scrolled')) {
-            // Capture height before it shrinks
-            const height = header.offsetHeight;
-            placeholder.style.height = `${height}px`;
+            // Capture height before it shrinks (only once on first scroll)
+            if (!originalHeight) {
+                originalHeight = header.offsetHeight;
+            }
+            placeholder.style.height = `${originalHeight}px`;
             document.body.classList.add('scrolled');
         } else if (window.scrollY <= threshold && document.body.classList.contains('scrolled')) {
+            // Remove scrolled class first, then reset placeholder after a brief delay
+            // This allows the header to expand back before removing the placeholder
             document.body.classList.remove('scrolled');
-            placeholder.style.height = '0';
+            setTimeout(() => {
+                if (window.scrollY <= threshold) {
+                    placeholder.style.height = '0';
+                }
+            }, 300); // Match the CSS transition duration
         }
         ticking = false;
     }
