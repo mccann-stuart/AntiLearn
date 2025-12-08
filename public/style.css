@@ -205,6 +205,27 @@ h1 {
 .controls {
     text-align: center;
     margin-top: 2rem;
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+}
+
+#export-btn {
+    background: linear-gradient(135deg, #0071e3 0%, #30d158 100%);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 50px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 4px 15px rgba(0, 113, 227, 0.3);
+}
+
+#export-btn:hover {
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: 0 6px 25px rgba(0, 113, 227, 0.4);
 }
 
 button {
