@@ -595,11 +595,17 @@ body.scrolled .rec-details {
 }
 
 
+/* Selectors Row - Year and Region side by side */
+.selectors-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 1rem;
+}
+
 /* Region Selector */
 .region-group {
     display: flex;
     flex-direction: column;
-    margin-left: 0.3rem;
     transition: opacity 0.3s ease, max-height 0.3s ease, margin 0.3s ease;
     /* Add transition */
 }
@@ -624,6 +630,7 @@ body.scrolled .rec-details {
     font-family: inherit;
     cursor: pointer;
     backdrop-filter: blur(10px);
+    width: auto;
 }
 
 /* Scrolled state for region group */
