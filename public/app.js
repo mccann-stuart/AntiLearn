@@ -126,19 +126,27 @@ function getUKHolidays(year, region) {
         // Logic: If Jan 2 is Sat/Sun, substitute to next available workday (Mon/Tue)
         // Note: If Jan 1 was Sun->Mon, Jan 2 is Mon->Tue.
         let jan2 = new Date(year, 0, 2);
-        if (jan2.getDay() === 0 || jan2.getDay() === 6 || (jan2.getDay() === 1 && isHoliday(new Date(year, 0, 1)))) {
-            // Simplify: Just push it and let logic handle or implement specific sub logic
-            // Standard Scotland logic: if Jan 2 is Sun, Mon is Jan 2 sub? 
-            // If Jan 1 is Sat (sub Mon), Jan 2 is Sun (sub Tue).
+        // We need to re-check isHoliday for Jan 1st because it might not be in the list yet if we rely on global state in tests?
+        // Actually getUKHolidays builds the list locally.
+        // We should check if the substitute for Jan 1 is Jan 2.
+
+        const jan1Sub = holidays.find(h => h.name.includes("New Year"));
+        const jan1SubDate = jan1Sub ? jan1Sub.date : null;
+
+        if (jan2.getDay() === 0 || jan2.getDay() === 6) {
+            // Weekend logic
             let d = new Date(year, 0, 2);
             if (d.getDay() === 0) d.setDate(d.getDate() + 1); // Sun -> Mon
             else if (d.getDay() === 6) d.setDate(d.getDate() + 2); // Sat -> Mon
 
-            // Check if clash with New Year's substitute
-            const jan1Sub = holidays.find(h => h.name.includes("New Year"));
-            if (jan1Sub && jan1Sub.date === toLocalISOString(d)) {
-                d.setDate(d.getDate() + 1); // Move to next day
+            if (jan1SubDate === toLocalISOString(d)) {
+                d.setDate(d.getDate() + 1);
             }
+            holidays.push({ date: toLocalISOString(d), name: "2nd January" });
+        } else if (jan2.getDay() === 1 && jan1SubDate === toLocalISOString(jan2)) {
+            // Jan 2 is Mon, and Jan 1 Sub is also Mon. Move Jan 2 to Tue.
+            let d = new Date(year, 0, 2);
+            d.setDate(d.getDate() + 1);
             holidays.push({ date: toLocalISOString(d), name: "2nd January" });
         } else {
             holidays.push({ date: toLocalISOString(jan2), name: "2nd January" });
@@ -1060,4 +1068,26 @@ try {
             </div>
         `;
     }
+}
+
+// --- EXPORTS FOR TESTING ---
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        toLocalISOString,
+        getEasterDate,
+        getUKHolidays,
+        isWeekend,
+        isHoliday,
+        calculateContinuousLeave,
+        findOptimalPlan,
+        addDays,
+        getDayType,
+        // Helper to set state for testing
+        setTestState: (year, region, holidays) => {
+            currentYear = year;
+            currentRegion = region;
+            if (holidays) customHolidays = holidays;
+            holidaysCache.clear();
+        }
+    };
 }

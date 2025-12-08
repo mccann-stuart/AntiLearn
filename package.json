@@ -1,0 +1,25 @@
+{
+  "name": "app",
+  "version": "1.0.0",
+  "description": "A simple web application to help you find the most efficient way to use your annual leave in the UK. This tool calculates the best time to book your vacation days to get the longest possible breaks by strategically combining them with bank holidays and weekends.",
+  "main": "worker.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mccann-stuart/AntiLearn.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/mccann-stuart/AntiLearn/issues"
+  },
+  "homepage": "https://github.com/mccann-stuart/AntiLearn#readme",
+  "devDependencies": {
+    "jest": "^30.2.0",
+    "jest-environment-jsdom": "^30.2.0"
+  }
+}
