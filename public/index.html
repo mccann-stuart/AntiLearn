@@ -56,8 +56,29 @@
                             <!-- Years are dynamically populated by JavaScript -->
                         </select>
                     </div>
+
+                    <div class="region-group">
+                        <label for="region-select">Region:</label>
+                        <select id="region-select">
+                            <option value="england-wales" selected>England & Wales</option>
+                            <option value="scotland">Scotland</option>
+                            <option value="northern-ireland">Northern Ireland</option>
+                        </select>
+                    </div>
                 </div>
             </header>
+
+            <div class="custom-holidays-section" style="margin-bottom: 20px;">
+                <h3>Custom Holidays</h3>
+                <div class="custom-holiday-inputs">
+                    <input type="date" id="custom-date-input" aria-label="Custom holiday date">
+                    <input type="text" id="custom-name-input" placeholder="Holiday Name (e.g. My Birthday)" aria-label="Custom holiday name">
+                    <button id="add-custom-btn">Add</button>
+                </div>
+                <div id="custom-holidays-list" class="custom-list">
+                    <!-- Custom holidays added will appear here -->
+                </div>
+            </div>
 
             <div class="stats-container">
                 <div class="stat-card">

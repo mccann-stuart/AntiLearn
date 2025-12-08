@@ -590,3 +590,136 @@ body.scrolled .rec-details {
     font-size: 1rem;
     opacity: 0.9;
 }
+
+
+/* Region Selector */
+.region-group {
+    display: flex;
+    flex-direction: column;
+    margin-left: 2rem;
+}
+
+.region-group label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    opacity: 0.8;
+}
+
+.region-group select {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-color);
+    font-family: inherit;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+}
+
+/* Custom Holidays Section */
+.custom-holidays-section {
+    background: var(--card-bg);
+    padding: 1.5rem;
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+    margin: 1rem 0 2rem 0;
+}
+
+.custom-holidays-section h3 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+}
+
+.custom-holiday-inputs {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.custom-holiday-inputs input {
+    padding: 0.75rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-color);
+    font-family: inherit;
+}
+
+.custom-holiday-inputs input[type="text"] {
+    flex-grow: 1;
+}
+
+.custom-holiday-inputs button {
+    background: var(--accent-color);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: transform 0.2s;
+}
+
+.custom-holiday-inputs button:hover {
+    transform: scale(1.05);
+}
+
+.custom-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.custom-tag {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border: 1px solid var(--border-color);
+}
+
+.custom-tag button {
+    background: none;
+    border: none;
+    color: #ff6b6b;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    box-shadow: none;
+    backdrop-filter: none;
+}
+
+@media (max-width: 768px) {
+    .header-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .region-group {
+        margin-left: 0;
+        width: 100%;
+    }
+    
+    .region-group select {
+        width: 100%;
+    }
+
+    .custom-holiday-inputs {
+        flex-direction: column;
+    }
+    
+    .custom-holiday-inputs input, 
+    .custom-holiday-inputs button {
+        width: 100%;
+    }
+}

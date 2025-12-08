@@ -3,6 +3,13 @@
  * Combined into one file to ensure it runs locally without a server.
  */
 
+// --- STATE MANAGEMENT ---
+let currentAllowance = 25;
+let currentYear = new Date().getFullYear();
+let currentRegion = 'england-wales';
+let bookedDates = new Set();
+let customHolidays = [];
+
 // --- HOLIDAYS ---
 
 /**
@@ -41,58 +48,127 @@ function getEasterDate(year) {
 }
 
 /**
- * Generates a list of UK bank holidays for a given year.
+ * Generates a list of UK bank holidays for a given year, based on the region.
  * Handles substitute days for holidays falling on weekends.
  * @param {number} year The year to generate holidays for.
+ * @param {string} region The region code ('england-wales', 'scotland', 'northern-ireland').
  * @returns {Array<{date: string, name: string}>} A list of holiday objects.
  */
-function getUKHolidays(year) {
+function getUKHolidays(year, region) {
     const holidays = [];
 
-    // 1. New Year's Day (Jan 1)
-    // Substitute: If Sat/Sun, next Mon
-    let newYear = new Date(year, 0, 1);
-    if (newYear.getDay() === 0) newYear = new Date(year, 0, 2); // Sun -> Mon
-    else if (newYear.getDay() === 6) newYear = new Date(year, 0, 3); // Sat -> Mon
-    holidays.push({ date: toLocalISOString(newYear), name: "New Year's Day" });
+    // Helper to add holiday with substitute logic
+    function addHoliday(date, name, substituteRule = 'next-monday') {
+        let d = new Date(date);
+        const day = d.getDay();
 
-    // 2. Good Friday (Easter - 2)
+        if (day === 0) { // Sunday
+            if (substituteRule === 'next-monday') d.setDate(d.getDate() + 1);
+            else if (substituteRule === 'next-tuesday') d.setDate(d.getDate() + 2); // if Mon is also holiday
+        } else if (day === 6) { // Saturday
+            if (substituteRule === 'next-monday') d.setDate(d.getDate() + 2);
+            else if (substituteRule === 'next-tuesday') d.setDate(d.getDate() + 3); // unlikely but possible logic
+        }
+
+        // Special check for Christmas/Boxing Day overlap logic is handled manually below
+        holidays.push({ date: toLocalISOString(d), name: name + (d.getTime() !== date.getTime() ? " (Substitute)" : "") });
+    }
+
+    // 1. New Year's Day (Jan 1) - ALL
+    addHoliday(new Date(year, 0, 1), "New Year's Day");
+
+    // 2. Jan 2nd - SCOTLAND ONLY
+    if (region === 'scotland') {
+        // Logic: If Jan 2 is Sat/Sun, substitute to next available workday (Mon/Tue)
+        // Note: If Jan 1 was Sun->Mon, Jan 2 is Mon->Tue.
+        let jan2 = new Date(year, 0, 2);
+        if (jan2.getDay() === 0 || jan2.getDay() === 6 || (jan2.getDay() === 1 && isHoliday(new Date(year, 0, 1)))) {
+            // Simplify: Just push it and let logic handle or implement specific sub logic
+            // Standard Scotland logic: if Jan 2 is Sun, Mon is Jan 2 sub? 
+            // If Jan 1 is Sat (sub Mon), Jan 2 is Sun (sub Tue).
+            let d = new Date(year, 0, 2);
+            if (d.getDay() === 0) d.setDate(d.getDate() + 1); // Sun -> Mon
+            else if (d.getDay() === 6) d.setDate(d.getDate() + 2); // Sat -> Mon
+
+            // Check if clash with New Year's substitute
+            const jan1Sub = holidays.find(h => h.name.includes("New Year"));
+            if (jan1Sub && jan1Sub.date === toLocalISOString(d)) {
+                d.setDate(d.getDate() + 1); // Move to next day
+            }
+            holidays.push({ date: toLocalISOString(d), name: "2nd January" });
+        } else {
+            holidays.push({ date: toLocalISOString(jan2), name: "2nd January" });
+        }
+    }
+
+    // 3. St Patrick's Day (Mar 17) - NI ONLY
+    if (region === 'northern-ireland') {
+        addHoliday(new Date(year, 2, 17), "St Patrick's Day");
+    }
+
+    // 4. Good Friday (Easter - 2) - ALL
     const easter = getEasterDate(year);
     const goodFriday = new Date(easter);
     goodFriday.setDate(easter.getDate() - 2);
     holidays.push({ date: toLocalISOString(goodFriday), name: "Good Friday" });
 
-    // 3. Easter Monday (Easter + 1)
-    const easterMonday = new Date(easter);
-    easterMonday.setDate(easter.getDate() + 1);
-    holidays.push({ date: toLocalISOString(easterMonday), name: "Easter Monday" });
+    // 5. Easter Monday (Easter + 1) - ALL EXCEPT SCOTLAND
+    if (region !== 'scotland') {
+        const easterMonday = new Date(easter);
+        easterMonday.setDate(easter.getDate() + 1);
+        holidays.push({ date: toLocalISOString(easterMonday), name: "Easter Monday" });
+    }
 
-    // 4. Early May Bank Holiday (First Monday in May)
+    // 6. Early May Bank Holiday (First Monday in May) - ALL
     let mayDay = new Date(year, 4, 1);
     while (mayDay.getDay() !== 1) {
         mayDay.setDate(mayDay.getDate() + 1);
     }
     holidays.push({ date: toLocalISOString(mayDay), name: "Early May Bank Holiday" });
 
-    // 5. Spring Bank Holiday (Last Monday in May)
+    // 7. Spring Bank Holiday (Last Monday in May) - ALL
     let springBank = new Date(year, 4, 31);
     while (springBank.getDay() !== 1) {
         springBank.setDate(springBank.getDate() - 1);
     }
     holidays.push({ date: toLocalISOString(springBank), name: "Spring Bank Holiday" });
 
-    // 6. Summer Bank Holiday (Last Monday in August)
-    let summerBank = new Date(year, 7, 31);
-    while (summerBank.getDay() !== 1) {
-        summerBank.setDate(summerBank.getDate() - 1);
+    // 8. Orangemen's Day (July 12) - NI ONLY
+    if (region === 'northern-ireland') {
+        addHoliday(new Date(year, 6, 12), "Battle of the Boyne (Orangemen's Day)");
     }
-    holidays.push({ date: toLocalISOString(summerBank), name: "Summer Bank Holiday" });
 
-    // 7. Christmas Day (Dec 25)
+    // 9. Summer Bank Holiday (First Monday in Aug for SCOTLAND, Last Monday in Aug for E/W/NI)
+    if (region === 'scotland') {
+        let summerBank = new Date(year, 7, 1);
+        while (summerBank.getDay() !== 1) {
+            summerBank.setDate(summerBank.getDate() + 1);
+        }
+        holidays.push({ date: toLocalISOString(summerBank), name: "Summer Bank Holiday" });
+    } else {
+        let summerBank = new Date(year, 7, 31);
+        while (summerBank.getDay() !== 1) {
+            summerBank.setDate(summerBank.getDate() - 1);
+        }
+        holidays.push({ date: toLocalISOString(summerBank), name: "Summer Bank Holiday" });
+    }
+
+    // 10. St Andrew's Day (Nov 30) - SCOTLAND ONLY
+    if (region === 'scotland') {
+        addHoliday(new Date(year, 10, 30), "St Andrew's Day");
+    }
+
+    // 11. Christmas Day (Dec 25) - ALL
     let xmas = new Date(year, 11, 25);
     let xmasSub = null;
-    if (xmas.getDay() === 6) xmasSub = new Date(year, 11, 27);
-    else if (xmas.getDay() === 0) xmasSub = new Date(year, 11, 27);
+    let boxingSub = null; // Prepare for Boxing Day logic interaction
+
+    if (xmas.getDay() === 6) { // Sat
+        xmasSub = new Date(year, 11, 27); // Mon
+    } else if (xmas.getDay() === 0) { // Sun
+        xmasSub = new Date(year, 11, 27); // Tue (because Boxing Day is Mon) - Actually usually Xmas sub is 27th if Sun
+        // Logic: 25 Sun -> 26 Mon is Boxing Day -> 27 Tue is Xmas Sub
+    }
 
     if (xmasSub) {
         holidays.push({ date: toLocalISOString(xmasSub), name: "Christmas Day (Substitute)" });
@@ -100,17 +176,32 @@ function getUKHolidays(year) {
         holidays.push({ date: toLocalISOString(xmas), name: "Christmas Day" });
     }
 
-    // 8. Boxing Day (Dec 26)
+    // 12. Boxing Day (Dec 26) - ALL
     let boxing = new Date(year, 11, 26);
-    let boxingSub = null;
-    if (boxing.getDay() === 6) boxingSub = new Date(year, 11, 28);
-    else if (boxing.getDay() === 0) boxingSub = new Date(year, 11, 28);
+    // Logic: 
+    // If 26 is Sat -> Sub is Mon 28
+    // If 26 is Sun -> Sub is Mon 27? No, Xmas was Sat -> Mon 27. So Boxing Sub is Tue 28.
+    // If 25 Sun -> 26 Mon (Boxing) -> 27 Tue (Xmas Sub).
+
+    if (boxing.getDay() === 6) { // Sat
+        boxingSub = new Date(year, 11, 28); // Mon
+    } else if (boxing.getDay() === 0) { // Sun
+        boxingSub = new Date(year, 11, 28); // Tue (because 27 is Xmas sub)
+    }
 
     if (boxingSub) {
         holidays.push({ date: toLocalISOString(boxingSub), name: "Boxing Day (Substitute)" });
     } else {
         holidays.push({ date: toLocalISOString(boxing), name: "Boxing Day" });
     }
+
+    // Merge Custom Holidays
+    customHolidays.forEach(h => {
+        // Only if it doesn't already exist (simple check)
+        if (!holidays.some(eh => eh.date === h.date)) {
+            holidays.push(h);
+        }
+    });
 
     return holidays;
 }
@@ -119,15 +210,17 @@ function getUKHolidays(year) {
 const holidaysCache = new Map();
 
 /**
- * Retrieves UK bank holidays for a given year, using a cache to avoid re-computation.
+ * Retrieves UK bank holidays for a given year and region.
  * @param {number} year The year to get holidays for.
+ * @param {string} region The region code.
  * @returns {Array<{date: string, name: string}>} A list of holiday objects.
  */
-function getHolidaysForYear(year) {
-    if (!holidaysCache.has(year)) {
-        holidaysCache.set(year, getUKHolidays(year));
+function getHolidaysForYear(year, region) {
+    const key = `${year}-${region}-${customHolidays.length}`; // Simple cache bust on custom change
+    if (!holidaysCache.has(key)) {
+        holidaysCache.set(key, getUKHolidays(year, region));
     }
-    return holidaysCache.get(year);
+    return holidaysCache.get(key);
 }
 
 /**
@@ -141,13 +234,13 @@ function isWeekend(date) {
 }
 
 /**
- * Checks if a given date is a UK bank holiday.
+ * Checks if a given date is a holiday.
  * @param {Date} date The date to check.
  * @returns {boolean} True if the date is a holiday.
  */
 function isHoliday(date) {
     const year = date.getFullYear();
-    const holidays = getHolidaysForYear(year);
+    const holidays = getHolidaysForYear(year, currentRegion);
     const dateString = toLocalISOString(date);
     return holidays.some(h => h.date === dateString);
 }
@@ -159,7 +252,7 @@ function isHoliday(date) {
  */
 function getHolidayName(date) {
     const year = date.getFullYear();
-    const holidays = getHolidaysForYear(year);
+    const holidays = getHolidaysForYear(year, currentRegion);
     const dateString = toLocalISOString(date);
     const holiday = holidays.find(h => h.date === dateString);
     return holiday ? holiday.name : null;
@@ -193,9 +286,6 @@ function addDays(date, days) {
 /**
  * Calculates a continuous block of time off based on a starting workday and a number of leave days.
  * It expands the block to include adjacent weekends and holidays.
- * @param {Date} startDate The proposed start date for booking leave.
- * @param {number} leaveDaysToUse The number of workdays to book as leave.
- * @returns {{startDate: Date, endDate: Date, leaveDaysUsed: number, totalDaysOff: number, efficiency: number, bookedDates: Array<Date>}|null} An object detailing the leave block, or null if no valid block could be created.
  */
 function calculateContinuousLeave(startDate, leaveDaysToUse) {
     let leaveDaysBooked = [];
@@ -256,10 +346,6 @@ function calculateContinuousLeave(startDate, leaveDaysToUse) {
 
 /**
  * Finds the best combination of up to 3 leave blocks to maximize days off within a given allowance.
- * It prioritizes using the full allowance and then maximizing the total time off.
- * @param {number} year The year to plan for.
- * @param {number} allowance The total number of leave days available.
- * @returns {Array<{startDate: Date, endDate: Date, leaveDaysUsed: number, totalDaysOff: number, efficiency: number, bookedDates: Array<Date>}>} A sorted array of the best leave blocks found.
  */
 function findOptimalPlan(year, allowance) {
     const candidates = [];
@@ -292,16 +378,13 @@ function findOptimalPlan(year, allowance) {
         }
     });
 
-    // Strategy: Mix high efficiency blocks with long duration blocks
-    // 1. Get top efficient blocks
+    // Strategy Logic
     const sortedByEfficiency = [...uniqueCandidates].sort((a, b) => b.efficiency - a.efficiency);
-    const efficientCandidates = sortedByEfficiency.slice(0, 100); // Increased pool
+    const efficientCandidates = sortedByEfficiency.slice(0, 100);
 
-    // 2. Get top longest blocks (to help fill allowance)
     const sortedByDuration = [...uniqueCandidates].sort((a, b) => b.totalDaysOff - a.totalDaysOff);
-    const longCandidates = sortedByDuration.slice(0, 50); // Increased pool
+    const longCandidates = sortedByDuration.slice(0, 50);
 
-    // Combine and deduplicate again
     const combinedCandidates = [...efficientCandidates, ...longCandidates];
     const finalCandidates = [];
     const finalSeen = new Set();
@@ -314,9 +397,7 @@ function findOptimalPlan(year, allowance) {
         }
     });
 
-    // Sort by efficiency for the main loop logic (it prefers earlier items in the list)
     finalCandidates.sort((a, b) => b.efficiency - a.efficiency);
-
     const topCandidates = finalCandidates;
 
     // 2. Find best combination of 3 blocks
@@ -326,9 +407,6 @@ function findOptimalPlan(year, allowance) {
     function getScore(c1, c2, c3) {
         const totalLeave = (c1 ? c1.leaveDaysUsed : 0) + (c2 ? c2.leaveDaysUsed : 0) + (c3 ? c3.leaveDaysUsed : 0);
         const totalOff = (c1 ? c1.totalDaysOff : 0) + (c2 ? c2.totalDaysOff : 0) + (c3 ? c3.totalDaysOff : 0);
-
-        // Primary goal: Use as much allowance as possible (weight: 1000 per day)
-        // Secondary goal: Maximize days off (weight: 1 per day)
         return (totalLeave * 1000) + totalOff;
     }
 
@@ -372,7 +450,6 @@ function findOptimalPlan(year, allowance) {
         }
     }
 
-    // If still empty, try 1
     if (bestCombo.length === 0 && topCandidates.length > 0) {
         if (topCandidates[0].leaveDaysUsed <= allowance) {
             bestCombo = [topCandidates[0]];
@@ -385,9 +462,6 @@ function findOptimalPlan(year, allowance) {
 
 /**
  * Checks if two leave blocks overlap.
- * @param {object} b1 The first leave block.
- * @param {object} b2 The second leave block.
- * @returns {boolean} True if the blocks overlap.
  */
 function overlap(b1, b2) {
     return b1.startDate <= b2.endDate && b1.endDate >= b2.startDate;
@@ -395,17 +469,12 @@ function overlap(b1, b2) {
 
 // --- MAIN UI ---
 
-let currentAllowance = 25;
-let currentYear = new Date().getFullYear();
-let bookedDates = new Set();
-
 /**
  * Initializes the application, sets up event listeners, and performs the initial render.
  */
 function init() {
     const yearSelect = document.getElementById('year-select');
     if (yearSelect) {
-        // Dynamically populate years (current year + 1 to 5 years forward)
         yearSelect.innerHTML = '';
         const currentYearNow = new Date().getFullYear();
         for (let i = 0; i <= 5; i++) {
@@ -421,6 +490,17 @@ function init() {
 
         yearSelect.addEventListener('change', (e) => {
             currentYear = parseInt(e.target.value);
+            resetToOptimal();
+        });
+    }
+
+    const regionSelect = document.getElementById('region-select');
+    if (regionSelect) {
+        regionSelect.value = currentRegion;
+        regionSelect.addEventListener('change', (e) => {
+            currentRegion = e.target.value;
+            // Clear cache to force reload of holidays for new region
+            holidaysCache.clear();
             resetToOptimal();
         });
     }
@@ -441,8 +521,71 @@ function init() {
         resetToOptimal();
     });
 
+    // Custom Holiday Logic
+    document.getElementById('add-custom-btn').addEventListener('click', addCustomHoliday);
+
     resetToOptimal();
     initScrollHandler();
+    renderCustomHolidays();
+}
+
+/**
+ * Adds a custom holiday to the list.
+ */
+function addCustomHoliday() {
+    const dateInput = document.getElementById('custom-date-input');
+    const nameInput = document.getElementById('custom-name-input');
+    const dateVal = dateInput.value;
+    const nameVal = nameInput.value.trim();
+
+    if (dateVal && nameVal) {
+        // Prevent dupes
+        if (!customHolidays.some(h => h.date === dateVal)) {
+            customHolidays.push({ date: dateVal, name: nameVal, isCustom: true });
+            renderCustomHolidays();
+            holidaysCache.clear(); // Reset cache to include new holiday
+            resetToOptimal();
+            dateInput.value = '';
+            nameInput.value = '';
+        } else {
+            alert('A custom holiday for this date already exists.');
+        }
+    } else {
+        alert('Please enter both a date and a name.');
+    }
+}
+
+/**
+ * Removes a custom holiday.
+ */
+function removeCustomHoliday(dateStr) {
+    customHolidays = customHolidays.filter(h => h.date !== dateStr);
+    renderCustomHolidays();
+    holidaysCache.clear();
+    resetToOptimal();
+}
+
+/**
+ * Renders the list of custom holidays.
+ */
+function renderCustomHolidays() {
+    const list = document.getElementById('custom-holidays-list');
+    list.innerHTML = '';
+    customHolidays.forEach(h => {
+        const tag = document.createElement('div');
+        tag.className = 'custom-tag';
+        tag.innerHTML = `
+            ${h.name} (${h.date})
+            <button onclick="removeCustomHoliday('${h.date}')">&times;</button>
+        `;
+        // We need to attach the event listener properly safely or expose function globally
+        // For simplicity in this single-file setup, we'll attach listener directly
+        tag.querySelector('button').addEventListener('click', (e) => {
+            e.stopPropagation(); // prevent other clicks
+            removeCustomHoliday(h.date);
+        });
+        list.appendChild(tag);
+    });
 }
 
 /**
@@ -453,27 +596,22 @@ function initScrollHandler() {
     const placeholder = document.getElementById('sticky-placeholder');
     const threshold = 100; // Scroll threshold
     let ticking = false;
-
-    // Capture the original header height BEFORE any transformations
     let originalHeight = null;
 
     function handleScroll() {
         if (window.scrollY > threshold && !document.body.classList.contains('scrolled')) {
-            // Capture height before it shrinks (only once on first scroll)
             if (!originalHeight) {
                 originalHeight = header.offsetHeight;
             }
             placeholder.style.height = `${originalHeight}px`;
             document.body.classList.add('scrolled');
         } else if (window.scrollY <= threshold && document.body.classList.contains('scrolled')) {
-            // Remove scrolled class first, then reset placeholder after a brief delay
-            // This allows the header to expand back before removing the placeholder
             document.body.classList.remove('scrolled');
             setTimeout(() => {
                 if (window.scrollY <= threshold) {
                     placeholder.style.height = '0';
                 }
-            }, 300); // Match the CSS transition duration
+            }, 300);
         }
         ticking = false;
     }
@@ -520,8 +658,6 @@ function hideLoading() {
  */
 function resetToOptimal() {
     showLoading();
-
-    // Use setTimeout to allow loading UI to render before heavy computation
     setTimeout(() => {
         try {
             const blocks = findOptimalPlan(currentYear, currentAllowance);
@@ -543,7 +679,6 @@ function resetToOptimal() {
  */
 function updateUI() {
     document.getElementById('calendar-year-title').textContent = `${currentYear} Calendar`;
-
     renderStats();
     renderRecommendations();
     renderCalendar();
@@ -551,7 +686,6 @@ function updateUI() {
 
 /**
  * Analyzes the currently selected `bookedDates` to identify continuous blocks of time off.
- * @returns {Array<object>} A sorted array of leave block objects derived from the current plan.
  */
 function analyzeCurrentPlan() {
     const dates = Array.from(bookedDates).sort();
@@ -622,8 +756,6 @@ function renderStats() {
 
 /**
  * Formats a date for display in the recommendations.
- * @param {Date} date The date to format.
- * @returns {string} The formatted date string (e.g., "5 May").
  */
 function formatDate(date) {
     return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
@@ -637,7 +769,6 @@ function renderRecommendations() {
     container.innerHTML = '';
 
     const blocks = analyzeCurrentPlan();
-    // Sort blocks by date for display
     blocks.sort((a, b) => a.startDate - b.startDate);
     const top3 = blocks.slice(0, 3);
 
@@ -677,7 +808,7 @@ function renderRecommendations() {
 }
 
 /**
- * Renders the full calendar view for the selected year, highlighting weekends, holidays, and booked leave days.
+ * Renders the full calendar view.
  */
 function renderCalendar() {
     const container = document.getElementById('calendar');
@@ -760,8 +891,6 @@ try {
     init();
 } catch (error) {
     console.error('Failed to initialize application:', error);
-
-    // Display user-friendly error message
     const container = document.querySelector('.container');
     if (container) {
         container.innerHTML = `
