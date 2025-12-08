@@ -242,7 +242,10 @@ button:hover {
 
 /* Restored Inline Styles */
 #year-select {
-    padding: 0.5rem 1rem;
+    padding: 0.25rem 0.5rem;
+    /* Reduced from 0.5rem 1rem */
+    font-size: 0.9rem;
+    /* Added font size reduction */
     border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.2);
     background: rgba(255, 255, 255, 0.1);
@@ -597,17 +600,23 @@ body.scrolled .rec-details {
     display: flex;
     flex-direction: column;
     margin-left: 2rem;
+    transition: opacity 0.3s ease, max-height 0.3s ease, margin 0.3s ease;
+    /* Add transition */
 }
 
 .region-group label {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
+    /* Reduced from 0.8rem */
     font-weight: 600;
     margin-bottom: 0.25rem;
     opacity: 0.8;
 }
 
 .region-group select {
-    padding: 0.5rem 1rem;
+    padding: 0.25rem 0.5rem;
+    /* Reduced from 0.5rem 1rem */
+    font-size: 0.9rem;
+    /* Added font size reduction */
     border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.2);
     background: rgba(255, 255, 255, 0.1);
@@ -615,6 +624,16 @@ body.scrolled .rec-details {
     font-family: inherit;
     cursor: pointer;
     backdrop-filter: blur(10px);
+}
+
+/* Scrolled state for region group */
+body.scrolled .region-group {
+    opacity: 0;
+    max-height: 0;
+    margin: 0;
+    /* Collapse margin */
+    overflow: hidden;
+    pointer-events: none;
 }
 
 /* Custom Holidays Section */
@@ -704,12 +723,12 @@ body.scrolled .rec-details {
         align-items: flex-start;
         gap: 1rem;
     }
-    
+
     .region-group {
         margin-left: 0;
         width: 100%;
     }
-    
+
     .region-group select {
         width: 100%;
     }
@@ -717,8 +736,8 @@ body.scrolled .rec-details {
     .custom-holiday-inputs {
         flex-direction: column;
     }
-    
-    .custom-holiday-inputs input, 
+
+    .custom-holiday-inputs input,
     .custom-holiday-inputs button {
         width: 100%;
     }
