@@ -599,7 +599,7 @@ body.scrolled .rec-details {
 .region-group {
     display: flex;
     flex-direction: column;
-    margin-left: 2rem;
+    margin-left: 0.3rem;
     transition: opacity 0.3s ease, max-height 0.3s ease, margin 0.3s ease;
     /* Add transition */
 }
@@ -726,11 +726,11 @@ body.scrolled .region-group {
 
     .region-group {
         margin-left: 0;
-        width: 100%;
+        width: 10%;
     }
 
     .region-group select {
-        width: 100%;
+        width: 10%;
     }
 
     .custom-holiday-inputs {
