@@ -605,17 +605,20 @@ body.scrolled .rec-details {
 /* Region Selector */
 .region-group {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    /* Changed from column to row */
+    align-items: center;
+    gap: 0.5rem;
     transition: opacity 0.3s ease, max-height 0.3s ease, margin 0.3s ease;
     /* Add transition */
 }
 
 .region-group label {
-    font-size: 0.75rem;
-    /* Reduced from 0.8rem */
-    font-weight: 600;
-    margin-bottom: 0.25rem;
-    opacity: 0.8;
+    font-size: inherit;
+    /* Match year-group label */
+    font-weight: inherit;
+    margin-bottom: 0;
+    opacity: 1;
 }
 
 .region-group select {
@@ -628,6 +631,8 @@ body.scrolled .rec-details {
     background: rgba(255, 255, 255, 0.1);
     color: var(--text-color);
     font-family: inherit;
+    font-weight: 600;
+    /* Match #year-select */
     cursor: pointer;
     backdrop-filter: blur(10px);
     width: auto;
