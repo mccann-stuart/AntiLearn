@@ -754,26 +754,14 @@ function renderCustomHolidays() {
  * Sets up a scroll listener to handle the sticky header's appearance.
  */
 function initScrollHandler() {
-    const header = document.getElementById('sticky-header');
-    const placeholder = document.getElementById('sticky-placeholder');
     const threshold = 100; // Scroll threshold
     let ticking = false;
-    let originalHeight = null;
 
     function handleScroll() {
         if (window.scrollY > threshold && !document.body.classList.contains('scrolled')) {
-            if (!originalHeight) {
-                originalHeight = header.offsetHeight;
-            }
-            placeholder.style.height = `${originalHeight}px`;
             document.body.classList.add('scrolled');
         } else if (window.scrollY <= threshold && document.body.classList.contains('scrolled')) {
             document.body.classList.remove('scrolled');
-            setTimeout(() => {
-                if (window.scrollY <= threshold) {
-                    placeholder.style.height = '0';
-                }
-            }, 300);
         }
         ticking = false;
     }
