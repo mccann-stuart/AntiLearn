@@ -404,12 +404,12 @@ function findOptimalPlan(year, allowance) {
     const startOfYear = new Date(year, 0, 1);
     const endOfYear = new Date(year, 11, 31);
 
-    // 1. Generate all reasonable candidates (blocks of 3 to allowance leave days)
+    // 1. Generate all reasonable candidates (blocks of 1 to allowance leave days)
     let current = new Date(startOfYear);
     while (current <= endOfYear) {
         if (getDayType(current) === 'workday') {
             const maxChunk = allowance; // Allow checking up to full allowance
-            for (let i = 3; i <= maxChunk; i++) {
+            for (let i = 1; i <= maxChunk; i++) {
                 const result = calculateContinuousLeave(current, i);
                 if (result) {
                     candidates.push(result);
@@ -459,7 +459,9 @@ function findOptimalPlan(year, allowance) {
     function getScore(c1, c2, c3) {
         const totalLeave = (c1 ? c1.leaveDaysUsed : 0) + (c2 ? c2.leaveDaysUsed : 0) + (c3 ? c3.leaveDaysUsed : 0);
         const totalOff = (c1 ? c1.totalDaysOff : 0) + (c2 ? c2.totalDaysOff : 0) + (c3 ? c3.totalDaysOff : 0);
-        return (totalLeave * 1000) + totalOff;
+        const efficiency = totalLeave > 0 ? totalOff / totalLeave : 0;
+        // Maximize days off first, then prefer higher efficiency and fewer leave days.
+        return (totalOff * 1000) + (efficiency * 10) - totalLeave;
     }
 
     for (let i = 0; i < topCandidates.length; i++) {
@@ -614,6 +616,11 @@ function init() {
     if (yearSelect) {
         yearSelect.innerHTML = '';
         const currentYearNow = new Date().getFullYear();
+        const minYear = currentYearNow;
+        const maxYear = currentYearNow + 5;
+        if (currentYear < minYear || currentYear > maxYear) {
+            currentYear = minYear;
+        }
         for (let i = 0; i <= 5; i++) {
             const year = currentYearNow + i;
             const option = document.createElement('option');

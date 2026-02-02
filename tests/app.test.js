@@ -167,4 +167,15 @@ describe('Optimization Logic', () => {
         const bestBlock = plan.sort((a,b) => b.efficiency - a.efficiency)[0];
         expect(bestBlock.efficiency).toBeGreaterThan(1.5);
     });
+
+    test('findOptimalPlan works with small allowances', () => {
+        const planOneDay = findOptimalPlan(2023, 1);
+        expect(planOneDay.length).toBeGreaterThan(0);
+        expect(planOneDay[0].leaveDaysUsed).toBeLessThanOrEqual(1);
+
+        const planTwoDays = findOptimalPlan(2023, 2);
+        expect(planTwoDays.length).toBeGreaterThan(0);
+        const totalLeaveUsed = planTwoDays.reduce((sum, block) => sum + block.leaveDaysUsed, 0);
+        expect(totalLeaveUsed).toBeLessThanOrEqual(2);
+    });
 });
