@@ -664,6 +664,8 @@ body.scrolled .rec-details {
         padding: 0.5rem 1rem;
         height: auto;
         min-height: auto;
+        max-height: none;
+        /* Override desktop constraint */
         flex-direction: column;
         align-items: stretch;
         gap: 0.5rem;
