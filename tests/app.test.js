@@ -246,6 +246,19 @@ describe('Smart Insights', () => {
         expect(insight.efficiency).toBeGreaterThan(1);
     });
 
+    test('heatmap efficiency updates when a neighboring day is booked', () => {
+        setTestState(2023, 'england-wales', [], []);
+        const target = new Date(2023, 1, 10); // Fri Feb 10 2023
+        const baseInsight = getDayInsight(target);
+        expect(baseInsight).not.toBeNull();
+
+        setTestState(2023, 'england-wales', [], ['2023-02-09']); // Thu Feb 9 2023
+        const updatedInsight = getDayInsight(target);
+        expect(updatedInsight).not.toBeNull();
+        expect(updatedInsight.efficiency).not.toBe(baseInsight.efficiency);
+        expect(updatedInsight.efficiency).toBeLessThan(baseInsight.efficiency);
+    });
+
     test('getYearComparison provides comparative data', () => {
         const comparison = getYearComparison(2023, 5);
         expect(comparison.currentYear).toBe(2023);

@@ -516,10 +516,18 @@ function isNonWorkday(date) {
 
 /**
  * Computes the potential efficiency and bridge status for booking a single day of leave.
- * Results are cached per date/region/custom-holiday state.
+ * Results are cached per date/region/custom-holiday state when no days are booked.
+ * When the user has already selected leave days, the insight adapts to those
+ * selections and is recalculated dynamically.
  */
 function getDayInsight(date) {
     if (getDayType(date) !== 'workday') return null;
+
+    // Dynamic mode: if the user has selected days, recompute based on the current plan.
+    if (bookedDates.size > 0) {
+        return calculateDynamicDayInsight(date);
+    }
+
     const key = `${toLocalISOString(date)}-${currentRegion}-${customHolidays.length}`;
     if (!dayInsightCache.has(key)) {
         const result = calculateContinuousLeave(date, 1);
@@ -531,6 +539,58 @@ function getDayInsight(date) {
         dayInsightCache.set(key, { efficiency, totalDaysOff, bridge });
     }
     return dayInsightCache.get(key);
+}
+
+/**
+ * Calculates efficiency/bridge info for a date, treating the date as booked and
+ * incorporating any existing booked dates to form the contiguous off block.
+ */
+function calculateDynamicDayInsight(date) {
+    const dateStr = toLocalISOString(date);
+    const isBookedOrCandidate = (dStr) => dStr === dateStr || bookedDates.has(dStr);
+    const isOffDay = (d) => isNonWorkday(d) || isBookedOrCandidate(toLocalISOString(d));
+
+    let rangeStart = new Date(date);
+    while (true) {
+        const prev = addDays(rangeStart, -1);
+        if (isOffDay(prev)) {
+            rangeStart = prev;
+        } else {
+            break;
+        }
+    }
+
+    let rangeEnd = new Date(date);
+    while (true) {
+        const next = addDays(rangeEnd, 1);
+        if (isOffDay(next)) {
+            rangeEnd = next;
+        } else {
+            break;
+        }
+    }
+
+    let totalDaysOff = 0;
+    let leaveDays = 0;
+    let current = new Date(rangeStart);
+    while (current <= rangeEnd) {
+        totalDaysOff++;
+        const currentStr = toLocalISOString(current);
+        if (isBookedOrCandidate(currentStr) && getDayType(current) === 'workday') {
+            leaveDays++;
+        }
+        current = addDays(current, 1);
+    }
+
+    const prev = addDays(date, -1);
+    const next = addDays(date, 1);
+    const bridge = isNonWorkday(prev) && isNonWorkday(next);
+
+    return {
+        efficiency: leaveDays > 0 ? totalDaysOff / leaveDays : 1,
+        totalDaysOff,
+        bridge
+    };
 }
 
 /**
@@ -1308,6 +1368,7 @@ function renderCalendar() {
         for (let d = 1; d <= daysInMonth; d++) {
             const date = new Date(currentYear, monthIndex, d);
             const dateStr = toLocalISOString(date);
+            const isBooked = bookedDates.has(dateStr);
 
             const el = document.createElement('div');
             el.className = 'day';
@@ -1330,14 +1391,18 @@ function renderCalendar() {
                     const tier = getEfficiencyTier(insight.efficiency);
                     el.classList.add(`heat-${tier}`);
                     if (insight.bridge) el.classList.add('bridge');
-                    tooltipParts.push(`${insight.efficiency.toFixed(1)}x if booked`);
+                    if (isBooked) {
+                        tooltipParts.push(`${insight.efficiency.toFixed(1)}x in current plan`);
+                    } else {
+                        tooltipParts.push(`${insight.efficiency.toFixed(1)}x if booked`);
+                    }
                     if (insight.bridge) tooltipParts.push('Bridge day');
                     el.dataset.efficiency = insight.efficiency.toFixed(1);
                     el.dataset.totaloff = insight.totalDaysOff;
                 }
             }
 
-            if (bookedDates.has(dateStr)) {
+            if (isBooked) {
                 el.classList.add('leave');
             }
 
@@ -1412,10 +1477,15 @@ if (typeof module !== 'undefined' && module.exports) {
         encodePlanString,
         decodePlanString,
         // Helper to set state for testing
-        setTestState: (year, region, holidays) => {
+        setTestState: (year, region, holidays, booked) => {
             currentYear = year;
             currentRegion = region;
             if (holidays) customHolidays = holidays;
+            if (booked) {
+                bookedDates = new Set(booked);
+            } else {
+                bookedDates = new Set();
+            }
             holidaysCache.clear();
             invalidateInsightCaches();
         }
