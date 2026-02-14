@@ -661,35 +661,92 @@ body.scrolled .rec-details {
 
     /* Sticky header mobile adjustments */
     body.scrolled #sticky-header {
-        padding: 0 1rem;
+        padding: 0.5rem 1rem;
         height: auto;
-        min-height: 60px;
+        min-height: auto;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+
+    body.scrolled header {
+        margin-right: 0;
+        margin-bottom: 0.25rem;
+        text-align: center;
+    }
+
+    body.scrolled .header-content {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
     }
 
     body.scrolled h1 {
-        font-size: 1rem;
+        font-size: 1.1rem;
     }
 
     body.scrolled .stats-container {
         display: none;
     }
 
+    body.scrolled .recommendations-section {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+        /* Space for scrollbar if visible */
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        /* Firefox */
+    }
+
+    body.scrolled .recommendations-section::-webkit-scrollbar {
+        display: none;
+        /* Chrome/Safari */
+    }
+
     body.scrolled .recommendations {
-        gap: 0.5rem;
+        display: flex;
+        flex-direction: row;
+        gap: 0.75rem;
+        margin-bottom: 0;
+        transform: none;
+        width: max-content;
+        /* Ensure it expands horizontally */
     }
 
     body.scrolled .rec-card {
-        padding: 0.4rem 0.6rem;
-        min-width: auto;
+        padding: 0.5rem 0.75rem;
+        min-width: 140px;
+        /* Small enough to fit multiple */
+        max-width: 160px;
+        flex: 0 0 auto;
+        align-items: flex-start;
+        text-align: left;
+        background: rgba(255, 255, 255, 0.15);
     }
 
     body.scrolled .rec-badge {
-        font-size: 0.65rem;
-        padding: 0.1rem 0.4rem;
+        font-size: 0.6rem;
+        padding: 0.1rem 0.3rem;
+        position: absolute;
+        top: 0.25rem;
+        right: 0.25rem;
     }
 
     body.scrolled .rec-dates {
-        font-size: 0.75rem;
+        font-size: 0.8rem;
+        margin-top: 1rem;
+        /* Space for badge */
+        white-space: normal;
+        /* Allow wrapping if needed */
+        line-height: 1.2;
+    }
+
+    /* Ensure other elements don't get in the way */
+    body.scrolled .controls {
+        display: none;
+        /* Hide controls in sticky header on mobile to save space */
     }
 }
 
