@@ -5,10 +5,21 @@ A simple web application to help you find the most efficient way to use your ann
 ## Features
 
 *   **Optimal Vacation Planning**: Automatically calculates the best combination of leave blocks to maximize your time off.
+*   **Regional Holidays**: Supports England & Wales, Scotland, and Northern Ireland bank holidays.
+*   **Custom Holidays**: Add your own non-working days (company shutdowns, birthdays, local events).
 *   **Interactive Calendar**: A full-year calendar view that highlights weekends, bank holidays, and your booked leave days.
 *   **Customizable Allowance**: Adjust your annual leave allowance to match your employer's policy.
 *   **Year Selection**: Plan your vacations for the current year and future years.
-*   **Real-time Analysis**: Get instant feedback on your leave plan, including the total number of days off and the efficiency of your choices.
+*   **Smart Insights**: Heatmap efficiency hints, bridge-day highlights, and year-over-year comparisons.
+*   **Export to Calendar**: Download an iCal (.ics) file for your booked leave blocks.
+*   **Persistent Plans**: Saves your plan to `localStorage` and restores it on return visits.
+
+## Status (as of 2026-02-14)
+
+*   Core optimizer, multi-region holiday logic, custom holidays, export, heatmap, and year-over-year insights are implemented in `public/app.js`.
+*   Frontend is static in `public/` and runs without a backend.
+*   Tests: `npm test` runs 14 unit tests across date utilities, holiday logic, optimization, and insights. Jest logs a console error because the app bootstraps without a DOM when imported in tests, but the suite passes.
+*   Deployment uses `worker.js` to add security headers and caching on Cloudflare.
 
 ## Getting Started
 
@@ -17,12 +28,16 @@ A simple web application to help you find the most efficient way to use your ann
 To get a local copy up and running, open the `public/index.html` file in your web browser:
 
 ```bash
-# Clone this repository (if published)
 cd AntiLearn
-
-# Open in browser
 open public/index.html
 # or on Linux: xdg-open public/index.html
+```
+
+### Tests
+
+```bash
+npm install
+npm test
 ```
 
 ### Production Deployment
