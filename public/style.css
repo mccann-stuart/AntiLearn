@@ -458,8 +458,10 @@ body.scrolled #sticky-header {
     backdrop-filter: blur(15px);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
     display: flex;
+    flex-direction: row;
     align-items: center;
     justify-content: space-between;
+    gap: 1rem;
     padding: 0.5rem 2rem;
     box-sizing: border-box;
 }
@@ -472,14 +474,18 @@ body.scrolled #sticky-placeholder {
 body.scrolled header {
     margin-bottom: 0;
     text-align: left;
-    flex: 0 0 auto;
-    margin-right: 2rem;
+    flex: 0 1 auto;
+    min-width: 0;
+    margin-right: 1rem;
 }
 
 body.scrolled .header-content {
     display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    min-width: 0;
+    gap: 0.75rem;
 }
 
 body.scrolled h1 {
@@ -512,8 +518,11 @@ body.scrolled #year-select {
 /* Stats Transformation */
 body.scrolled .stats-container {
     margin-bottom: 0;
-    gap: 1.5rem;
-    flex: 0 0 auto;
+    gap: 0.75rem;
+    flex: 0 1 auto;
+    min-width: 0;
+    flex-wrap: wrap;
+    justify-content: flex-start;
 }
 
 body.scrolled .stat-card {
@@ -552,9 +561,11 @@ body.scrolled .recommendations-section {
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
     height: 100%;
     max-height: var(--sticky-compact-height);
+    min-width: 0;
 }
 
 body.scrolled .rec-title {
@@ -565,6 +576,9 @@ body.scrolled .rec-title {
 }
 
 body.scrolled .recommendations {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
     gap: 1rem;
     margin-bottom: 0;
     transform: translateY(-2px) scale(0.98);
@@ -576,6 +590,7 @@ body.scrolled .rec-card {
     border-radius: 8px;
     background: rgba(255, 255, 255, 0.1);
     min-width: auto;
+    flex: 0 0 auto;
     display: flex;
     flex-direction: column;
     align-items: center;
