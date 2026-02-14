@@ -12,6 +12,158 @@ let customHolidays = [];
 
 // --- PERSISTENCE ---
 const STORAGE_KEY = 'vacationMaximiser';
+const SHARE_PARAM = 'plan';
+let shareStatusTimer = null;
+
+/**
+ * Builds a plain object representing the current plan state.
+ */
+function getPlanPayload() {
+    return {
+        v: 1,
+        currentAllowance,
+        currentYear,
+        currentRegion,
+        bookedDates: Array.from(bookedDates),
+        customHolidays
+    };
+}
+
+/**
+ * Encodes a JavaScript object into a base64url string for safe URL transport.
+ * Works in both browser and Node (tests).
+ */
+function encodePlanString(payload) {
+    try {
+        const json = JSON.stringify(payload);
+        const base64 = typeof Buffer !== 'undefined'
+            ? Buffer.from(json, 'utf8').toString('base64')
+            : btoa(unescape(encodeURIComponent(json)));
+        return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    } catch (e) {
+        console.warn('Failed to encode plan:', e);
+        return null;
+    }
+}
+
+/**
+ * Decodes a base64url plan string back into an object, with basic validation.
+ */
+function decodePlanString(encoded) {
+    if (!encoded || typeof encoded !== 'string') return null;
+    try {
+        const normalized = encoded.replace(/-/g, '+').replace(/_/g, '/');
+        const padded = normalized + '==='.slice((normalized.length + 3) % 4);
+        const json = typeof Buffer !== 'undefined'
+            ? Buffer.from(padded, 'base64').toString('utf8')
+            : decodeURIComponent(escape(atob(padded)));
+        const obj = JSON.parse(json);
+        if (!obj || typeof obj !== 'object') return null;
+        const allowance = typeof obj.currentAllowance === 'number' && obj.currentAllowance > 0 && obj.currentAllowance <= 365
+            ? obj.currentAllowance
+            : currentAllowance;
+        return {
+            currentAllowance: allowance,
+            currentYear: typeof obj.currentYear === 'number' ? obj.currentYear : currentYear,
+            currentRegion: typeof obj.currentRegion === 'string' ? obj.currentRegion : currentRegion,
+            bookedDates: Array.isArray(obj.bookedDates) ? obj.bookedDates : [],
+            customHolidays: Array.isArray(obj.customHolidays) ? obj.customHolidays : []
+        };
+    } catch (e) {
+        if (!(typeof process !== 'undefined' && process.env.JEST_WORKER_ID)) {
+            console.warn('Failed to decode plan:', e);
+        }
+        return null;
+    }
+}
+
+/**
+ * Attempts to read and apply a shared plan from the URL.
+ * Returns true if a shared plan was applied.
+ */
+function applySharedPlanFromUrl() {
+    if (typeof window === 'undefined') return false;
+    try {
+        const url = new URL(window.location.href);
+        const encodedPlan = url.searchParams.get(SHARE_PARAM);
+        if (!encodedPlan) return false;
+
+        const decoded = decodePlanString(encodedPlan);
+        if (!decoded) return false;
+
+        const allowedRegions = ['england-wales', 'scotland', 'northern-ireland'];
+        if (!allowedRegions.includes(decoded.currentRegion)) {
+            decoded.currentRegion = 'england-wales';
+        }
+
+        currentAllowance = decoded.currentAllowance;
+        currentYear = decoded.currentYear;
+        currentRegion = decoded.currentRegion;
+        bookedDates = new Set(decoded.bookedDates || []);
+        customHolidays = decoded.customHolidays || [];
+
+        holidaysCache.clear();
+        invalidateInsightCaches();
+        return true;
+    } catch (e) {
+        console.warn('Failed to apply shared plan:', e);
+        return false;
+    }
+}
+
+/**
+ * Builds a shareable URL reflecting the current plan.
+ */
+function buildShareableUrl() {
+    if (typeof window === 'undefined') return '';
+    const url = new URL(window.location.href);
+    const encoded = encodePlanString(getPlanPayload());
+    if (!encoded) return '';
+    url.searchParams.set(SHARE_PARAM, encoded);
+    return url.toString();
+}
+
+/**
+ * Shows a temporary status message near the share button.
+ */
+function showShareStatus(message, isError = false) {
+    const statusEl = document.getElementById('share-status');
+    if (!statusEl) return;
+    statusEl.textContent = message;
+    statusEl.style.color = isError ? '#ff6b6b' : 'var(--accent-color)';
+    if (shareStatusTimer) clearTimeout(shareStatusTimer);
+    shareStatusTimer = setTimeout(() => {
+        statusEl.textContent = '';
+    }, 3000);
+}
+
+/**
+ * Copies the shareable link to the clipboard (with fallback).
+ */
+async function handleShareLink() {
+    const shareUrl = buildShareableUrl();
+    if (!shareUrl) {
+        showShareStatus('Unable to create share link', true);
+        return;
+    }
+
+    try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(shareUrl);
+        } else {
+            const tempInput = document.createElement('input');
+            tempInput.value = shareUrl;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+        }
+        showShareStatus('Link copied!');
+    } catch (e) {
+        console.warn('Copy failed:', e);
+        showShareStatus('Copy failed', true);
+    }
+}
 
 /**
  * Saves the current application state to localStorage.
@@ -673,8 +825,10 @@ function init() {
     const savedState = loadState();
     let shouldRestoreFromSaved = false;
 
-    if (savedState) {
-        // Restore state variables
+    const appliedSharedPlan = applySharedPlanFromUrl();
+
+    if (!appliedSharedPlan && savedState) {
+        // Restore state variables from local storage if no shared plan
         if (typeof savedState.currentAllowance === 'number') {
             currentAllowance = savedState.currentAllowance;
         }
@@ -691,6 +845,10 @@ function init() {
         if (Array.isArray(savedState.customHolidays)) {
             customHolidays = savedState.customHolidays;
         }
+    } else if (appliedSharedPlan) {
+        shouldRestoreFromSaved = bookedDates.size > 0;
+        // Persist the shared plan locally for subsequent visits
+        saveState();
     }
 
     const yearSelect = document.getElementById('year-select');
@@ -748,18 +906,29 @@ function init() {
     });
     }
 
-    document.getElementById('reset-btn').addEventListener('click', () => {
-        resetToOptimal();
-        saveState();
-    });
+    const resetBtn = document.getElementById('reset-btn');
+    if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+            resetToOptimal();
+            saveState();
+        });
+    }
 
     // Custom Holiday Logic
-    document.getElementById('add-custom-btn').addEventListener('click', addCustomHoliday);
+    const addCustomBtn = document.getElementById('add-custom-btn');
+    if (addCustomBtn) {
+        addCustomBtn.addEventListener('click', addCustomHoliday);
+    }
 
     // Export Button
     const exportBtn = document.getElementById('export-btn');
     if (exportBtn) {
         exportBtn.addEventListener('click', exportToICS);
+    }
+
+    const shareBtn = document.getElementById('share-btn');
+    if (shareBtn) {
+        shareBtn.addEventListener('click', handleShareLink);
     }
 
     // If we have saved booked dates, restore and render; otherwise compute optimal
@@ -818,6 +987,7 @@ function removeCustomHoliday(dateStr) {
  */
 function renderCustomHolidays() {
     const list = document.getElementById('custom-holidays-list');
+    if (!list) return;
     list.innerHTML = '';
     customHolidays.forEach(h => {
         const tag = document.createElement('div');
@@ -1221,6 +1391,8 @@ if (typeof module !== 'undefined' && module.exports) {
         getDayInsight,
         getYearComparison,
         getEfficiencyTier,
+        encodePlanString,
+        decodePlanString,
         // Helper to set state for testing
         setTestState: (year, region, holidays) => {
             currentYear = year;

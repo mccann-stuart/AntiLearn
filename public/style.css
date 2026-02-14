@@ -255,6 +255,7 @@ h1 {
     display: flex;
     justify-content: center;
     gap: 1rem;
+    align-items: center;
 }
 
 #export-btn {
@@ -293,6 +294,12 @@ button:hover {
     background: rgba(255, 255, 255, 0.15);
     transform: scale(1.05);
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+
+.share-status {
+    min-width: 140px;
+    font-weight: 600;
+    text-align: left;
 }
 
 /* --- Insights & Legend --- */

@@ -10,7 +10,9 @@ const {
     setTestState,
     getDayInsight,
     getYearComparison,
-    getEfficiencyTier
+    getEfficiencyTier,
+    encodePlanString,
+    decodePlanString
 } = require('../public/app.js');
 
 describe('Date Utilities', () => {
@@ -208,5 +210,33 @@ describe('Smart Insights', () => {
         expect(comparison.previousYear).toBe(2022);
         expect(comparison.currentBest).toBeGreaterThan(0);
         expect(comparison.previousBest).toBeGreaterThan(0);
+    });
+});
+
+describe('Shareable Links', () => {
+    test('encodePlanString and decodePlanString round-trip correctly', () => {
+        const payload = {
+            currentAllowance: 15,
+            currentYear: 2025,
+            currentRegion: 'scotland',
+            bookedDates: ['2025-06-01', '2025-06-02'],
+            customHolidays: [{ date: '2025-06-05', name: 'Test Holiday' }]
+        };
+
+        const encoded = encodePlanString(payload);
+        expect(typeof encoded).toBe('string');
+
+        const decoded = decodePlanString(encoded);
+        expect(decoded).not.toBeNull();
+        expect(decoded.currentAllowance).toBe(payload.currentAllowance);
+        expect(decoded.currentYear).toBe(payload.currentYear);
+        expect(decoded.currentRegion).toBe(payload.currentRegion);
+        expect(decoded.bookedDates).toEqual(payload.bookedDates);
+        expect(decoded.customHolidays).toEqual(payload.customHolidays);
+    });
+
+    test('decodePlanString returns null on invalid input', () => {
+        expect(decodePlanString('!not_base64')).toBeNull();
+        expect(decodePlanString(null)).toBeNull();
     });
 });
