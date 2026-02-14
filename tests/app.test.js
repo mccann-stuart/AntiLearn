@@ -96,14 +96,56 @@ describe('Holiday Calculations', () => {
         expect(holidayDates).toContain('2023-11-30');
 
         // No Easter Monday in Scotland (usually)
-        // Wait, app.js logic says: if (region !== 'scotland') ... Easter Monday
         expect(holidayDates).not.toContain('2023-04-10');
+    });
+
+    test('getUKHolidays handles Northern Ireland holidays correctly', () => {
+        const holidays = getUKHolidays(2023, 'northern-ireland');
+        const holidayDates = holidays.map(h => h.date);
+
+        // St Patrick's Day (Mar 17)
+        expect(holidayDates).toContain('2023-03-17');
+
+        // Orangemen's Day (July 12)
+        expect(holidayDates).toContain('2023-07-12');
+    });
+
+    test('Substitute holidays logic for Christmas/Boxing Day on weekends', () => {
+        // 2021: Xmas (Sat), Boxing (Sun).
+        // Xmas Sub -> Mon Dec 27.
+        // Boxing Sub -> Tue Dec 28.
+        const holidays2021 = getUKHolidays(2021, 'england-wales');
+        const dates2021 = holidays2021.map(h => h.date);
+
+        expect(dates2021).toContain('2021-12-27'); // Xmas Sub
+        expect(dates2021).toContain('2021-12-28'); // Boxing Sub
+
+        // 2022: Xmas (Sun), Boxing (Mon).
+        // Xmas Sub -> Tue Dec 27.
+        // Boxing Day -> Mon Dec 26.
+        const holidays2022 = getUKHolidays(2022, 'england-wales');
+        const dates2022 = holidays2022.map(h => h.date);
+
+        expect(dates2022).toContain('2022-12-26'); // Boxing Day
+        expect(dates2022).toContain('2022-12-27'); // Xmas Sub
     });
 
     test('isHoliday uses current state correctly', () => {
         setTestState(2023, 'england-wales', []);
         expect(isHoliday(new Date(2023, 11, 25))).toBe(true); // Xmas
         expect(isHoliday(new Date(2023, 11, 24))).toBe(false); // Xmas Eve
+    });
+
+    test('Leap year handling (Feb 29)', () => {
+        // 2024 is a leap year. Feb 29 exists.
+        const leapDay = new Date(2024, 1, 29);
+        expect(leapDay.getDate()).toBe(29);
+        expect(leapDay.getMonth()).toBe(1); // Feb
+
+        // 2023 is not a leap year. Feb 29 becomes Mar 1.
+        const notLeapDay = new Date(2023, 1, 29);
+        expect(notLeapDay.getMonth()).toBe(2); // Mar
+        expect(notLeapDay.getDate()).toBe(1);
     });
 });
 
@@ -169,7 +211,7 @@ describe('Optimization Logic', () => {
 
         // Ensure efficiency is good (at least > 2 for optimal planning around holidays)
         // Easter usually gives > 2
-        const bestBlock = plan.sort((a,b) => b.efficiency - a.efficiency)[0];
+        const bestBlock = plan.sort((a, b) => b.efficiency - a.efficiency)[0];
         expect(bestBlock.efficiency).toBeGreaterThan(1.5);
     });
 
@@ -210,6 +252,22 @@ describe('Smart Insights', () => {
         expect(comparison.previousYear).toBe(2022);
         expect(comparison.currentBest).toBeGreaterThan(0);
         expect(comparison.previousBest).toBeGreaterThan(0);
+    });
+
+    test('Optimization considers custom holidays', () => {
+        // Add a custom holiday on a Wednesday.
+        // If we take Thu/Fri off, we get Wed-Sun off (5 days).
+        setTestState(2023, 'england-wales', [{ date: '2023-06-07', name: 'My Birthday' }]); // Wed June 7
+
+        // Check if June 7 is treated as a holiday
+        expect(isHoliday(new Date(2023, 5, 7))).toBe(true);
+
+        const result = calculateContinuousLeave(new Date(2023, 5, 8), 2); // Start Thu June 8, use 2 days (Thu, Fri)
+
+        expect(result.leaveDaysUsed).toBe(2);
+        expect(toLocalISOString(result.startDate)).toBe('2023-06-07'); // Starts on the holiday
+        expect(toLocalISOString(result.endDate)).toBe('2023-06-11'); // Ends on Sunday
+        expect(result.totalDaysOff).toBe(5);
     });
 });
 

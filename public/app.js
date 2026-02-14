@@ -4,10 +4,15 @@
  */
 
 // --- STATE MANAGEMENT ---
+/** @type {number} Current number of annual leave days available. */
 let currentAllowance = 25;
+/** @type {number} The year being planned for. */
 let currentYear = new Date().getFullYear();
+/** @type {string} The selected region (england-wales, scotland, northern-ireland). */
 let currentRegion = 'england-wales';
+/** @type {Set<string>} Set of dates (YYYY-MM-DD) that the user has booked. */
 let bookedDates = new Set();
+/** @type {Array<{date: string, name: string}>} List of custom user-defined holidays. */
 let customHolidays = [];
 
 // --- PERSISTENCE ---
@@ -253,7 +258,12 @@ function getEasterDate(year) {
 function getUKHolidays(year, region) {
     const holidays = [];
 
-    // Helper to add holiday with substitute logic
+    /**
+     * Helper to add a holiday with substitute logic.
+     * @param {Date} date The original holiday date.
+     * @param {string} name The name of the holiday.
+     * @param {'next-monday'|'next-tuesday'} [substituteRule='next-monday'] Rule for weekend substitution.
+     */
     function addHoliday(date, name, substituteRule = 'next-monday') {
         let d = new Date(date);
         const day = d.getDay();
@@ -689,6 +699,14 @@ function findOptimalPlan(year, allowance) {
     let bestCombo = [];
     let maxScore = -1;
 
+    /**
+     * Calculates a score for a combination of leave blocks.
+     * Higher score is better. Prioritizes total days off, then efficiency.
+     * @param {Object} c1 First candidate block.
+     * @param {Object} c2 Second candidate block.
+     * @param {Object|null} c3 Third candidate block.
+     * @returns {number} The calculated score.
+     */
     function getScore(c1, c2, c3) {
         const totalLeave = (c1 ? c1.leaveDaysUsed : 0) + (c2 ? c2.leaveDaysUsed : 0) + (c3 ? c3.leaveDaysUsed : 0);
         const totalOff = (c1 ? c1.totalDaysOff : 0) + (c2 ? c2.totalDaysOff : 0) + (c3 ? c3.totalDaysOff : 0);
@@ -896,14 +914,14 @@ function init() {
     if (allowanceInput) {
         allowanceInput.value = currentAllowance;
         allowanceInput.addEventListener('change', (e) => {
-        const val = parseInt(e.target.value);
-        if (val > 0 && val <= 365) {
-            currentAllowance = val;
-            invalidateInsightCaches();
-            resetToOptimal();
-            saveState();
-        }
-    });
+            const val = parseInt(e.target.value);
+            if (val > 0 && val <= 365) {
+                currentAllowance = val;
+                invalidateInsightCaches();
+                resetToOptimal();
+                saveState();
+            }
+        });
     }
 
     const resetBtn = document.getElementById('reset-btn');

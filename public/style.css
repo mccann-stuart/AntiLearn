@@ -165,6 +165,11 @@ h1 {
     margin-top: 3rem;
 }
 
+.calendar-title {
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
 .calendar-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
