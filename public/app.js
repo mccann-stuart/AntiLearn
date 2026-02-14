@@ -260,6 +260,15 @@ function getUKHolidays(year, region) {
 
 // Cache holidays for performance
 const holidaysCache = new Map();
+// Cache per-date insights (efficiency + bridge) to avoid recomputation while interacting.
+const dayInsightCache = new Map();
+// Cache year-over-year comparison to avoid recomputing optimal plans unnecessarily.
+const yearComparisonCache = new Map();
+
+function invalidateInsightCaches() {
+    dayInsightCache.clear();
+    yearComparisonCache.clear();
+}
 
 /**
  * Retrieves UK bank holidays for a given year and region.
@@ -333,6 +342,78 @@ function addDays(date, days) {
     const result = new Date(date);
     result.setDate(result.getDate() + days);
     return result;
+}
+
+/**
+ * Returns true if a date is not a workday (weekend or holiday).
+ */
+function isNonWorkday(date) {
+    const type = getDayType(date);
+    return type === 'holiday' || type === 'weekend';
+}
+
+/**
+ * Computes the potential efficiency and bridge status for booking a single day of leave.
+ * Results are cached per date/region/custom-holiday state.
+ */
+function getDayInsight(date) {
+    if (getDayType(date) !== 'workday') return null;
+    const key = `${toLocalISOString(date)}-${currentRegion}-${customHolidays.length}`;
+    if (!dayInsightCache.has(key)) {
+        const result = calculateContinuousLeave(date, 1);
+        const prev = addDays(date, -1);
+        const next = addDays(date, 1);
+        const bridge = isNonWorkday(prev) && isNonWorkday(next);
+        const efficiency = result ? result.efficiency : 1;
+        const totalDaysOff = result ? result.totalDaysOff : 1;
+        dayInsightCache.set(key, { efficiency, totalDaysOff, bridge });
+    }
+    return dayInsightCache.get(key);
+}
+
+/**
+ * Buckets efficiency into tiers for heatmap colouring.
+ */
+function getEfficiencyTier(efficiency) {
+    if (efficiency >= 3) return 'high';
+    if (efficiency >= 2) return 'mid';
+    return 'low';
+}
+
+function getLongestBlockDays(plan) {
+    if (!plan || plan.length === 0) return 0;
+    return Math.max(...plan.map(b => b.totalDaysOff));
+}
+
+/**
+ * Compares the best consecutive-days-off block between the selected year and the previous year.
+ */
+function getYearComparison(year, allowance) {
+    const key = `${year}-${allowance}-${currentRegion}-${customHolidays.length}`;
+    if (!yearComparisonCache.has(key)) {
+        const currentPlan = findOptimalPlan(year, allowance);
+        const previousPlan = findOptimalPlan(year - 1, allowance);
+        const currentBest = getLongestBlockDays(currentPlan);
+        const previousBest = getLongestBlockDays(previousPlan);
+
+        let deltaPercent = null;
+        let direction = 'same';
+        if (previousBest > 0) {
+            deltaPercent = ((currentBest - previousBest) / previousBest) * 100;
+            if (deltaPercent > 0.5) direction = 'more';
+            else if (deltaPercent < -0.5) direction = 'less';
+        }
+
+        yearComparisonCache.set(key, {
+            currentYear: year,
+            previousYear: year - 1,
+            currentBest,
+            previousBest,
+            deltaPercent,
+            direction
+        });
+    }
+    return yearComparisonCache.get(key);
 }
 
 /**
@@ -634,6 +715,7 @@ function init() {
 
         yearSelect.addEventListener('change', (e) => {
             currentYear = parseInt(e.target.value);
+            invalidateInsightCaches();
             resetToOptimal();
             saveState();
         });
@@ -646,6 +728,7 @@ function init() {
             currentRegion = e.target.value;
             // Clear cache to force reload of holidays for new region
             holidaysCache.clear();
+            invalidateInsightCaches();
             resetToOptimal();
             saveState();
         });
@@ -655,13 +738,14 @@ function init() {
     if (allowanceInput) {
         allowanceInput.value = currentAllowance;
         allowanceInput.addEventListener('change', (e) => {
-            const val = parseInt(e.target.value);
-            if (val > 0 && val <= 365) {
-                currentAllowance = val;
-                resetToOptimal();
-                saveState();
-            }
-        });
+        const val = parseInt(e.target.value);
+        if (val > 0 && val <= 365) {
+            currentAllowance = val;
+            invalidateInsightCaches();
+            resetToOptimal();
+            saveState();
+        }
+    });
     }
 
     document.getElementById('reset-btn').addEventListener('click', () => {
@@ -704,6 +788,7 @@ function addCustomHoliday() {
             customHolidays.push({ date: dateVal, name: nameVal, isCustom: true });
             renderCustomHolidays();
             holidaysCache.clear(); // Reset cache to include new holiday
+            invalidateInsightCaches();
             resetToOptimal();
             saveState();
             dateInput.value = '';
@@ -723,6 +808,7 @@ function removeCustomHoliday(dateStr) {
     customHolidays = customHolidays.filter(h => h.date !== dateStr);
     renderCustomHolidays();
     holidaysCache.clear();
+    invalidateInsightCaches();
     resetToOptimal();
     saveState();
 }
@@ -831,6 +917,7 @@ function updateUI() {
     document.getElementById('calendar-year-title').textContent = `${currentYear} Calendar`;
     renderStats();
     renderRecommendations();
+    renderInsights();
     renderCalendar();
 }
 
@@ -902,6 +989,41 @@ function renderStats() {
     }
 
     document.getElementById('days-off').textContent = totalOff;
+}
+
+/**
+ * Renders insight cards such as year-over-year comparison.
+ */
+function renderInsights() {
+    const yoyMain = document.getElementById('yoy-main');
+    const yoySub = document.getElementById('yoy-sub');
+    if (!yoyMain || !yoySub) return;
+
+    const comparison = getYearComparison(currentYear, currentAllowance);
+    if (!comparison || comparison.previousBest === 0) {
+        yoyMain.textContent = 'Not enough data from last year to compare.';
+        yoySub.textContent = '';
+        return;
+    }
+
+    if (comparison.deltaPercent === null) {
+        yoyMain.textContent = 'Unable to compute comparison.';
+        yoySub.textContent = '';
+        return;
+    }
+
+    const percentText = Math.abs(comparison.deltaPercent).toFixed(1);
+    let headline;
+    if (comparison.direction === 'more') {
+        headline = `${comparison.currentYear} offers ${percentText}% more consecutive days off than ${comparison.previousYear}.`;
+    } else if (comparison.direction === 'less') {
+        headline = `${comparison.currentYear} offers ${percentText}% fewer consecutive days off than ${comparison.previousYear}.`;
+    } else {
+        headline = `${comparison.currentYear} is on par with ${comparison.previousYear} for longest breaks.`;
+    }
+
+    yoyMain.textContent = headline;
+    yoySub.textContent = `Best stretch: ${comparison.currentBest} days vs ${comparison.previousBest} last year using the same allowance.`;
 }
 
 /**
@@ -1006,14 +1128,33 @@ function renderCalendar() {
             const type = getDayType(date);
             if (type === 'weekend') el.classList.add('weekend');
 
+            const tooltipParts = [];
+
             const holidayName = getHolidayName(date);
             if (holidayName) {
                 el.classList.add('holiday');
-                el.title = holidayName;
+                tooltipParts.push(holidayName);
+            }
+
+            if (type === 'workday') {
+                const insight = getDayInsight(date);
+                if (insight) {
+                    const tier = getEfficiencyTier(insight.efficiency);
+                    el.classList.add(`heat-${tier}`);
+                    if (insight.bridge) el.classList.add('bridge');
+                    tooltipParts.push(`${insight.efficiency.toFixed(1)}x if booked`);
+                    if (insight.bridge) tooltipParts.push('Bridge day');
+                    el.dataset.efficiency = insight.efficiency.toFixed(1);
+                    el.dataset.totaloff = insight.totalDaysOff;
+                }
             }
 
             if (bookedDates.has(dateStr)) {
                 el.classList.add('leave');
+            }
+
+            if (tooltipParts.length > 0) {
+                el.title = tooltipParts.join(' • ');
             }
 
             if (type === 'workday') {
@@ -1077,12 +1218,16 @@ if (typeof module !== 'undefined' && module.exports) {
         findOptimalPlan,
         addDays,
         getDayType,
+        getDayInsight,
+        getYearComparison,
+        getEfficiencyTier,
         // Helper to set state for testing
         setTestState: (year, region, holidays) => {
             currentYear = year;
             currentRegion = region;
             if (holidays) customHolidays = holidays;
             holidaysCache.clear();
+            invalidateInsightCaches();
         }
     };
 }

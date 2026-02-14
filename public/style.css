@@ -2,12 +2,16 @@
     --bg-gradient: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);
     --glass-bg: rgba(255, 255, 255, 0.05);
     --glass-border: rgba(255, 255, 255, 0.1);
+    --border-color: rgba(255, 255, 255, 0.12);
     --text-color: #f5f5f7;
     --card-bg: rgba(255, 255, 255, 0.08);
     --accent-color: #0071e3;
     --success-color: #30d158;
     --hover-bg: rgba(255, 255, 255, 0.12);
     --sticky-compact-height: clamp(72px, 10vh, 140px);
+    --heat-low: #c94b42;
+    --heat-mid: #f1b44c;
+    --heat-high: #2fd27a;
 }
 
 body {
@@ -217,6 +221,34 @@ h1 {
     font-weight: bold;
 }
 
+.day.heat-high {
+    background: linear-gradient(135deg, rgba(47, 210, 122, 0.2), rgba(47, 210, 122, 0.6));
+    color: #0f331f;
+}
+
+.day.heat-mid {
+    background: linear-gradient(135deg, rgba(241, 180, 76, 0.2), rgba(241, 180, 76, 0.6));
+    color: #3b2a0f;
+}
+
+.day.heat-low {
+    background: linear-gradient(135deg, rgba(201, 75, 66, 0.2), rgba(201, 75, 66, 0.6));
+    color: #3a1411;
+}
+
+.day.bridge {
+    outline: 2px solid var(--accent-color);
+    outline-offset: -2px;
+    box-shadow: 0 0 0 1px rgba(0, 113, 227, 0.4);
+}
+
+/* Ensure booked leave overrides heatmap colours */
+.day.leave {
+    background: var(--success-color) !important;
+    color: #1a1a1a;
+    font-weight: bold;
+}
+
 .controls {
     text-align: center;
     margin-top: 2rem;
@@ -261,6 +293,82 @@ button:hover {
     background: rgba(255, 255, 255, 0.15);
     transform: scale(1.05);
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+
+/* --- Insights & Legend --- */
+
+.insights-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0 0.5rem 0;
+}
+
+.insight-card {
+    background: var(--card-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 1.25rem 1.5rem;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.insight-label {
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.75rem;
+    opacity: 0.7;
+    margin-bottom: 0.35rem;
+}
+
+.insight-main {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 0.35rem;
+}
+
+.insight-sub {
+    opacity: 0.85;
+    font-size: 0.95rem;
+}
+
+.legend-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+    opacity: 0.85;
+}
+
+.legend-swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+    border: 1px solid var(--glass-border);
+    display: inline-block;
+}
+
+.legend-swatch.heat-high {
+    background: linear-gradient(135deg, rgba(47, 210, 122, 0.2), rgba(47, 210, 122, 0.6));
+}
+
+.legend-swatch.heat-mid {
+    background: linear-gradient(135deg, rgba(241, 180, 76, 0.2), rgba(241, 180, 76, 0.6));
+}
+
+.legend-swatch.heat-low {
+    background: linear-gradient(135deg, rgba(201, 75, 66, 0.2), rgba(201, 75, 66, 0.6));
+}
+
+.legend-swatch.bridge {
+    background: transparent;
+    border: 2px solid var(--accent-color);
 }
 
 /* --- New Sticky Header Styles --- */

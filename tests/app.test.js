@@ -7,7 +7,10 @@ const {
     calculateContinuousLeave,
     findOptimalPlan,
     addDays,
-    setTestState
+    setTestState,
+    getDayInsight,
+    getYearComparison,
+    getEfficiencyTier
 } = require('../public/app.js');
 
 describe('Date Utilities', () => {
@@ -177,5 +180,33 @@ describe('Optimization Logic', () => {
         expect(planTwoDays.length).toBeGreaterThan(0);
         const totalLeaveUsed = planTwoDays.reduce((sum, block) => sum + block.leaveDaysUsed, 0);
         expect(totalLeaveUsed).toBeLessThanOrEqual(2);
+    });
+});
+
+describe('Smart Insights', () => {
+    beforeEach(() => {
+        setTestState(2023, 'england-wales', []);
+    });
+
+    test('getEfficiencyTier buckets correctly', () => {
+        expect(getEfficiencyTier(3.5)).toBe('high');
+        expect(getEfficiencyTier(2.1)).toBe('mid');
+        expect(getEfficiencyTier(1.4)).toBe('low');
+    });
+
+    test('getDayInsight detects bridge day with custom holiday', () => {
+        setTestState(2023, 'england-wales', [{ date: '2023-07-06', name: 'Custom Break' }]); // Thursday
+        const insight = getDayInsight(new Date(2023, 6, 7)); // Friday between holiday and weekend
+        expect(insight).not.toBeNull();
+        expect(insight.bridge).toBe(true);
+        expect(insight.efficiency).toBeGreaterThan(1);
+    });
+
+    test('getYearComparison provides comparative data', () => {
+        const comparison = getYearComparison(2023, 5);
+        expect(comparison.currentYear).toBe(2023);
+        expect(comparison.previousYear).toBe(2022);
+        expect(comparison.currentBest).toBeGreaterThan(0);
+        expect(comparison.previousBest).toBeGreaterThan(0);
     });
 });
