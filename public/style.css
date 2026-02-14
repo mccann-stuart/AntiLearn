@@ -761,10 +761,6 @@ body.scrolled .rec-details {
     }
 
     /* Ensure other elements don't get in the way */
-    body.scrolled .controls {
-        display: none;
-        /* Hide controls in sticky header on mobile to save space */
-    }
 }
 
 @media (max-width: 480px) {
