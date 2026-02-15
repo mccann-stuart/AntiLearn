@@ -515,82 +515,35 @@ function isNonWorkday(date) {
 }
 
 /**
+ * Determines if a day should be treated as "off" for continuity checks.
+ * Considers weekends, holidays, and any already booked leave dates when provided.
+ * @param {Date} date The date to evaluate.
+ * @param {Set<string>|null} bookedSet Optional set of ISO date strings representing booked leave.
+ * @returns {boolean} True if the day is a weekend/holiday or already booked.
+ */
+function isDayOff(date, bookedSet = null) {
+    if (isNonWorkday(date)) return true;
+    if (bookedSet && bookedSet.has(toLocalISOString(date))) return true;
+    return false;
+}
+
+/**
  * Computes the potential efficiency and bridge status for booking a single day of leave.
- * Results are cached per date/region/custom-holiday state when no days are booked.
- * When the user has already selected leave days, the insight adapts to those
- * selections and is recalculated dynamically.
+ * Results are cached per date/region/custom-holiday state.
  */
 function getDayInsight(date) {
     if (getDayType(date) !== 'workday') return null;
-
-    // Dynamic mode: if the user has selected days, recompute based on the current plan.
-    if (bookedDates.size > 0) {
-        return calculateDynamicDayInsight(date);
-    }
-
     const key = `${toLocalISOString(date)}-${currentRegion}-${customHolidays.length}`;
     if (!dayInsightCache.has(key)) {
-        const result = calculateContinuousLeave(date, 1);
+        const result = calculateContinuousLeave(date, 1, bookedDates);
         const prev = addDays(date, -1);
         const next = addDays(date, 1);
-        const bridge = isNonWorkday(prev) && isNonWorkday(next);
+        const bridge = isDayOff(prev, bookedDates) && isDayOff(next, bookedDates);
         const efficiency = result ? result.efficiency : 1;
         const totalDaysOff = result ? result.totalDaysOff : 1;
         dayInsightCache.set(key, { efficiency, totalDaysOff, bridge });
     }
     return dayInsightCache.get(key);
-}
-
-/**
- * Calculates efficiency/bridge info for a date, treating the date as booked and
- * incorporating any existing booked dates to form the contiguous off block.
- */
-function calculateDynamicDayInsight(date) {
-    const dateStr = toLocalISOString(date);
-    const isBookedOrCandidate = (dStr) => dStr === dateStr || bookedDates.has(dStr);
-    const isOffDay = (d) => isNonWorkday(d) || isBookedOrCandidate(toLocalISOString(d));
-
-    let rangeStart = new Date(date);
-    while (true) {
-        const prev = addDays(rangeStart, -1);
-        if (isOffDay(prev)) {
-            rangeStart = prev;
-        } else {
-            break;
-        }
-    }
-
-    let rangeEnd = new Date(date);
-    while (true) {
-        const next = addDays(rangeEnd, 1);
-        if (isOffDay(next)) {
-            rangeEnd = next;
-        } else {
-            break;
-        }
-    }
-
-    let totalDaysOff = 0;
-    let leaveDays = 0;
-    let current = new Date(rangeStart);
-    while (current <= rangeEnd) {
-        totalDaysOff++;
-        const currentStr = toLocalISOString(current);
-        if (isBookedOrCandidate(currentStr) && getDayType(current) === 'workday') {
-            leaveDays++;
-        }
-        current = addDays(current, 1);
-    }
-
-    const prev = addDays(date, -1);
-    const next = addDays(date, 1);
-    const bridge = isNonWorkday(prev) && isNonWorkday(next);
-
-    return {
-        efficiency: leaveDays > 0 ? totalDaysOff / leaveDays : 1,
-        totalDaysOff,
-        bridge
-    };
 }
 
 /**
@@ -640,20 +593,23 @@ function getYearComparison(year, allowance) {
 
 /**
  * Calculates a continuous block of time off based on a starting workday and a number of leave days.
- * It expands the block to include adjacent weekends and holidays.
+ * It expands the block to include adjacent weekends, holidays, and already booked leave.
+ * @param {Date} startDate First day of leave to book.
+ * @param {number} leaveDaysToUse Number of leave days to add.
+ * @param {Set<string>|null} bookedSet Optional set of ISO date strings representing already booked leave.
  */
-function calculateContinuousLeave(startDate, leaveDaysToUse) {
+function calculateContinuousLeave(startDate, leaveDaysToUse, bookedSet = null) {
     let leaveDaysBooked = [];
     let current = new Date(startDate);
     let daysCounted = 0;
 
-    // Find consecutive workdays
-    while (getDayType(current) !== 'workday') {
+    // Find first bookable workday (skip existing off days)
+    while (isDayOff(current, bookedSet)) {
         current = addDays(current, 1);
     }
 
     while (daysCounted < leaveDaysToUse) {
-        if (getDayType(current) === 'workday') {
+        if (!isDayOff(current, bookedSet)) {
             leaveDaysBooked.push(new Date(current));
             daysCounted++;
         }
@@ -665,22 +621,22 @@ function calculateContinuousLeave(startDate, leaveDaysToUse) {
     const firstBookedDay = leaveDaysBooked[0];
     const lastBookedDay = leaveDaysBooked[leaveDaysBooked.length - 1];
 
-    // Expand backwards
+    // Expand backwards through any off days (weekend/holiday/booked)
     let rangeStart = new Date(firstBookedDay);
     while (true) {
         const prevDay = addDays(rangeStart, -1);
-        if (getDayType(prevDay) !== 'workday') {
+        if (isDayOff(prevDay, bookedSet)) {
             rangeStart = prevDay;
         } else {
             break;
         }
     }
 
-    // Expand forwards
+    // Expand forwards through any off days (weekend/holiday/booked)
     let rangeEnd = new Date(lastBookedDay);
     while (true) {
         const nextDay = addDays(rangeEnd, 1);
-        if (getDayType(nextDay) !== 'workday') {
+        if (isDayOff(nextDay, bookedSet)) {
             rangeEnd = nextDay;
         } else {
             break;
