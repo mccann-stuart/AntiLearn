@@ -266,6 +266,7 @@ h1 {
     justify-content: center;
     gap: 1rem;
     align-items: center;
+    flex-wrap: wrap;
 }
 
 #export-btn {
@@ -788,10 +789,7 @@ body.scrolled .rec-details {
     }
 
     /* Ensure other elements don't get in the way */
-    body.scrolled .controls {
-        display: none;
-        /* Hide controls in sticky header on mobile to save space */
-    }
+    /* Controls should remain visible at bottom of page even when scrolled */
 }
 
 @media (max-width: 480px) {
@@ -1009,13 +1007,21 @@ body.scrolled .region-group {
         gap: 1rem;
     }
 
+    /* Stack selectors vertically */
+    .selectors-row {
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+        gap: 1rem;
+    }
+
     .region-group {
         margin-left: 0;
-        width: 10%;
+        width: 100%;
     }
 
     .region-group select {
-        width: 10%;
+        width: 100%;
     }
 
     .custom-holiday-inputs {
