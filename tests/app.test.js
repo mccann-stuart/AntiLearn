@@ -110,6 +110,20 @@ describe('Holiday Calculations', () => {
         expect(holidayDates).toContain('2023-07-12');
     });
 
+    test('getUKHolidays substitutes St Patrick\'s Day on weekends in NI', () => {
+        // 2024: Mar 17 is Sunday -> Substitute is Mon Mar 18
+        const holidays2024 = getUKHolidays(2024, 'northern-ireland');
+        const dates2024 = holidays2024.map(h => h.date);
+        expect(dates2024).toContain('2024-03-18');
+        expect(dates2024).not.toContain('2024-03-17');
+
+        // 2029: Mar 17 is Saturday -> Substitute is Mon Mar 19
+        const holidays2029 = getUKHolidays(2029, 'northern-ireland');
+        const dates2029 = holidays2029.map(h => h.date);
+        expect(dates2029).toContain('2029-03-19');
+        expect(dates2029).not.toContain('2029-03-17');
+    });
+
     test('Substitute holidays logic for Christmas/Boxing Day on weekends', () => {
         // 2021: Xmas (Sat), Boxing (Sun).
         // Xmas Sub -> Mon Dec 27.
