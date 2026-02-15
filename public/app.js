@@ -599,9 +599,13 @@ function getDayType(date) {
  * @returns {Date} The new date.
  */
 function addDays(date, days) {
-    const result = new Date(date);
-    result.setDate(result.getDate() + days);
-    return result;
+    const original = (date instanceof Date) ? date : new Date(date);
+    const d = new Date(original.valueOf() + days * 86400000);
+    const diff = d.getTimezoneOffset() - original.getTimezoneOffset();
+    if (diff !== 0) {
+        d.setTime(d.valueOf() + diff * 60000);
+    }
+    return d;
 }
 
 /**
