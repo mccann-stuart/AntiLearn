@@ -551,10 +551,7 @@ function isWeekend(date) {
  * @returns {boolean} True if the date is a holiday.
  */
 function isHoliday(date) {
-    const year = date.getFullYear();
-    const { lookup } = getHolidaysForYear(year, currentRegion);
-    const dateString = toLocalISOString(date);
-    return lookup.has(dateString);
+    return getHolidayName(date) !== null;
 }
 
 /**
