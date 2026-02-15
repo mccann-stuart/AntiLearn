@@ -6,6 +6,7 @@
     --text-color: #f5f5f7;
     --card-bg: rgba(255, 255, 255, 0.08);
     --accent-color: #0071e3;
+    --error-color: #ff6b6b;
     --success-color: #30d158;
     --hover-bg: rgba(255, 255, 255, 0.12);
     --sticky-compact-height: clamp(72px, 10vh, 140px);
@@ -72,6 +73,10 @@ h1 {
     font-size: 2.5rem;
     font-weight: 700;
     color: var(--accent-color);
+}
+
+.stat-value.error {
+    color: var(--error-color);
 }
 
 .stat-label {
@@ -305,6 +310,11 @@ button:hover {
     min-width: 140px;
     font-weight: 600;
     text-align: left;
+    color: var(--accent-color);
+}
+
+.share-status.error {
+    color: var(--error-color);
 }
 
 /* --- Insights & Legend --- */
@@ -981,7 +991,7 @@ body.scrolled .region-group {
 .custom-tag button {
     background: none;
     border: none;
-    color: #ff6b6b;
+    color: var(--error-color);
     font-size: 1.2rem;
     cursor: pointer;
     padding: 0;
@@ -1056,7 +1066,7 @@ body.scrolled .region-group {
 }
 
 .toast.error {
-    border-left-color: #ff6b6b;
+    border-left-color: var(--error-color);
 }
 
 .toast.success {
