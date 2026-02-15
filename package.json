@@ -2,9 +2,9 @@
   "name": "app",
   "version": "1.0.0",
   "description": "A simple web application to help you find the most efficient way to use your annual leave in the UK. This tool calculates the best time to book your vacation days to get the longest possible breaks by strategically combining them with bank holidays and weekends.",
-  "main": "worker.js",
+  "main": "worker.mjs",
   "scripts": {
-    "test": "jest"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
   },
   "repository": {
     "type": "git",

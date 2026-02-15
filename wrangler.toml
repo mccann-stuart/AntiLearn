@@ -1,6 +1,6 @@
 name = "englishholidays"
 compatibility_date = "2024-09-23"
-main = "worker.js"
+main = "worker.mjs"
 assets = { directory = "./public", binding = "ASSETS" }
 
 [observability]
