@@ -1,4 +1,4 @@
-const { decodePlanString, encodePlanString } = require('../public/app.js');
+const { REGIONS, decodePlanString, encodePlanString } = require('../public/app.js');
 
 describe('Security Vulnerability: decodePlanString Input Validation', () => {
 
@@ -6,7 +6,7 @@ describe('Security Vulnerability: decodePlanString Input Validation', () => {
         const maliciousPayload = {
             currentAllowance: 25,
             currentYear: 2023,
-            currentRegion: 'england-wales',
+            currentRegion: REGIONS.ENGLAND_WALES,
             bookedDates: [
                 "2023-01-01",
                 12345, // Not a string
@@ -34,7 +34,7 @@ describe('Security Vulnerability: decodePlanString Input Validation', () => {
         const maliciousPayload = {
             currentAllowance: 25,
             currentYear: 2023,
-            currentRegion: 'england-wales',
+            currentRegion: REGIONS.ENGLAND_WALES,
             bookedDates: [],
             customHolidays: [
                 { date: "2023-01-01", name: "New Year" },

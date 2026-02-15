@@ -4,12 +4,18 @@
  */
 
 // --- STATE MANAGEMENT ---
+/** @type {Object} Supported regions. */
+const REGIONS = {
+    ENGLAND_WALES: 'england-wales',
+    SCOTLAND: 'scotland',
+    NORTHERN_IRELAND: 'northern-ireland'
+};
 /** @type {number} Current number of annual leave days available. */
 let currentAllowance = 25;
 /** @type {number} The year being planned for. */
 let currentYear = new Date().getFullYear();
 /** @type {string} The selected region (england-wales, scotland, northern-ireland). */
-let currentRegion = 'england-wales';
+let currentRegion = REGIONS.ENGLAND_WALES;
 /** @type {Set<string>} Set of dates (YYYY-MM-DD) that the user has booked. */
 let bookedDates = new Set();
 /** @type {Array<{date: string, name: string}>} List of custom user-defined holidays. */
@@ -105,9 +111,9 @@ function applySharedPlanFromUrl() {
         const decoded = decodePlanString(encodedPlan);
         if (!decoded) return false;
 
-        const allowedRegions = ['england-wales', 'scotland', 'northern-ireland'];
+        const allowedRegions = Object.values(REGIONS);
         if (!allowedRegions.includes(decoded.currentRegion)) {
-            decoded.currentRegion = 'england-wales';
+            decoded.currentRegion = REGIONS.ENGLAND_WALES;
         }
 
         currentAllowance = decoded.currentAllowance;
@@ -355,7 +361,7 @@ function getScotlandJan2(year, jan1Holiday) {
 function getSummerBankHoliday(year, region) {
     // Scotland: First Monday in August
     // Others: Last Monday in August
-    const position = region === 'scotland' ? 'first' : 'last';
+    const position = region === REGIONS.SCOTLAND ? 'first' : 'last';
     const date = findDayInMonth(year, 7, 1, position);
     return { date: toLocalISOString(date), name: "Summer Bank Holiday" };
 }
@@ -415,12 +421,12 @@ function getUKHolidays(year, region) {
     holidays.push(newYear);
 
     // 2. Jan 2nd - SCOTLAND ONLY
-    if (region === 'scotland') {
+    if (region === REGIONS.SCOTLAND) {
         holidays.push(getScotlandJan2(year, newYear));
     }
 
     // 3. St Patrick's Day (Mar 17) - NI ONLY
-    if (region === 'northern-ireland') {
+    if (region === REGIONS.NORTHERN_IRELAND) {
         holidays.push(createHoliday(new Date(year, 2, 17), "St Patrick's Day"));
     }
 
@@ -431,7 +437,7 @@ function getUKHolidays(year, region) {
     holidays.push({ date: toLocalISOString(goodFriday), name: "Good Friday" });
 
     // 5. Easter Monday (Easter + 1) - ALL EXCEPT SCOTLAND
-    if (region !== 'scotland') {
+    if (region !== REGIONS.SCOTLAND) {
         const easterMonday = new Date(easter);
         easterMonday.setDate(easter.getDate() + 1);
         holidays.push({ date: toLocalISOString(easterMonday), name: "Easter Monday" });
@@ -446,7 +452,7 @@ function getUKHolidays(year, region) {
     holidays.push({ date: toLocalISOString(springBank), name: "Spring Bank Holiday" });
 
     // 8. Orangemen's Day (July 12) - NI ONLY
-    if (region === 'northern-ireland') {
+    if (region === REGIONS.NORTHERN_IRELAND) {
         holidays.push(createHoliday(new Date(year, 6, 12), "Battle of the Boyne (Orangemen's Day)"));
     }
 
@@ -454,7 +460,7 @@ function getUKHolidays(year, region) {
     holidays.push(getSummerBankHoliday(year, region));
 
     // 10. St Andrew's Day (Nov 30) - SCOTLAND ONLY
-    if (region === 'scotland') {
+    if (region === REGIONS.SCOTLAND) {
         holidays.push(createHoliday(new Date(year, 10, 30), "St Andrew's Day"));
     }
 
@@ -1535,6 +1541,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
 // --- EXPORTS FOR TESTING ---
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
+        REGIONS,
         toLocalISOString,
         getEasterDate,
         getUKHolidays,
