@@ -752,14 +752,16 @@ function calculateContinuousLeave(startDate, leaveDaysToUse, bookedSet = null) {
 }
 
 /**
- * Finds the best combination of up to 3 leave blocks to maximize days off within a given allowance.
+ * Generates and deduplicates all reasonable leave candidates.
+ * @param {number} year The year to plan for.
+ * @param {number} allowance The number of leave days available.
+ * @returns {Array<Object>} List of unique candidate blocks.
  */
-function findOptimalPlan(year, allowance) {
+function generateAllCandidates(year, allowance) {
     const candidates = [];
     const startOfYear = new Date(year, 0, 1);
     const endOfYear = new Date(year, 11, 31);
 
-    // 1. Generate all reasonable candidates (blocks of 1 to allowance leave days)
     let current = new Date(startOfYear);
     while (current <= endOfYear) {
         if (getDayType(current) === 'workday') {
@@ -786,11 +788,19 @@ function findOptimalPlan(year, allowance) {
         }
     });
 
-    // Strategy Logic
-    const sortedByEfficiency = [...uniqueCandidates].sort((a, b) => b.efficiency - a.efficiency);
+    return uniqueCandidates;
+}
+
+/**
+ * Selects the top candidates based on efficiency and duration.
+ * @param {Array<Object>} candidates List of all candidates.
+ * @returns {Array<Object>} Filtered list of top candidates.
+ */
+function selectTopCandidates(candidates) {
+    const sortedByEfficiency = [...candidates].sort((a, b) => b.efficiency - a.efficiency);
     const efficientCandidates = sortedByEfficiency.slice(0, 100);
 
-    const sortedByDuration = [...uniqueCandidates].sort((a, b) => b.totalDaysOff - a.totalDaysOff);
+    const sortedByDuration = [...candidates].sort((a, b) => b.totalDaysOff - a.totalDaysOff);
     const longCandidates = sortedByDuration.slice(0, 50);
 
     const combinedCandidates = [...efficientCandidates, ...longCandidates];
@@ -806,19 +816,22 @@ function findOptimalPlan(year, allowance) {
     });
 
     finalCandidates.sort((a, b) => b.efficiency - a.efficiency);
-    const topCandidates = finalCandidates;
+    return finalCandidates;
+}
 
-    // 2. Find best combination of 3 blocks
+/**
+ * Finds the best combination of 1, 2, or 3 leave blocks that maximize days off.
+ * @param {Array<Object>} candidates Top candidates to choose from.
+ * @param {number} allowance Total leave allowance.
+ * @returns {Array<Object>} The best combination of blocks.
+ */
+function findBestCombination(candidates, allowance) {
     let bestCombo = [];
     let maxScore = -1;
 
     /**
      * Calculates a score for a combination of leave blocks.
      * Higher score is better. Prioritizes total days off, then efficiency.
-     * @param {Object} c1 First candidate block.
-     * @param {Object} c2 Second candidate block.
-     * @param {Object|null} c3 Third candidate block.
-     * @returns {number} The calculated score.
      */
     function getScore(c1, c2, c3) {
         const totalLeave = (c1 ? c1.leaveDaysUsed : 0) + (c2 ? c2.leaveDaysUsed : 0) + (c3 ? c3.leaveDaysUsed : 0);
@@ -830,15 +843,15 @@ function findOptimalPlan(year, allowance) {
 
     // Optimization: Skip triple loop if allowance is too small for 3 blocks (min 1 day each)
     if (allowance >= 3) {
-        for (let i = 0; i < topCandidates.length; i++) {
-            for (let j = i + 1; j < topCandidates.length; j++) {
-                if (overlap(topCandidates[i], topCandidates[j])) continue;
-                if (topCandidates[i].leaveDaysUsed + topCandidates[j].leaveDaysUsed > allowance) continue;
+        for (let i = 0; i < candidates.length; i++) {
+            for (let j = i + 1; j < candidates.length; j++) {
+                if (overlap(candidates[i], candidates[j])) continue;
+                if (candidates[i].leaveDaysUsed + candidates[j].leaveDaysUsed > allowance) continue;
 
-                for (let k = j + 1; k < topCandidates.length; k++) {
-                    const c1 = topCandidates[i];
-                    const c2 = topCandidates[j];
-                    const c3 = topCandidates[k];
+                for (let k = j + 1; k < candidates.length; k++) {
+                    const c1 = candidates[i];
+                    const c2 = candidates[j];
+                    const c3 = candidates[k];
 
                     if (overlap(c2, c3) || overlap(c1, c3)) continue;
 
@@ -855,9 +868,10 @@ function findOptimalPlan(year, allowance) {
         }
     }
 
+    // If no 3-block combo found, try 2-block combinations
     if (bestCombo.length === 0) {
         // Optimization: Sort by totalDaysOff descending for branch pruning
-        const sortedCandidates = [...topCandidates].sort((a, b) => b.totalDaysOff - a.totalDaysOff);
+        const sortedCandidates = [...candidates].sort((a, b) => b.totalDaysOff - a.totalDaysOff);
 
         for (let i = 0; i < sortedCandidates.length - 1; i++) {
             // Pruning: if best possible pair (current + next best) can't beat maxScore, stop outer loop
@@ -871,7 +885,6 @@ function findOptimalPlan(year, allowance) {
                 // Pruning: if this pair can't beat maxScore, stop inner loop (since subsequent j's are worse)
                 const pairPotential = (c1.totalDaysOff + c2.totalDaysOff) * 1000 + 500;
                 if (pairPotential <= maxScore) break;
-
                 if (!overlap(c1, c2) && (c1.leaveDaysUsed + c2.leaveDaysUsed <= allowance)) {
                     const score = getScore(c1, c2, null);
                     if (score > maxScore) {
@@ -883,14 +896,24 @@ function findOptimalPlan(year, allowance) {
         }
     }
 
-    if (bestCombo.length === 0 && topCandidates.length > 0) {
-        if (topCandidates[0].leaveDaysUsed <= allowance) {
-            bestCombo = [topCandidates[0]];
+    // If still no combo, fallback to single best block
+    if (bestCombo.length === 0 && candidates.length > 0) {
+        if (candidates[0].leaveDaysUsed <= allowance) {
+            bestCombo = [candidates[0]];
         }
     }
 
     bestCombo.sort((a, b) => a.startDate - b.startDate);
     return bestCombo;
+}
+
+/**
+ * Finds the best combination of up to 3 leave blocks to maximize days off within a given allowance.
+ */
+function findOptimalPlan(year, allowance) {
+    const uniqueCandidates = generateAllCandidates(year, allowance);
+    const topCandidates = selectTopCandidates(uniqueCandidates);
+    return findBestCombination(topCandidates, allowance);
 }
 
 /**
