@@ -12,8 +12,22 @@ const {
     getYearComparison,
     getEfficiencyTier,
     encodePlanString,
-    decodePlanString
+    decodePlanString,
+    getCurrentState
 } = require('../public/app.js');
+
+describe('State Management', () => {
+    test('getCurrentState returns correct state structure', () => {
+        const state = getCurrentState();
+        expect(state).toHaveProperty('currentAllowance');
+        expect(state).toHaveProperty('currentYear');
+        expect(state).toHaveProperty('currentRegion');
+        expect(state).toHaveProperty('bookedDates');
+        expect(state).toHaveProperty('customHolidays');
+        expect(Array.isArray(state.bookedDates)).toBe(true);
+        expect(Array.isArray(state.customHolidays)).toBe(true);
+    });
+});
 
 describe('Date Utilities', () => {
     test('toLocalISOString formats date correctly', () => {

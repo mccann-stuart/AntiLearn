@@ -21,16 +21,25 @@ const SHARE_PARAM = 'plan';
 let shareStatusTimer = null;
 
 /**
- * Builds a plain object representing the current plan state.
+ * Returns the current application state.
  */
-function getPlanPayload() {
+function getCurrentState() {
     return {
-        v: 1,
         currentAllowance,
         currentYear,
         currentRegion,
         bookedDates: Array.from(bookedDates),
         customHolidays
+    };
+}
+
+/**
+ * Builds a plain object representing the current plan state.
+ */
+function getPlanPayload() {
+    return {
+        v: 1,
+        ...getCurrentState()
     };
 }
 
@@ -209,13 +218,7 @@ async function handleShareLink() {
  * Saves the current application state to localStorage.
  */
 function saveState() {
-    const state = {
-        currentAllowance,
-        currentYear,
-        currentRegion,
-        bookedDates: Array.from(bookedDates),
-        customHolidays
-    };
+    const state = getCurrentState();
     try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch (e) {
@@ -1550,6 +1553,7 @@ if (typeof module !== 'undefined' && module.exports) {
         getEfficiencyTier,
         encodePlanString,
         decodePlanString,
+        getCurrentState,
         // Helper to set state for testing
         setTestState: (year, region, holidays, booked) => {
             currentYear = year;
