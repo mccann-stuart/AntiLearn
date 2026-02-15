@@ -567,6 +567,9 @@ function getHolidayName(date) {
 
 // --- OPTIMIZER ---
 
+const MAX_EFFICIENT_CANDIDATES = 100;
+const MAX_LONG_CANDIDATES = 50;
+
 /**
  * Determines the type of a given day (workday, weekend, or holiday).
  * @param {Date} date The date to classify.
@@ -788,10 +791,10 @@ function findOptimalPlan(year, allowance) {
 
     // Strategy Logic
     const sortedByEfficiency = [...uniqueCandidates].sort((a, b) => b.efficiency - a.efficiency);
-    const efficientCandidates = sortedByEfficiency.slice(0, 100);
+    const efficientCandidates = sortedByEfficiency.slice(0, MAX_EFFICIENT_CANDIDATES);
 
     const sortedByDuration = [...uniqueCandidates].sort((a, b) => b.totalDaysOff - a.totalDaysOff);
-    const longCandidates = sortedByDuration.slice(0, 50);
+    const longCandidates = sortedByDuration.slice(0, MAX_LONG_CANDIDATES);
 
     const combinedCandidates = [...efficientCandidates, ...longCandidates];
     const finalCandidates = [];
