@@ -67,12 +67,21 @@ function decodePlanString(encoded) {
         const allowance = typeof obj.currentAllowance === 'number' && obj.currentAllowance > 0 && obj.currentAllowance <= 365
             ? obj.currentAllowance
             : currentAllowance;
+        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
         return {
             currentAllowance: allowance,
             currentYear: typeof obj.currentYear === 'number' ? obj.currentYear : currentYear,
             currentRegion: typeof obj.currentRegion === 'string' ? obj.currentRegion : currentRegion,
-            bookedDates: Array.isArray(obj.bookedDates) ? obj.bookedDates : [],
-            customHolidays: Array.isArray(obj.customHolidays) ? obj.customHolidays : []
+            bookedDates: Array.isArray(obj.bookedDates)
+                ? obj.bookedDates.filter(d => typeof d === 'string' && dateRegex.test(d))
+                : [],
+            customHolidays: Array.isArray(obj.customHolidays)
+                ? obj.customHolidays.filter(h =>
+                    h && typeof h === 'object' &&
+                    typeof h.date === 'string' && dateRegex.test(h.date) &&
+                    typeof h.name === 'string' && h.name.length < 100
+                  )
+                : []
         };
     } catch (e) {
         if (!(typeof process !== 'undefined' && process.env.JEST_WORKER_ID)) {
@@ -1037,16 +1046,16 @@ function renderCustomHolidays() {
     customHolidays.forEach(h => {
         const tag = document.createElement('div');
         tag.className = 'custom-tag';
-        tag.innerHTML = `
-            ${h.name} (${h.date})
-            <button>&times;</button>
-        `;
-        // We need to attach the event listener properly safely or expose function globally
-        // For simplicity in this single-file setup, we'll attach listener directly
-        tag.querySelector('button').addEventListener('click', (e) => {
+        tag.textContent = `${h.name} (${h.date}) `;
+
+        const btn = document.createElement('button');
+        btn.innerHTML = '&times;';
+        btn.addEventListener('click', (e) => {
             e.stopPropagation(); // prevent other clicks
             removeCustomHoliday(h.date);
         });
+
+        tag.appendChild(btn);
         list.appendChild(tag);
     });
 }
