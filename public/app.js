@@ -436,9 +436,39 @@ const dayInsightCache = new Map();
 // Cache year-over-year comparison to avoid recomputing optimal plans unnecessarily.
 const yearComparisonCache = new Map();
 
+// Cache day types for current year to avoid repeated checks
+let dayTypeCache = null;
+let dayTypeCacheYear = null;
+
 function invalidateInsightCaches() {
     dayInsightCache.clear();
     yearComparisonCache.clear();
+    dayTypeCache = null;
+}
+
+/**
+ * Ensures the day type cache is populated for the current year.
+ */
+function ensureDayTypeCache() {
+    if (dayTypeCache && dayTypeCacheYear === currentYear) return;
+
+    dayTypeCacheYear = currentYear;
+
+    // Determine number of days in year
+    const isLeap = new Date(currentYear, 1, 29).getMonth() === 1;
+    const daysCount = isLeap ? 366 : 365;
+
+    dayTypeCache = new Array(daysCount);
+
+    let current = new Date(currentYear, 0, 1);
+    for (let i = 0; i < daysCount; i++) {
+        let type = 'workday';
+        if (isHoliday(current)) type = 'holiday';
+        else if (isWeekend(current)) type = 'weekend';
+
+        dayTypeCache[i] = type;
+        current.setDate(current.getDate() + 1);
+    }
 }
 
 /**
@@ -500,6 +530,20 @@ function getHolidayName(date) {
  * @returns {('workday'|'weekend'|'holiday')} The type of the day.
  */
 function getDayType(date) {
+    // Optimization: Check if date is within current cached year
+    if (date.getFullYear() === currentYear) {
+        if (!dayTypeCache) ensureDayTypeCache();
+
+        const startOfYear = new Date(currentYear, 0, 1);
+        const diff = date - startOfYear;
+        // Use Math.round to handle potential DST shifts (usually 1 hour)
+        const dayIndex = Math.round(diff / (1000 * 60 * 60 * 24));
+
+        if (dayIndex >= 0 && dayIndex < dayTypeCache.length) {
+            return dayTypeCache[dayIndex];
+        }
+    }
+
     if (isHoliday(date)) return 'holiday';
     if (isWeekend(date)) return 'weekend';
     return 'workday';
@@ -616,7 +660,7 @@ function calculateContinuousLeave(startDate, leaveDaysToUse, bookedSet = null) {
 
     // Find first bookable workday (skip existing off days)
     while (isDayOff(current, bookedSet)) {
-        current = addDays(current, 1);
+        current.setDate(current.getDate() + 1);
     }
 
     while (daysCounted < leaveDaysToUse) {
@@ -624,7 +668,7 @@ function calculateContinuousLeave(startDate, leaveDaysToUse, bookedSet = null) {
             leaveDaysBooked.push(new Date(current));
             daysCounted++;
         }
-        current = addDays(current, 1);
+        current.setDate(current.getDate() + 1);
     }
 
     if (leaveDaysBooked.length === 0) return null;
@@ -635,10 +679,9 @@ function calculateContinuousLeave(startDate, leaveDaysToUse, bookedSet = null) {
     // Expand backwards through any off days (weekend/holiday/booked)
     let rangeStart = new Date(firstBookedDay);
     while (true) {
-        const prevDay = addDays(rangeStart, -1);
-        if (isDayOff(prevDay, bookedSet)) {
-            rangeStart = prevDay;
-        } else {
+        rangeStart.setDate(rangeStart.getDate() - 1);
+        if (!isDayOff(rangeStart, bookedSet)) {
+            rangeStart.setDate(rangeStart.getDate() + 1); // Revert
             break;
         }
     }
@@ -646,10 +689,9 @@ function calculateContinuousLeave(startDate, leaveDaysToUse, bookedSet = null) {
     // Expand forwards through any off days (weekend/holiday/booked)
     let rangeEnd = new Date(lastBookedDay);
     while (true) {
-        const nextDay = addDays(rangeEnd, 1);
-        if (isDayOff(nextDay, bookedSet)) {
-            rangeEnd = nextDay;
-        } else {
+        rangeEnd.setDate(rangeEnd.getDate() + 1);
+        if (!isDayOff(rangeEnd, bookedSet)) {
+            rangeEnd.setDate(rangeEnd.getDate() - 1); // Revert
             break;
         }
     }
@@ -686,7 +728,8 @@ function findOptimalPlan(year, allowance) {
                 }
             }
         }
-        current = addDays(current, 1);
+        // Optimization: Mutate date in place
+        current.setDate(current.getDate() + 1);
     }
 
     // Deduplicate candidates
