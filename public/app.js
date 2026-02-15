@@ -742,24 +742,27 @@ function findOptimalPlan(year, allowance) {
         return (totalOff * 1000) + (efficiency * 10) - totalLeave;
     }
 
-    for (let i = 0; i < topCandidates.length; i++) {
-        for (let j = i + 1; j < topCandidates.length; j++) {
-            if (overlap(topCandidates[i], topCandidates[j])) continue;
-            if (topCandidates[i].leaveDaysUsed + topCandidates[j].leaveDaysUsed > allowance) continue;
+    // Optimization: Skip triple loop if allowance is too small for 3 blocks (min 1 day each)
+    if (allowance >= 3) {
+        for (let i = 0; i < topCandidates.length; i++) {
+            for (let j = i + 1; j < topCandidates.length; j++) {
+                if (overlap(topCandidates[i], topCandidates[j])) continue;
+                if (topCandidates[i].leaveDaysUsed + topCandidates[j].leaveDaysUsed > allowance) continue;
 
-            for (let k = j + 1; k < topCandidates.length; k++) {
-                const c1 = topCandidates[i];
-                const c2 = topCandidates[j];
-                const c3 = topCandidates[k];
+                for (let k = j + 1; k < topCandidates.length; k++) {
+                    const c1 = topCandidates[i];
+                    const c2 = topCandidates[j];
+                    const c3 = topCandidates[k];
 
-                if (overlap(c2, c3) || overlap(c1, c3)) continue;
+                    if (overlap(c2, c3) || overlap(c1, c3)) continue;
 
-                const totalLeave = c1.leaveDaysUsed + c2.leaveDaysUsed + c3.leaveDaysUsed;
-                if (totalLeave <= allowance) {
-                    const score = getScore(c1, c2, c3);
-                    if (score > maxScore) {
-                        maxScore = score;
-                        bestCombo = [c1, c2, c3];
+                    const totalLeave = c1.leaveDaysUsed + c2.leaveDaysUsed + c3.leaveDaysUsed;
+                    if (totalLeave <= allowance) {
+                        const score = getScore(c1, c2, c3);
+                        if (score > maxScore) {
+                            maxScore = score;
+                            bestCombo = [c1, c2, c3];
+                        }
                     }
                 }
             }
@@ -767,10 +770,22 @@ function findOptimalPlan(year, allowance) {
     }
 
     if (bestCombo.length === 0) {
-        for (let i = 0; i < topCandidates.length; i++) {
-            for (let j = i + 1; j < topCandidates.length; j++) {
-                const c1 = topCandidates[i];
-                const c2 = topCandidates[j];
+        // Optimization: Sort by totalDaysOff descending for branch pruning
+        const sortedCandidates = [...topCandidates].sort((a, b) => b.totalDaysOff - a.totalDaysOff);
+
+        for (let i = 0; i < sortedCandidates.length - 1; i++) {
+            // Pruning: if best possible pair (current + next best) can't beat maxScore, stop outer loop
+            const potential = (sortedCandidates[i].totalDaysOff + sortedCandidates[i + 1].totalDaysOff) * 1000 + 500;
+            if (potential <= maxScore) break;
+
+            for (let j = i + 1; j < sortedCandidates.length; j++) {
+                const c1 = sortedCandidates[i];
+                const c2 = sortedCandidates[j];
+
+                // Pruning: if this pair can't beat maxScore, stop inner loop (since subsequent j's are worse)
+                const pairPotential = (c1.totalDaysOff + c2.totalDaysOff) * 1000 + 500;
+                if (pairPotential <= maxScore) break;
+
                 if (!overlap(c1, c2) && (c1.leaveDaysUsed + c2.leaveDaysUsed <= allowance)) {
                     const score = getScore(c1, c2, null);
                     if (score > maxScore) {
