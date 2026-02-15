@@ -1636,7 +1636,10 @@ if (typeof module !== 'undefined' && module.exports) {
         getEfficiencyTier,
         encodePlanString,
         decodePlanString,
+        renderCustomHolidays,
         getCurrentState,
+      
+    
         // Helper to set state for testing
         setTestState: (year, region, holidays, booked) => {
             currentYear = year;
