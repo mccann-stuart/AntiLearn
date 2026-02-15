@@ -1,4 +1,5 @@
 const {
+    REGIONS,
     toLocalISOString,
     getEasterDate,
     getUKHolidays,
@@ -54,7 +55,7 @@ describe('Date Utilities', () => {
 
 describe('Holiday Calculations', () => {
     beforeEach(() => {
-        setTestState(2023, 'england-wales', []);
+        setTestState(2023, REGIONS.ENGLAND_WALES, []);
     });
 
     test('getEasterDate calculates Easter correctly', () => {
@@ -70,7 +71,7 @@ describe('Holiday Calculations', () => {
     });
 
     test('getUKHolidays returns correct holidays for England & Wales 2023', () => {
-        const holidays = getUKHolidays(2023, 'england-wales');
+        const holidays = getUKHolidays(2023, REGIONS.ENGLAND_WALES);
         const holidayDates = holidays.map(h => h.date);
 
         // New Year's Day 2023 was Sunday, substitute is Monday Jan 2
@@ -99,7 +100,7 @@ describe('Holiday Calculations', () => {
     });
 
     test('getUKHolidays handles Scotland holidays correctly', () => {
-        const holidays = getUKHolidays(2023, 'scotland');
+        const holidays = getUKHolidays(2023, REGIONS.SCOTLAND);
         const holidayDates = holidays.map(h => h.date);
 
         // Jan 2nd is a holiday in Scotland
@@ -116,7 +117,7 @@ describe('Holiday Calculations', () => {
     test('getUKHolidays handles Scotland Jan 2nd weekend edge cases', () => {
         // 2021: Jan 1 Fri, Jan 2 Sat.
         // Jan 2 Sat -> Substitute Mon Jan 4.
-        const holidays2021 = getUKHolidays(2021, 'scotland');
+        const holidays2021 = getUKHolidays(2021, REGIONS.SCOTLAND);
         const dates2021 = holidays2021.map(h => h.date);
         expect(dates2021).toContain('2021-01-01'); // New Year's Day
         expect(dates2021).toContain('2021-01-04'); // 2nd January (Substitute)
@@ -126,7 +127,7 @@ describe('Holiday Calculations', () => {
         // 2022: Jan 1 Sat, Jan 2 Sun.
         // Jan 1 Sat -> Substitute Mon Jan 3.
         // Jan 2 Sun -> Substitute Tue Jan 4.
-        const holidays2022 = getUKHolidays(2022, 'scotland');
+        const holidays2022 = getUKHolidays(2022, REGIONS.SCOTLAND);
         const dates2022 = holidays2022.map(h => h.date);
         expect(dates2022).toContain('2022-01-03'); // New Year's Day (Substitute)
         expect(dates2022).toContain('2022-01-04'); // 2nd January (Substitute)
@@ -136,14 +137,14 @@ describe('Holiday Calculations', () => {
         // 2023: Jan 1 Sun, Jan 2 Mon.
         // Jan 1 Sun -> Substitute Mon Jan 2.
         // Jan 2 Mon -> Substitute Tue Jan 3.
-        const holidays2023 = getUKHolidays(2023, 'scotland');
+        const holidays2023 = getUKHolidays(2023, REGIONS.SCOTLAND);
         const dates2023 = holidays2023.map(h => h.date);
         expect(dates2023).toContain('2023-01-02'); // New Year's Day (Substitute)
         expect(dates2023).toContain('2023-01-03'); // 2nd January (Substitute)
     });
 
     test('getUKHolidays handles Northern Ireland holidays correctly', () => {
-        const holidays = getUKHolidays(2023, 'northern-ireland');
+        const holidays = getUKHolidays(2023, REGIONS.NORTHERN_IRELAND);
         const holidayDates = holidays.map(h => h.date);
 
         // St Patrick's Day (Mar 17)
@@ -155,13 +156,13 @@ describe('Holiday Calculations', () => {
 
     test('getUKHolidays substitutes St Patrick\'s Day on weekends in NI', () => {
         // 2024: Mar 17 is Sunday -> Substitute is Mon Mar 18
-        const holidays2024 = getUKHolidays(2024, 'northern-ireland');
+        const holidays2024 = getUKHolidays(2024, REGIONS.NORTHERN_IRELAND);
         const dates2024 = holidays2024.map(h => h.date);
         expect(dates2024).toContain('2024-03-18');
         expect(dates2024).not.toContain('2024-03-17');
 
         // 2029: Mar 17 is Saturday -> Substitute is Mon Mar 19
-        const holidays2029 = getUKHolidays(2029, 'northern-ireland');
+        const holidays2029 = getUKHolidays(2029, REGIONS.NORTHERN_IRELAND);
         const dates2029 = holidays2029.map(h => h.date);
         expect(dates2029).toContain('2029-03-19');
         expect(dates2029).not.toContain('2029-03-17');
@@ -171,7 +172,7 @@ describe('Holiday Calculations', () => {
         // 2021: Xmas (Sat), Boxing (Sun).
         // Xmas Sub -> Mon Dec 27.
         // Boxing Sub -> Tue Dec 28.
-        const holidays2021 = getUKHolidays(2021, 'england-wales');
+        const holidays2021 = getUKHolidays(2021, REGIONS.ENGLAND_WALES);
         const dates2021 = holidays2021.map(h => h.date);
 
         expect(dates2021).toContain('2021-12-27'); // Xmas Sub
@@ -180,7 +181,7 @@ describe('Holiday Calculations', () => {
         // 2022: Xmas (Sun), Boxing (Mon).
         // Xmas Sub -> Tue Dec 27.
         // Boxing Day -> Mon Dec 26.
-        const holidays2022 = getUKHolidays(2022, 'england-wales');
+        const holidays2022 = getUKHolidays(2022, REGIONS.ENGLAND_WALES);
         const dates2022 = holidays2022.map(h => h.date);
 
         expect(dates2022).toContain('2022-12-26'); // Boxing Day
@@ -188,7 +189,7 @@ describe('Holiday Calculations', () => {
     });
 
     test('isHoliday uses current state correctly', () => {
-        setTestState(2023, 'england-wales', []);
+        setTestState(2023, REGIONS.ENGLAND_WALES, []);
         expect(isHoliday(new Date(2023, 11, 25))).toBe(true); // Xmas
         expect(isHoliday(new Date(2023, 11, 24))).toBe(false); // Xmas Eve
     });
@@ -208,7 +209,7 @@ describe('Holiday Calculations', () => {
     test('getUKHolidays handles leap year correctly (2024)', () => {
         // 2024 is a leap year. Easter Sunday is March 31.
         // Good Friday should be March 29.
-        const holidays = getUKHolidays(2024, 'england-wales');
+        const holidays = getUKHolidays(2024, REGIONS.ENGLAND_WALES);
         const holidayDates = holidays.map(h => h.date);
 
         expect(holidayDates).toContain('2024-03-29'); // Good Friday
@@ -218,7 +219,7 @@ describe('Holiday Calculations', () => {
 
 describe('Optimization Logic', () => {
     beforeEach(() => {
-        setTestState(2023, 'england-wales', []);
+        setTestState(2023, REGIONS.ENGLAND_WALES, []);
     });
 
     test('calculateContinuousLeave correctly calculates efficiency', () => {
@@ -302,7 +303,7 @@ describe('Optimization Logic', () => {
 
 describe('Smart Insights', () => {
     beforeEach(() => {
-        setTestState(2023, 'england-wales', []);
+        setTestState(2023, REGIONS.ENGLAND_WALES, []);
     });
 
     test('getEfficiencyTier buckets correctly', () => {
@@ -312,7 +313,7 @@ describe('Smart Insights', () => {
     });
 
     test('getDayInsight detects bridge day with custom holiday', () => {
-        setTestState(2023, 'england-wales', [{ date: '2023-07-06', name: 'Custom Break' }]); // Thursday
+        setTestState(2023, REGIONS.ENGLAND_WALES, [{ date: '2023-07-06', name: 'Custom Break' }]); // Thursday
         const insight = getDayInsight(new Date(2023, 6, 7)); // Friday between holiday and weekend
         expect(insight).not.toBeNull();
         expect(insight.bridge).toBe(true);
@@ -320,12 +321,12 @@ describe('Smart Insights', () => {
     });
 
     test('heatmap efficiency updates when a neighboring day is booked', () => {
-        setTestState(2023, 'england-wales', [], []);
+        setTestState(2023, REGIONS.ENGLAND_WALES, [], []);
         const target = new Date(2023, 1, 10); // Fri Feb 10 2023
         const baseInsight = getDayInsight(target);
         expect(baseInsight).not.toBeNull();
 
-        setTestState(2023, 'england-wales', [], ['2023-02-09']); // Thu Feb 9 2023
+        setTestState(2023, REGIONS.ENGLAND_WALES, [], ['2023-02-09']); // Thu Feb 9 2023
         const updatedInsight = getDayInsight(target);
         expect(updatedInsight).not.toBeNull();
         expect(updatedInsight.efficiency).not.toBe(baseInsight.efficiency);
@@ -343,7 +344,7 @@ describe('Smart Insights', () => {
     test('Optimization considers custom holidays', () => {
         // Add a custom holiday on a Wednesday.
         // If we take Thu/Fri off, we get Wed-Sun off (5 days).
-        setTestState(2023, 'england-wales', [{ date: '2023-06-07', name: 'My Birthday' }]); // Wed June 7
+        setTestState(2023, REGIONS.ENGLAND_WALES, [{ date: '2023-06-07', name: 'My Birthday' }]); // Wed June 7
 
         // Check if June 7 is treated as a holiday
         expect(isHoliday(new Date(2023, 5, 7))).toBe(true);
@@ -362,7 +363,7 @@ describe('Shareable Links', () => {
         const payload = {
             currentAllowance: 15,
             currentYear: 2025,
-            currentRegion: 'scotland',
+            currentRegion: REGIONS.SCOTLAND,
             bookedDates: ['2025-06-01', '2025-06-02'],
             customHolidays: [{ date: '2025-06-05', name: 'Test Holiday' }]
         };

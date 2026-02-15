@@ -1,4 +1,5 @@
 const {
+    REGIONS,
     getDayInsight,
     setTestState
 } = require('../public/app.js');
@@ -6,7 +7,7 @@ const {
 describe('Dynamic Day Insight Calculation', () => {
     // Reset state before each test
     beforeEach(() => {
-        setTestState(2023, 'england-wales', [], []);
+        setTestState(2023, REGIONS.ENGLAND_WALES, [], []);
     });
 
     test('should identify a bridge day between two booked days', () => {
@@ -15,7 +16,7 @@ describe('Dynamic Day Insight Calculation', () => {
         // This creates a block of Mon-Wed (3 days).
 
         const booked = ['2023-01-09', '2023-01-11'];
-        setTestState(2023, 'england-wales', [], booked);
+        setTestState(2023, REGIONS.ENGLAND_WALES, [], booked);
 
         const target = new Date(2023, 0, 10); // Tue Jan 10
         const insight = getDayInsight(target);
@@ -35,7 +36,7 @@ describe('Dynamic Day Insight Calculation', () => {
         // Leave used: 1 (Tue).
 
         const booked = ['2023-01-09'];
-        setTestState(2023, 'england-wales', [], booked);
+        setTestState(2023, REGIONS.ENGLAND_WALES, [], booked);
 
         const target = new Date(2023, 0, 10); // Tue Jan 10
         const insight = getDayInsight(target);
@@ -52,7 +53,7 @@ describe('Dynamic Day Insight Calculation', () => {
         // Block: Fri 2, Sat 3, Sun 4, Mon 5 => 4 days off.
 
         const booked = ['2023-06-02']; // Fri June 2
-        setTestState(2023, 'england-wales', [], booked);
+        setTestState(2023, REGIONS.ENGLAND_WALES, [], booked);
 
         const target = new Date(2023, 5, 5); // Mon June 5
         const insight = getDayInsight(target);
@@ -72,14 +73,14 @@ describe('Dynamic Day Insight Calculation', () => {
     test('should recalculate when a booked day is removed', () => {
         // Start with Mon booked, Wed booked. Tue is bridge.
         const booked = ['2023-01-09', '2023-01-11'];
-        setTestState(2023, 'england-wales', [], booked);
+        setTestState(2023, REGIONS.ENGLAND_WALES, [], booked);
 
         let insight = getDayInsight(new Date(2023, 0, 10));
         expect(insight.bridge).toBe(true);
 
         // Remove Wed booking.
         const newBooked = ['2023-01-09'];
-        setTestState(2023, 'england-wales', [], newBooked);
+        setTestState(2023, REGIONS.ENGLAND_WALES, [], newBooked);
 
         insight = getDayInsight(new Date(2023, 0, 10));
         // Now it's just extending Mon. Next day (Wed) is workday.
@@ -94,7 +95,7 @@ describe('Dynamic Day Insight Calculation', () => {
 
         const booked = ['2023-01-09'];
         const custom = [{ date: '2023-01-11', name: 'My Holiday' }];
-        setTestState(2023, 'england-wales', custom, booked);
+        setTestState(2023, REGIONS.ENGLAND_WALES, custom, booked);
 
         const target = new Date(2023, 0, 10);
         const insight = getDayInsight(target);
