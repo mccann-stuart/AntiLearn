@@ -205,15 +205,10 @@ async function handleShareLink() {
     try {
         if (navigator.clipboard && navigator.clipboard.writeText) {
             await navigator.clipboard.writeText(shareUrl);
+            showShareStatus('Link copied!');
         } else {
-            const tempInput = document.createElement('input');
-            tempInput.value = shareUrl;
-            document.body.appendChild(tempInput);
-            tempInput.select();
-            document.execCommand('copy');
-            document.body.removeChild(tempInput);
+            throw new Error('Clipboard API not available');
         }
-        showShareStatus('Link copied!');
     } catch (e) {
         console.warn('Copy failed:', e);
         showShareStatus('Copy failed', true);
