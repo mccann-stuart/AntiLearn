@@ -1571,7 +1571,26 @@ function renderCalendar() {
 
             if (type === 'workday') {
                 el.style.cursor = 'pointer';
-                el.addEventListener('click', () => {
+
+                // --- Accessibility: Make day keyboard accessible ---
+                el.tabIndex = 0;
+                el.setAttribute('role', 'button');
+                el.setAttribute('aria-pressed', isBooked ? 'true' : 'false');
+
+                // Fetch insight (cached) for descriptive label
+                const insight = getDayInsight(date);
+
+                // Construct a descriptive label for screen readers
+                const dateLabel = date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+                const statusLabel = isBooked ? 'Booked' : 'Available';
+                let efficiencyLabel = '';
+                if (insight) {
+                     efficiencyLabel = `, ${insight.efficiency.toFixed(1)}x efficiency`;
+                     if (insight.bridge) efficiencyLabel += ', Bridge day';
+                }
+                el.setAttribute('aria-label', `${dateLabel}, ${statusLabel}${efficiencyLabel}`);
+
+                const toggleDate = () => {
                     if (bookedDates.has(dateStr)) {
                         bookedDates.delete(dateStr);
                     } else {
@@ -1580,6 +1599,14 @@ function renderCalendar() {
                     invalidateInsightCaches();
                     updateUI();
                     saveState();
+                };
+
+                el.addEventListener('click', toggleDate);
+                el.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault(); // Prevent scrolling on Space
+                        toggleDate();
+                    }
                 });
             }
 
