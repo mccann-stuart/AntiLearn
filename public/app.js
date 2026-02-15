@@ -450,7 +450,9 @@ function invalidateInsightCaches() {
 function getHolidaysForYear(year, region) {
     const key = `${year}-${region}-${customHolidays.length}`; // Simple cache bust on custom change
     if (!holidaysCache.has(key)) {
-        holidaysCache.set(key, getUKHolidays(year, region));
+        const holidays = getUKHolidays(year, region);
+        const lookup = new Map(holidays.map(h => [h.date, h]));
+        holidaysCache.set(key, { holidays, lookup });
     }
     return holidaysCache.get(key);
 }
@@ -472,9 +474,9 @@ function isWeekend(date) {
  */
 function isHoliday(date) {
     const year = date.getFullYear();
-    const holidays = getHolidaysForYear(year, currentRegion);
+    const { lookup } = getHolidaysForYear(year, currentRegion);
     const dateString = toLocalISOString(date);
-    return holidays.some(h => h.date === dateString);
+    return lookup.has(dateString);
 }
 
 /**
@@ -484,9 +486,9 @@ function isHoliday(date) {
  */
 function getHolidayName(date) {
     const year = date.getFullYear();
-    const holidays = getHolidaysForYear(year, currentRegion);
+    const { lookup } = getHolidaysForYear(year, currentRegion);
     const dateString = toLocalISOString(date);
-    const holiday = holidays.find(h => h.date === dateString);
+    const holiday = lookup.get(dateString);
     return holiday ? holiday.name : null;
 }
 
@@ -1437,6 +1439,7 @@ if (typeof module !== 'undefined' && module.exports) {
         getUKHolidays,
         isWeekend,
         isHoliday,
+        getHolidayName,
         calculateContinuousLeave,
         findOptimalPlan,
         addDays,
