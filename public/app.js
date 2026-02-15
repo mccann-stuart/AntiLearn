@@ -826,80 +826,136 @@ function selectTopCandidates(candidates) {
  * @returns {Array<Object>} The best combination of blocks.
  */
 function findBestCombination(candidates, allowance) {
-    let bestCombo = [];
-    let maxScore = -1;
-
-    /**
-     * Calculates a score for a combination of leave blocks.
-     * Higher score is better. Prioritizes total days off, then efficiency.
-     */
-    function getScore(c1, c2, c3) {
-        const totalLeave = (c1 ? c1.leaveDaysUsed : 0) + (c2 ? c2.leaveDaysUsed : 0) + (c3 ? c3.leaveDaysUsed : 0);
-        const totalOff = (c1 ? c1.totalDaysOff : 0) + (c2 ? c2.totalDaysOff : 0) + (c3 ? c3.totalDaysOff : 0);
-        const efficiency = totalLeave > 0 ? totalOff / totalLeave : 0;
-        // Maximize days off first, then prefer higher efficiency and fewer leave days.
-        return (totalOff * 1000) + (efficiency * 10) - totalLeave;
+    const bestCombo = [];
+    if (candidates.length == 0 || allowance <= 0) {
+        return bestCombo;
     }
 
-    // Optimization: Skip triple loop if allowance is too small for 3 blocks (min 1 day each)
-    if (allowance >= 3) {
-        for (let i = 0; i < candidates.length; i++) {
-            for (let j = i + 1; j < candidates.length; j++) {
-                if (overlap(candidates[i], candidates[j])) continue;
-                if (candidates[i].leaveDaysUsed + candidates[j].leaveDaysUsed > allowance) continue;
+    // Sort candidates by start date for DP
+    const sortedCandidates = [...candidates].sort((a, b) => a.startDate - b.startDate);
+    const N = sortedCandidates.length;
 
-                for (let k = j + 1; k < candidates.length; k++) {
-                    const c1 = candidates[i];
-                    const c2 = candidates[j];
-                    const c3 = candidates[k];
+    // Precompute next compatible candidate index for each candidate
+    // nextCompatible[i] = index of first candidate that starts after candidate[i] ends
+    const nextCompatible = new Int32Array(N);
+    let j = 0;
+    for (let i = 0; i < N; i++) {
+        if (j < i + 1) j = i + 1;
+        while (j < N && sortedCandidates[j].startDate <= sortedCandidates[i].endDate) {
+            j++;
+        }
+        nextCompatible[i] = j;
+    }
 
-                    if (overlap(c2, c3) || overlap(c1, c3)) continue;
+    // DP State: dp[i][k][w] = Max Total Days Off
+    // i: index in sortedCandidates (0..N)
+    // k: number of items to pick (0..3)
+    // w: allowance used (0..allowance)
+    // Flattened array: [i * ROW_SIZE + k * SIZE_W + w]
+    const K_MAX = 3;
+    const W_MAX = allowance;
+    const SIZE_W = W_MAX + 1;
+    const SIZE_K = K_MAX + 1;
+    const ROW_SIZE = SIZE_K * SIZE_W;
 
-                    const totalLeave = c1.leaveDaysUsed + c2.leaveDaysUsed + c3.leaveDaysUsed;
-                    if (totalLeave <= allowance) {
-                        const score = getScore(c1, c2, c3);
-                        if (score > maxScore) {
-                            maxScore = score;
-                            bestCombo = [c1, c2, c3];
+    // Initialize with -1 (representing invalid/unreachable)
+    const memo = new Int32Array((N + 1) * ROW_SIZE).fill(-1);
+
+    // Base case: i=N (no candidates left).
+    // If k=0, totalOff=0. Else -1 (remain default).
+    for (let w = 0; w <= W_MAX; w++) {
+        memo[N * ROW_SIZE + 0 * SIZE_W + w] = 0;
+    }
+
+    // Fill DP table backwards
+    for (let i = N - 1; i >= 0; i--) {
+        for (let k = 0; k <= K_MAX; k++) {
+            for (let w = 0; w <= W_MAX; w++) {
+                // Option 1: Skip candidate i
+                let res = memo[(i + 1) * ROW_SIZE + k * SIZE_W + w];
+
+                // Option 2: Take candidate i (if allowed)
+                if (k > 0) {
+                    const cost = sortedCandidates[i].leaveDaysUsed;
+                    if (w >= cost) {
+                        const nextI = nextCompatible[i];
+                        const prevVal = memo[nextI * ROW_SIZE + (k - 1) * SIZE_W + (w - cost)];
+
+                        if (prevVal !== -1) {
+                            const currentVal = sortedCandidates[i].totalDaysOff + prevVal;
+                            if (currentVal > res) {
+                                res = currentVal;
+                            }
                         }
                     }
                 }
+                memo[i * ROW_SIZE + k * SIZE_W + w] = res;
             }
         }
     }
 
-    // If no 3-block combo found, try 2-block combinations
-    if (bestCombo.length === 0) {
-        // Optimization: Sort by totalDaysOff descending for branch pruning
-        const sortedCandidates = [...candidates].sort((a, b) => b.totalDaysOff - a.totalDaysOff);
+    // Find the best combination by score
+    let foundK = -1;
+    let foundW = -1;
 
-        for (let i = 0; i < sortedCandidates.length - 1; i++) {
-            // Pruning: if best possible pair (current + next best) can't beat maxScore, stop outer loop
-            const potential = (sortedCandidates[i].totalDaysOff + sortedCandidates[i + 1].totalDaysOff) * 1000 + 500;
-            if (potential <= maxScore) break;
+    // Helper to compute score
+    function computeScore(totalOff, totalLeave) {
+        if (totalLeave == 0) return -1;
+        const efficiency = totalOff / totalLeave;
+        return (totalOff * 1000) + (efficiency * 10) - totalLeave;
+    }
 
-            for (let j = i + 1; j < sortedCandidates.length; j++) {
-                const c1 = sortedCandidates[i];
-                const c2 = sortedCandidates[j];
+    // Prioritize 3 blocks, then 2, then 1 (matching original behavior)
+    for (let k = 3; k >= 1; k--) {
+        let localBestScore = -1;
+        let localBestW = -1;
 
-                // Pruning: if this pair can't beat maxScore, stop inner loop (since subsequent j's are worse)
-                const pairPotential = (c1.totalDaysOff + c2.totalDaysOff) * 1000 + 500;
-                if (pairPotential <= maxScore) break;
-                if (!overlap(c1, c2) && (c1.leaveDaysUsed + c2.leaveDaysUsed <= allowance)) {
-                    const score = getScore(c1, c2, null);
-                    if (score > maxScore) {
-                        maxScore = score;
-                        bestCombo = [c1, c2];
-                    }
+        for (let w = 1; w <= W_MAX; w++) {
+            const totalOff = memo[0 * ROW_SIZE + k * SIZE_W + w];
+            if (totalOff > 0) {
+                const s = computeScore(totalOff, w);
+                if (s > localBestScore) {
+                    localBestScore = s;
+                    localBestW = w;
                 }
             }
         }
+
+        if (localBestScore > -1) {
+            foundK = k;
+            foundW = localBestW;
+            break; // Stop as we prioritize higher k
+        }
     }
 
-    // If still no combo, fallback to single best block
-    if (bestCombo.length === 0 && candidates.length > 0) {
-        if (candidates[0].leaveDaysUsed <= allowance) {
-            bestCombo = [candidates[0]];
+    // Reconstruct solution
+    if (foundK != -1) {
+        let curI = 0;
+        let curK = foundK;
+        let curW = foundW;
+
+        while (curK > 0 && curI < N) {
+            const skippedVal = memo[(curI + 1) * ROW_SIZE + curK * SIZE_W + curW];
+
+            let takenVal = -2;
+            const cand = sortedCandidates[curI];
+            if (cand.leaveDaysUsed <= curW) {
+                const nextI = nextCompatible[curI];
+                const prevVal = memo[nextI * ROW_SIZE + (curK - 1) * SIZE_W + (curW - cand.leaveDaysUsed)];
+                if (prevVal != -1) {
+                    takenVal = cand.totalDaysOff + prevVal;
+                }
+            }
+
+            // Prefer taking if it yields optimal result (greedy for earliest start date)
+            if (takenVal != -2 && takenVal >= skippedVal) {
+                bestCombo.push(cand);
+                curI = nextCompatible[curI];
+                curW -= cand.leaveDaysUsed;
+                curK -= 1;
+            } else {
+                curI++;
+            }
         }
     }
 
@@ -907,9 +963,6 @@ function findBestCombination(candidates, allowance) {
     return bestCombo;
 }
 
-/**
- * Finds the best combination of up to 3 leave blocks to maximize days off within a given allowance.
- */
 function findOptimalPlan(year, allowance) {
     const uniqueCandidates = generateAllCandidates(year, allowance);
     const topCandidates = selectTopCandidates(uniqueCandidates);
