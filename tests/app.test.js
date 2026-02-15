@@ -147,6 +147,16 @@ describe('Holiday Calculations', () => {
         expect(notLeapDay.getMonth()).toBe(2); // Mar
         expect(notLeapDay.getDate()).toBe(1);
     });
+
+    test('getUKHolidays handles leap year correctly (2024)', () => {
+        // 2024 is a leap year. Easter Sunday is March 31.
+        // Good Friday should be March 29.
+        const holidays = getUKHolidays(2024, 'england-wales');
+        const holidayDates = holidays.map(h => h.date);
+
+        expect(holidayDates).toContain('2024-03-29'); // Good Friday
+        expect(holidayDates).toContain('2024-04-01'); // Easter Monday
+    });
 });
 
 describe('Optimization Logic', () => {
