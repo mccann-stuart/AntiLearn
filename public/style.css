@@ -428,16 +428,16 @@ button:hover {
 }
 
 #allowance-input {
-    width: 80px;
+    width: 110px;
     background: transparent;
     border: none;
     border-bottom: 2px solid var(--accent-color);
     color: var(--accent-color);
     font-size: 2.5rem;
     font-weight: 700;
-    text-align: center;
+    text-align: left;
     font-family: inherit;
-    padding: 0 1.6rem 0.1rem 0.6rem;
+    padding: 0 2.2rem 0.1rem 0.8rem;
     box-sizing: border-box;
 }
 
@@ -546,9 +546,10 @@ body.scrolled .stat-value {
 
 body.scrolled #allowance-input {
     font-size: 1.2rem;
-    width: 40px;
+    width: 60px;
     border-bottom: 1px solid var(--accent-color);
-    padding: 0 1.2rem 0.05rem 0.4rem;
+    text-align: left;
+    padding: 0 1.4rem 0.05rem 0.4rem;
     box-sizing: border-box;
 }
 
