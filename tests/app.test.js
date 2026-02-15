@@ -310,4 +310,10 @@ describe('Shareable Links', () => {
         expect(decodePlanString('!not_base64')).toBeNull();
         expect(decodePlanString(null)).toBeNull();
     });
+
+    test('decodePlanString returns null on invalid JSON syntax', () => {
+        // "{"invalid": "json" - missing closing brace
+        const invalidJsonBase64 = 'eyJpbnZhbGlkIjogImpzb24=';
+        expect(decodePlanString(invalidJsonBase64)).toBeNull();
+    });
 });
