@@ -170,10 +170,16 @@ function showShareStatus(message, isError = false) {
     const statusEl = document.getElementById('share-status');
     if (!statusEl) return;
     statusEl.textContent = message;
-    statusEl.style.color = isError ? '#ff6b6b' : 'var(--accent-color)';
+    if (isError) {
+        statusEl.classList.add('error');
+    } else {
+        statusEl.classList.remove('error');
+    }
+    statusEl.style.color = '';
     if (shareStatusTimer) clearTimeout(shareStatusTimer);
     shareStatusTimer = setTimeout(() => {
         statusEl.textContent = '';
+        statusEl.classList.remove('error');
     }, 3000);
 }
 
@@ -1300,10 +1306,11 @@ function renderStats() {
     usedEl.textContent = used;
 
     if (used > currentAllowance) {
-        usedEl.style.color = '#ff6b6b';
+        usedEl.classList.add('error');
     } else {
-        usedEl.style.color = 'var(--accent-color)';
+        usedEl.classList.remove('error');
     }
+    usedEl.style.color = '';
 
     document.getElementById('days-off').textContent = totalOff;
 }
