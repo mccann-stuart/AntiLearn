@@ -308,6 +308,99 @@ function findDayInMonth(year, month, dayOfWeek, position) {
 }
 
 /**
+ * Helper to add a holiday with substitute logic.
+ * @param {Date} date The original holiday date.
+ * @param {string} name The name of the holiday.
+ * @param {'next-monday'|'next-tuesday'} [substituteRule='next-monday'] Rule for weekend substitution.
+ * @returns {{date: string, name: string}} The holiday object.
+ */
+function createHoliday(date, name, substituteRule = 'next-monday') {
+    let d = new Date(date);
+    const day = d.getDay();
+
+    if (day === 0) { // Sunday
+        if (substituteRule === 'next-monday') d.setDate(d.getDate() + 1);
+        else if (substituteRule === 'next-tuesday') d.setDate(d.getDate() + 2);
+    } else if (day === 6) { // Saturday
+        if (substituteRule === 'next-monday') d.setDate(d.getDate() + 2);
+        else if (substituteRule === 'next-tuesday') d.setDate(d.getDate() + 3);
+    }
+
+    return { date: toLocalISOString(d), name: name + (d.getTime() !== date.getTime() ? " (Substitute)" : "") };
+}
+
+/**
+ * Calculates the holiday for 2nd January (Scotland only), accounting for substitution.
+ */
+function getScotlandJan2(year, jan1Holiday) {
+    let jan2 = new Date(year, 0, 2);
+    const jan1SubDate = jan1Holiday.date;
+
+    // Standard weekend handling first
+    let d = new Date(jan2);
+    if (jan2.getDay() === 0) d.setDate(d.getDate() + 1); // Sun -> Mon
+    else if (jan2.getDay() === 6) d.setDate(d.getDate() + 2); // Sat -> Mon
+
+    // If Jan 2 substitute lands on the same day as Jan 1 substitute (e.g. both Mon), move to Tue
+    if (toLocalISOString(d) === jan1SubDate) {
+        d.setDate(d.getDate() + 1);
+    }
+
+    return { date: toLocalISOString(d), name: "2nd January" };
+}
+
+/**
+ * Calculates the Summer Bank Holiday based on the region.
+ */
+function getSummerBankHoliday(year, region) {
+    // Scotland: First Monday in August
+    // Others: Last Monday in August
+    const position = region === 'scotland' ? 'first' : 'last';
+    const date = findDayInMonth(year, 7, 1, position);
+    return { date: toLocalISOString(date), name: "Summer Bank Holiday" };
+}
+
+/**
+ * Calculates Christmas and Boxing Day holidays with their complex substitution logic.
+ */
+function getChristmasHolidays(year) {
+    const holidays = [];
+    const xmas = new Date(year, 11, 25);
+    const boxing = new Date(year, 11, 26);
+
+    let xmasSub = null;
+    let boxingSub = null;
+
+    // Christmas Substitution Logic
+    if (xmas.getDay() === 6) { // Sat -> Mon
+        xmasSub = new Date(year, 11, 27);
+    } else if (xmas.getDay() === 0) { // Sun -> Tue (because Boxing Day is Mon)
+        xmasSub = new Date(year, 11, 27);
+    }
+
+    if (xmasSub) {
+        holidays.push({ date: toLocalISOString(xmasSub), name: "Christmas Day (Substitute)" });
+    } else {
+        holidays.push({ date: toLocalISOString(xmas), name: "Christmas Day" });
+    }
+
+    // Boxing Day Substitution Logic
+    if (boxing.getDay() === 6) { // Sat -> Mon
+        boxingSub = new Date(year, 11, 28);
+    } else if (boxing.getDay() === 0) { // Sun -> Tue (because Xmas sub is Mon or Tue)
+        boxingSub = new Date(year, 11, 28);
+    }
+
+    if (boxingSub) {
+        holidays.push({ date: toLocalISOString(boxingSub), name: "Boxing Day (Substitute)" });
+    } else {
+        holidays.push({ date: toLocalISOString(boxing), name: "Boxing Day" });
+    }
+
+    return holidays;
+}
+
+/**
  * Generates a list of UK bank holidays for a given year, based on the region.
  * Handles substitute days for holidays falling on weekends.
  * @param {number} year The year to generate holidays for.
@@ -317,66 +410,18 @@ function findDayInMonth(year, month, dayOfWeek, position) {
 function getUKHolidays(year, region) {
     const holidays = [];
 
-    /**
-     * Helper to add a holiday with substitute logic.
-     * @param {Date} date The original holiday date.
-     * @param {string} name The name of the holiday.
-     * @param {'next-monday'|'next-tuesday'} [substituteRule='next-monday'] Rule for weekend substitution.
-     */
-    function addHoliday(date, name, substituteRule = 'next-monday') {
-        let d = new Date(date);
-        const day = d.getDay();
-
-        if (day === 0) { // Sunday
-            if (substituteRule === 'next-monday') d.setDate(d.getDate() + 1);
-            else if (substituteRule === 'next-tuesday') d.setDate(d.getDate() + 2); // if Mon is also holiday
-        } else if (day === 6) { // Saturday
-            if (substituteRule === 'next-monday') d.setDate(d.getDate() + 2);
-            else if (substituteRule === 'next-tuesday') d.setDate(d.getDate() + 3); // unlikely but possible logic
-        }
-
-        // Special check for Christmas/Boxing Day overlap logic is handled manually below
-        holidays.push({ date: toLocalISOString(d), name: name + (d.getTime() !== date.getTime() ? " (Substitute)" : "") });
-    }
-
     // 1. New Year's Day (Jan 1) - ALL
-    addHoliday(new Date(year, 0, 1), "New Year's Day");
+    const newYear = createHoliday(new Date(year, 0, 1), "New Year's Day");
+    holidays.push(newYear);
 
     // 2. Jan 2nd - SCOTLAND ONLY
     if (region === 'scotland') {
-        // Logic: If Jan 2 is Sat/Sun, substitute to next available workday (Mon/Tue)
-        // Note: If Jan 1 was Sun->Mon, Jan 2 is Mon->Tue.
-        let jan2 = new Date(year, 0, 2);
-        // We need to re-check isHoliday for Jan 1st because it might not be in the list yet if we rely on global state in tests?
-        // Actually getUKHolidays builds the list locally.
-        // We should check if the substitute for Jan 1 is Jan 2.
-
-        const jan1Sub = holidays.find(h => h.name.includes("New Year"));
-        const jan1SubDate = jan1Sub ? jan1Sub.date : null;
-
-        if (jan2.getDay() === 0 || jan2.getDay() === 6) {
-            // Weekend logic
-            let d = new Date(year, 0, 2);
-            if (d.getDay() === 0) d.setDate(d.getDate() + 1); // Sun -> Mon
-            else if (d.getDay() === 6) d.setDate(d.getDate() + 2); // Sat -> Mon
-
-            if (jan1SubDate === toLocalISOString(d)) {
-                d.setDate(d.getDate() + 1);
-            }
-            holidays.push({ date: toLocalISOString(d), name: "2nd January" });
-        } else if (jan2.getDay() === 1 && jan1SubDate === toLocalISOString(jan2)) {
-            // Jan 2 is Mon, and Jan 1 Sub is also Mon. Move Jan 2 to Tue.
-            let d = new Date(year, 0, 2);
-            d.setDate(d.getDate() + 1);
-            holidays.push({ date: toLocalISOString(d), name: "2nd January" });
-        } else {
-            holidays.push({ date: toLocalISOString(jan2), name: "2nd January" });
-        }
+        holidays.push(getScotlandJan2(year, newYear));
     }
 
     // 3. St Patrick's Day (Mar 17) - NI ONLY
     if (region === 'northern-ireland') {
-        addHoliday(new Date(year, 2, 17), "St Patrick's Day");
+        holidays.push(createHoliday(new Date(year, 2, 17), "St Patrick's Day"));
     }
 
     // 4. Good Friday (Easter - 2) - ALL
@@ -402,56 +447,19 @@ function getUKHolidays(year, region) {
 
     // 8. Orangemen's Day (July 12) - NI ONLY
     if (region === 'northern-ireland') {
-        addHoliday(new Date(year, 6, 12), "Battle of the Boyne (Orangemen's Day)");
+        holidays.push(createHoliday(new Date(year, 6, 12), "Battle of the Boyne (Orangemen's Day)"));
     }
 
-    // 9. Summer Bank Holiday (First Monday in Aug for SCOTLAND, Last Monday in Aug for E/W/NI)
-    const summerBank = region === 'scotland'
-        ? findDayInMonth(year, 7, 1, 'first')
-        : findDayInMonth(year, 7, 1, 'last');
-    holidays.push({ date: toLocalISOString(summerBank), name: "Summer Bank Holiday" });
+    // 9. Summer Bank Holiday
+    holidays.push(getSummerBankHoliday(year, region));
 
     // 10. St Andrew's Day (Nov 30) - SCOTLAND ONLY
     if (region === 'scotland') {
-        addHoliday(new Date(year, 10, 30), "St Andrew's Day");
+        holidays.push(createHoliday(new Date(year, 10, 30), "St Andrew's Day"));
     }
 
-    // 11. Christmas Day (Dec 25) - ALL
-    let xmas = new Date(year, 11, 25);
-    let xmasSub = null;
-    let boxingSub = null; // Prepare for Boxing Day logic interaction
-
-    if (xmas.getDay() === 6) { // Sat
-        xmasSub = new Date(year, 11, 27); // Mon
-    } else if (xmas.getDay() === 0) { // Sun
-        xmasSub = new Date(year, 11, 27); // Tue (because Boxing Day is Mon) - Actually usually Xmas sub is 27th if Sun
-        // Logic: 25 Sun -> 26 Mon is Boxing Day -> 27 Tue is Xmas Sub
-    }
-
-    if (xmasSub) {
-        holidays.push({ date: toLocalISOString(xmasSub), name: "Christmas Day (Substitute)" });
-    } else {
-        holidays.push({ date: toLocalISOString(xmas), name: "Christmas Day" });
-    }
-
-    // 12. Boxing Day (Dec 26) - ALL
-    let boxing = new Date(year, 11, 26);
-    // Logic: 
-    // If 26 is Sat -> Sub is Mon 28
-    // If 26 is Sun -> Sub is Mon 27? No, Xmas was Sat -> Mon 27. So Boxing Sub is Tue 28.
-    // If 25 Sun -> 26 Mon (Boxing) -> 27 Tue (Xmas Sub).
-
-    if (boxing.getDay() === 6) { // Sat
-        boxingSub = new Date(year, 11, 28); // Mon
-    } else if (boxing.getDay() === 0) { // Sun
-        boxingSub = new Date(year, 11, 28); // Tue (because 27 is Xmas sub)
-    }
-
-    if (boxingSub) {
-        holidays.push({ date: toLocalISOString(boxingSub), name: "Boxing Day (Substitute)" });
-    } else {
-        holidays.push({ date: toLocalISOString(boxing), name: "Boxing Day" });
-    }
+    // 11 & 12. Christmas & Boxing Day - ALL
+    holidays.push(...getChristmasHolidays(year));
 
     // Merge Custom Holidays
     customHolidays.forEach(h => {
