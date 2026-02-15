@@ -2,11 +2,11 @@
 
 This document outlines the strategic plan for the next major development epics to enhance the UK Vacation Maximiser application.
 
-## Status Summary (as of 2026-02-14)
+## Status Summary (as of 2026-02-18)
 
-*   Implemented: regional holidays (England & Wales, Scotland, Northern Ireland), custom holidays, localStorage persistence, iCal export, heatmap/bridge-day insights, year-over-year comparison.
-*   Tests: Jest suite exists in `tests/app.test.js` (14 tests) covering date utilities, holiday logic, optimization, and insight helpers.
-*   Pending: half-day leave, custom work schedules, shareable plan links, school holidays overlay, and deeper test coverage.
+*   Implemented: regional holidays (England & Wales, Scotland, Northern Ireland), custom holidays, localStorage persistence, iCal export, heatmap/bridge-day insights, year-over-year comparison, and shareable plan links.
+*   Tests: Jest suite (45 tests) covering application logic, worker configuration, security headers, and XSS prevention.
+*   Pending: half-day leave, custom work schedules, and school holidays overlay.
 
 ## Epic 1: Regional Support & Customization (Completed)
 **Goal:** Expand the user base by supporting specific holidays for different UK regions and international locations, and allowing user-specific customization.
@@ -51,9 +51,9 @@ This document outlines the strategic plan for the next major development epics t
 ## Epic 5: Test & Clean Up (In Progress)
 **Goal:** Ensure code quality, reliability, and maintainability.
 
-*   **Feature: Comprehensive Unit Tests (In Progress)**
+*   **Feature: Comprehensive Unit Tests (Completed)**
     *   Expand test coverage for logic, especially holiday calculations and optimization algorithms.
-    *   Add tests for edge cases (leap years, substitute holidays).
+    *   Added tests for worker configuration, security headers, and XSS prevention.
 *   **Feature: Code Refactoring & Documentation (Planned)**
     *   Refactor code into smaller modules if possible.
     *   Ensure JSDoc is complete and accurate.
@@ -62,10 +62,10 @@ This document outlines the strategic plan for the next major development epics t
     *   Review accessibility (ARIA labels, contrast).
     *   Ensure responsive design works well on mobile.
 
-## Epic 6: Enhanced Personalization & Sharing (Planned)
+## Epic 6: Enhanced Personalization & Sharing (In Progress)
 **Goal:** Allow users to share their plans and integrate with external factors like school holidays.
 
-*   **Feature: Shareable Plan Links**
+*   **Feature: Shareable Plan Links (Completed)**
     *   Generate a unique URL that encodes the current plan (region, allowance, booked dates).
     *   Allow users to share their optimized plan with colleagues/friends.
 *   **Feature: School Holidays Overlay**

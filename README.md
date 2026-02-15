@@ -13,13 +13,14 @@ A simple web application to help you find the most efficient way to use your ann
 *   **Smart Insights**: Heatmap efficiency hints, bridge-day highlights, and year-over-year comparisons.
 *   **Export to Calendar**: Download an iCal (.ics) file for your booked leave blocks.
 *   **Persistent Plans**: Saves your plan to `localStorage` and restores it on return visits.
+*   **Share Your Plan**: Generate a unique link to share your optimized leave schedule with others.
 
-## Status (as of 2026-02-14)
+## Status (as of 2026-02-18)
 
-*   Core optimizer, multi-region holiday logic, custom holidays, export, heatmap, and year-over-year insights are implemented in `public/app.js`.
+*   Core optimizer, multi-region holiday logic, custom holidays, export, heatmap, year-over-year insights, and shareable plans are implemented in `public/app.js`.
 *   Frontend is static in `public/` and runs without a backend.
-*   Tests: `npm test` runs 14 unit tests across date utilities, holiday logic, optimization, and insights. Jest logs a console error because the app bootstraps without a DOM when imported in tests, but the suite passes.
-*   Deployment uses `worker.js` to add security headers and caching on Cloudflare.
+*   Tests: `npm test` runs 45 unit tests across application logic, worker configuration, security headers, and XSS prevention.
+*   Deployment uses `worker.mjs` to add security headers and caching on Cloudflare.
 
 ## Getting Started
 
