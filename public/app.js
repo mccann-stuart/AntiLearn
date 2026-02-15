@@ -249,6 +249,30 @@ function getEasterDate(year) {
 }
 
 /**
+ * Finds a specific day of the week in a given month.
+ * @param {number} year The year.
+ * @param {number} month The month (0-indexed).
+ * @param {number} dayOfWeek The day of the week (0 for Sunday, 1 for Monday, etc.).
+ * @param {'first'|'last'} position Whether to find the first or last occurrence.
+ * @returns {Date} The date found.
+ */
+function findDayInMonth(year, month, dayOfWeek, position) {
+    let date;
+    if (position === 'first') {
+        date = new Date(year, month, 1);
+        while (date.getDay() !== dayOfWeek) {
+            date.setDate(date.getDate() + 1);
+        }
+    } else {
+        date = new Date(year, month + 1, 0);
+        while (date.getDay() !== dayOfWeek) {
+            date.setDate(date.getDate() - 1);
+        }
+    }
+    return date;
+}
+
+/**
  * Generates a list of UK bank holidays for a given year, based on the region.
  * Handles substitute days for holidays falling on weekends.
  * @param {number} year The year to generate holidays for.
@@ -334,17 +358,11 @@ function getUKHolidays(year, region) {
     }
 
     // 6. Early May Bank Holiday (First Monday in May) - ALL
-    let mayDay = new Date(year, 4, 1);
-    while (mayDay.getDay() !== 1) {
-        mayDay.setDate(mayDay.getDate() + 1);
-    }
+    const mayDay = findDayInMonth(year, 4, 1, 'first');
     holidays.push({ date: toLocalISOString(mayDay), name: "Early May Bank Holiday" });
 
     // 7. Spring Bank Holiday (Last Monday in May) - ALL
-    let springBank = new Date(year, 4, 31);
-    while (springBank.getDay() !== 1) {
-        springBank.setDate(springBank.getDate() - 1);
-    }
+    const springBank = findDayInMonth(year, 4, 1, 'last');
     holidays.push({ date: toLocalISOString(springBank), name: "Spring Bank Holiday" });
 
     // 8. Orangemen's Day (July 12) - NI ONLY
@@ -353,19 +371,10 @@ function getUKHolidays(year, region) {
     }
 
     // 9. Summer Bank Holiday (First Monday in Aug for SCOTLAND, Last Monday in Aug for E/W/NI)
-    if (region === 'scotland') {
-        let summerBank = new Date(year, 7, 1);
-        while (summerBank.getDay() !== 1) {
-            summerBank.setDate(summerBank.getDate() + 1);
-        }
-        holidays.push({ date: toLocalISOString(summerBank), name: "Summer Bank Holiday" });
-    } else {
-        let summerBank = new Date(year, 7, 31);
-        while (summerBank.getDay() !== 1) {
-            summerBank.setDate(summerBank.getDate() - 1);
-        }
-        holidays.push({ date: toLocalISOString(summerBank), name: "Summer Bank Holiday" });
-    }
+    const summerBank = region === 'scotland'
+        ? findDayInMonth(year, 7, 1, 'first')
+        : findDayInMonth(year, 7, 1, 'last');
+    holidays.push({ date: toLocalISOString(summerBank), name: "Summer Bank Holiday" });
 
     // 10. St Andrew's Day (Nov 30) - SCOTLAND ONLY
     if (region === 'scotland') {
@@ -1107,6 +1116,7 @@ function resetToOptimal() {
                     bookedDates.add(toLocalISOString(d));
                 });
             });
+            invalidateInsightCaches();
             updateUI();
         } finally {
             hideLoading();
@@ -1374,6 +1384,7 @@ function renderCalendar() {
                     } else {
                         bookedDates.add(dateStr);
                     }
+                    invalidateInsightCaches();
                     updateUI();
                     saveState();
                 });
@@ -1387,31 +1398,34 @@ function renderCalendar() {
     });
 }
 
-// Initialize application with error handling
-try {
-    init();
-} catch (error) {
-    console.error('Failed to initialize application:', error);
-    const container = document.querySelector('.container');
-    if (container) {
-        container.innerHTML = `
-            <div style="text-align: center; padding: 4rem 2rem;">
-                <h1 style="color: var(--text-color); margin-bottom: 1rem;">Unable to Load Application</h1>
-                <p style="color: var(--text-color); opacity: 0.8; margin-bottom: 2rem;">
-                    We're sorry, but something went wrong. Please try refreshing the page.
-                </p>
-                <button onclick="location.reload()" style="
-                    background: var(--accent-color);
-                    color: white;
-                    border: none;
-                    padding: 1rem 2rem;
-                    font-size: 1rem;
-                    font-weight: 600;
-                    border-radius: 50px;
-                    cursor: pointer;
-                ">Refresh Page</button>
-            </div>
-        `;
+// Initialize application with error handling.
+// The check for window/document ensures this doesn't run during Node.js testing.
+if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+    try {
+        init();
+    } catch (error) {
+        console.error('Failed to initialize application:', error);
+        const container = document.querySelector('.container');
+        if (container) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 4rem 2rem;">
+                    <h1 style="color: var(--text-color); margin-bottom: 1rem;">Unable to Load Application</h1>
+                    <p style="color: var(--text-color); opacity: 0.8; margin-bottom: 2rem;">
+                        We're sorry, but something went wrong. Please try refreshing the page.
+                    </p>
+                    <button onclick="location.reload()" style="
+                        background: var(--accent-color);
+                        color: white;
+                        border: none;
+                        padding: 1rem 2rem;
+                        font-size: 1rem;
+                        font-weight: 600;
+                        border-radius: 50px;
+                        cursor: pointer;
+                    ">Refresh Page</button>
+                </div>
+            `;
+        }
     }
 }
 
