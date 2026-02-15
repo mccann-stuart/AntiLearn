@@ -25,7 +25,10 @@ export default {
             const url = new URL(request.url);
             const pathname = url.pathname;
 
-            if (pathname.endsWith('.css') || pathname.endsWith('.js')) {
+            if (pathname.endsWith('app.js')) {
+                // Avoid stale app logic when file name is not versioned.
+                newHeaders.set('Cache-Control', 'public, max-age=0, must-revalidate');
+            } else if (pathname.endsWith('.css') || pathname.endsWith('.js')) {
                 // Long-term caching for static assets
                 newHeaders.set('Cache-Control', 'public, max-age=31536000, immutable');
             } else if (pathname.endsWith('.html') || pathname === '/') {

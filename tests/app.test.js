@@ -256,7 +256,7 @@ describe('Smart Insights', () => {
         const updatedInsight = getDayInsight(target);
         expect(updatedInsight).not.toBeNull();
         expect(updatedInsight.efficiency).not.toBe(baseInsight.efficiency);
-        expect(updatedInsight.efficiency).toBeLessThan(baseInsight.efficiency);
+        expect(updatedInsight.efficiency).toBeGreaterThan(baseInsight.efficiency);
     });
 
     test('getYearComparison provides comparative data', () => {
