@@ -1,3 +1,5 @@
+const IMAGE_EXTENSIONS_REGEX = /\.(ico|png|jpg|jpeg|svg|webp)$/;
+
 export default {
     async fetch(request, env) {
         try {
@@ -34,7 +36,7 @@ export default {
             } else if (pathname.endsWith('.html') || pathname === '/') {
                 // Short-term caching for HTML
                 newHeaders.set('Cache-Control', 'public, max-age=3600, must-revalidate');
-            } else if (pathname.match(/\.(ico|png|jpg|jpeg|svg|webp)$/)) {
+            } else if (pathname.match(IMAGE_EXTENSIONS_REGEX)) {
                 // Medium-term caching for images
                 newHeaders.set('Cache-Control', 'public, max-age=86400');
             }
