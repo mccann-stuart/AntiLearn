@@ -1039,7 +1039,7 @@ function renderCustomHolidays() {
         tag.className = 'custom-tag';
         tag.innerHTML = `
             ${h.name} (${h.date})
-            <button onclick="removeCustomHoliday('${h.date}')">&times;</button>
+            <button>&times;</button>
         `;
         // We need to attach the event listener properly safely or expose function globally
         // For simplicity in this single-file setup, we'll attach listener directly
