@@ -99,6 +99,35 @@ describe('Holiday Calculations', () => {
         expect(holidayDates).not.toContain('2023-04-10');
     });
 
+    test('getUKHolidays handles Scotland Jan 2nd weekend edge cases', () => {
+        // 2021: Jan 1 Fri, Jan 2 Sat.
+        // Jan 2 Sat -> Substitute Mon Jan 4.
+        const holidays2021 = getUKHolidays(2021, 'scotland');
+        const dates2021 = holidays2021.map(h => h.date);
+        expect(dates2021).toContain('2021-01-01'); // New Year's Day
+        expect(dates2021).toContain('2021-01-04'); // 2nd January (Substitute)
+        expect(dates2021).not.toContain('2021-01-02'); // Jan 2 Sat
+        expect(dates2021).not.toContain('2021-01-03'); // Jan 3 Sun
+
+        // 2022: Jan 1 Sat, Jan 2 Sun.
+        // Jan 1 Sat -> Substitute Mon Jan 3.
+        // Jan 2 Sun -> Substitute Tue Jan 4.
+        const holidays2022 = getUKHolidays(2022, 'scotland');
+        const dates2022 = holidays2022.map(h => h.date);
+        expect(dates2022).toContain('2022-01-03'); // New Year's Day (Substitute)
+        expect(dates2022).toContain('2022-01-04'); // 2nd January (Substitute)
+        expect(dates2022).not.toContain('2022-01-01'); // Jan 1 Sat
+        expect(dates2022).not.toContain('2022-01-02'); // Jan 2 Sun
+
+        // 2023: Jan 1 Sun, Jan 2 Mon.
+        // Jan 1 Sun -> Substitute Mon Jan 2.
+        // Jan 2 Mon -> Substitute Tue Jan 3.
+        const holidays2023 = getUKHolidays(2023, 'scotland');
+        const dates2023 = holidays2023.map(h => h.date);
+        expect(dates2023).toContain('2023-01-02'); // New Year's Day (Substitute)
+        expect(dates2023).toContain('2023-01-03'); // 2nd January (Substitute)
+    });
+
     test('getUKHolidays handles Northern Ireland holidays correctly', () => {
         const holidays = getUKHolidays(2023, 'northern-ireland');
         const holidayDates = holidays.map(h => h.date);
