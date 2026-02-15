@@ -225,6 +225,12 @@ describe('Optimization Logic', () => {
         const totalLeaveUsed = planTwoDays.reduce((sum, block) => sum + block.leaveDaysUsed, 0);
         expect(totalLeaveUsed).toBeLessThanOrEqual(2);
     });
+
+    test('findOptimalPlan returns empty plan with zero allowance', () => {
+        const plan = findOptimalPlan(2023, 0);
+        expect(Array.isArray(plan)).toBe(true);
+        expect(plan.length).toBe(0);
+    });
 });
 
 describe('Smart Insights', () => {
