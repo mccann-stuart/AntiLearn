@@ -129,6 +129,32 @@ function buildShareableUrl() {
 }
 
 /**
+ * Shows a toast notification.
+ * @param {string} message The message to display.
+ * @param {'info'|'error'|'success'} type The type of toast.
+ */
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.textContent = message;
+
+    container.appendChild(toast);
+
+    // Remove after 3 seconds
+    setTimeout(() => {
+        toast.classList.add('toast-out');
+        toast.addEventListener('animationend', () => {
+            if (container.contains(toast)) {
+                container.removeChild(toast);
+            }
+        });
+    }, 3000);
+}
+
+/**
  * Shows a temporary status message near the share button.
  */
 function showShareStatus(message, isError = false) {
@@ -822,7 +848,7 @@ function overlap(b1, b2) {
 function exportToICS() {
     const blocks = analyzeCurrentPlan();
     if (blocks.length === 0) {
-        alert('No leave periods to export. Please book some leave days first.');
+        showToast('No leave periods to export. Please book some leave days first.', 'error');
         return;
     }
 
@@ -1023,10 +1049,10 @@ function addCustomHoliday() {
             dateInput.value = '';
             nameInput.value = '';
         } else {
-            alert('A custom holiday for this date already exists.');
+            showToast('A custom holiday for this date already exists.', 'error');
         }
     } else {
-        alert('Please enter both a date and a name.');
+        showToast('Please enter both a date and a name.', 'error');
     }
 }
 
