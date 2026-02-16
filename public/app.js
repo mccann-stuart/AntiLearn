@@ -1487,11 +1487,101 @@ function renderRecommendations() {
 }
 
 /**
+ * Updates the visual state of a day element.
+ * Shared logic for both initial render and updates.
+ */
+function updateDayNode(el, date) {
+    const dateStr = toLocalISOString(date);
+    const isBooked = bookedDates.has(dateStr);
+
+    // Reset classes
+    el.className = 'day';
+
+    const type = getDayType(date);
+    if (type === 'weekend') el.classList.add('weekend');
+
+    const tooltipParts = [];
+
+    const holidayName = getHolidayName(date);
+    if (holidayName) {
+        el.classList.add('holiday');
+        tooltipParts.push(holidayName);
+    }
+
+    if (type === 'workday') {
+        const insight = getDayInsight(date);
+        if (insight) {
+            const tier = getEfficiencyTier(insight.efficiency);
+            el.classList.add(`heat-${tier}`);
+            if (insight.bridge) el.classList.add('bridge');
+            if (isBooked) {
+                tooltipParts.push(`${insight.efficiency.toFixed(1)}x in current plan`);
+            } else {
+                tooltipParts.push(`${insight.efficiency.toFixed(1)}x if booked`);
+            }
+            if (insight.bridge) tooltipParts.push('Bridge day');
+            el.dataset.efficiency = insight.efficiency.toFixed(1);
+            el.dataset.totaloff = insight.totalDaysOff;
+        } else {
+            delete el.dataset.efficiency;
+            delete el.dataset.totaloff;
+        }
+
+        // Update accessibility attributes
+        el.setAttribute('aria-pressed', isBooked ? 'true' : 'false');
+
+        const dateLabel = date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+        const statusLabel = isBooked ? 'Booked' : 'Available';
+        let efficiencyLabel = '';
+        if (insight) {
+             efficiencyLabel = `, ${insight.efficiency.toFixed(1)}x efficiency`;
+             if (insight.bridge) efficiencyLabel += ', Bridge day';
+        }
+        el.setAttribute('aria-label', `${dateLabel}, ${statusLabel}${efficiencyLabel}`);
+
+        el.style.cursor = 'pointer';
+        el.tabIndex = 0;
+        el.setAttribute('role', 'button');
+    }
+
+    if (isBooked) {
+        el.classList.add('leave');
+    }
+
+    if (tooltipParts.length > 0) {
+        el.title = tooltipParts.join(' • ');
+    } else {
+        el.removeAttribute('title');
+    }
+}
+
+/**
  * Renders the full calendar view.
  */
 function renderCalendar() {
     const container = document.getElementById('calendar');
+
+    // Bolt Optimization: Prevent DOM trashing.
+    // Check if we are re-rendering the same year/region/holiday-state.
+    const renderKey = `${currentYear}-${currentRegion}-${customHolidays.length}`;
+    const isUpdate = container.getAttribute('data-render-key') === renderKey && container.children.length > 0;
+
+    if (isUpdate) {
+        // Update existing cells
+        const days = container.querySelectorAll('.day[data-date]');
+        days.forEach(el => {
+            const dateStr = el.dataset.date;
+            // Reconstruct date object from string (YYYY-MM-DD)
+            const [y, m, d] = dateStr.split('-').map(Number);
+            const date = new Date(y, m - 1, d);
+            updateDayNode(el, date);
+        });
+        return;
+    }
+
+    // Full Rebuild
     container.innerHTML = '';
+    container.setAttribute('data-render-key', renderKey);
 
     const months = [
         "January", "February", "March", "April", "May", "June",
@@ -1527,70 +1617,17 @@ function renderCalendar() {
         for (let d = 1; d <= daysInMonth; d++) {
             const date = new Date(currentYear, monthIndex, d);
             const dateStr = toLocalISOString(date);
-            const isBooked = bookedDates.has(dateStr);
 
             const el = document.createElement('div');
             el.className = 'day';
             el.textContent = d;
 
-            const type = getDayType(date);
-            if (type === 'weekend') el.classList.add('weekend');
+            // Add data-date for optimization
+            el.dataset.date = dateStr;
 
-            const tooltipParts = [];
-
-            const holidayName = getHolidayName(date);
-            if (holidayName) {
-                el.classList.add('holiday');
-                tooltipParts.push(holidayName);
-            }
-
-            if (type === 'workday') {
-                const insight = getDayInsight(date);
-                if (insight) {
-                    const tier = getEfficiencyTier(insight.efficiency);
-                    el.classList.add(`heat-${tier}`);
-                    if (insight.bridge) el.classList.add('bridge');
-                    if (isBooked) {
-                        tooltipParts.push(`${insight.efficiency.toFixed(1)}x in current plan`);
-                    } else {
-                        tooltipParts.push(`${insight.efficiency.toFixed(1)}x if booked`);
-                    }
-                    if (insight.bridge) tooltipParts.push('Bridge day');
-                    el.dataset.efficiency = insight.efficiency.toFixed(1);
-                    el.dataset.totaloff = insight.totalDaysOff;
-                }
-            }
-
-            if (isBooked) {
-                el.classList.add('leave');
-            }
-
-            if (tooltipParts.length > 0) {
-                el.title = tooltipParts.join(' • ');
-            }
-
-            if (type === 'workday') {
-                el.style.cursor = 'pointer';
-
-                // --- Accessibility: Make day keyboard accessible ---
-                el.tabIndex = 0;
-                el.setAttribute('role', 'button');
-                el.setAttribute('aria-pressed', isBooked ? 'true' : 'false');
-
-                // Fetch insight (cached) for descriptive label
-                const insight = getDayInsight(date);
-
-                // Construct a descriptive label for screen readers
-                const dateLabel = date.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
-                const statusLabel = isBooked ? 'Booked' : 'Available';
-                let efficiencyLabel = '';
-                if (insight) {
-                     efficiencyLabel = `, ${insight.efficiency.toFixed(1)}x efficiency`;
-                     if (insight.bridge) efficiencyLabel += ', Bridge day';
-                }
-                el.setAttribute('aria-label', `${dateLabel}, ${statusLabel}${efficiencyLabel}`);
-
-                const toggleDate = () => {
+            // Attach event listeners (only needed on creation)
+            if (getDayType(date) === 'workday') {
+                 const toggleDate = () => {
                     if (bookedDates.has(dateStr)) {
                         bookedDates.delete(dateStr);
                     } else {
@@ -1599,17 +1636,18 @@ function renderCalendar() {
                     invalidateInsightCaches();
                     updateUI();
                     saveState();
-                };
+                 };
 
-                el.addEventListener('click', toggleDate);
-                el.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault(); // Prevent scrolling on Space
-                        toggleDate();
-                    }
-                });
+                 el.addEventListener('click', toggleDate);
+                 el.addEventListener('keydown', (e) => {
+                     if (e.key === 'Enter' || e.key === ' ') {
+                         e.preventDefault(); // Prevent scrolling on Space
+                         toggleDate();
+                     }
+                 });
             }
 
+            updateDayNode(el, date);
             grid.appendChild(el);
         }
 
