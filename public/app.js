@@ -163,7 +163,9 @@ function showToast(message, type = 'info') {
 
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    toast.textContent = message;
+
+    const icon = type === 'success' ? '✅' : type === 'error' ? '⚠️' : 'ℹ️';
+    toast.textContent = `${icon} ${message}`;
 
     container.appendChild(toast);
 
@@ -1048,6 +1050,7 @@ function exportToICS() {
     document.body.removeChild(link);
 
     URL.revokeObjectURL(url);
+    showToast('Your calendar file is ready for download.', 'success');
 }
 
 // --- MAIN UI ---
