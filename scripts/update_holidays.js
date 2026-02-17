@@ -13,7 +13,7 @@ const COUNTRIES = [
 ];
 const YEARS_AHEAD = 5;
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
-const OUTPUT_PATH = path.join(__dirname, '..', 'public', 'data', 'holidays.json');
+const OUTPUT_PATH = path.join(__dirname, '..', '.wrangler', 'holidays.json');
 
 function fetchJsonWithHttps(url) {
     return new Promise((resolve, reject) => {
@@ -125,7 +125,7 @@ async function fetchTallyfyHolidays(countryCode, year) {
 
 async function buildHolidayDataset() {
     const years = getYearsToFetch();
-    const apiKey = process.env.CALENDARIFIC_API_KEY || '';
+    const apiKey = process.env.calendarific || process.env.CALENDARIFIC_API_KEY || '';
     const dataset = {
         generatedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString().slice(0, 10),

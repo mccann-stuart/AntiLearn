@@ -6,7 +6,7 @@
   "scripts": {
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "update-holidays": "node scripts/update_holidays.js",
-    "populate-kv": "npx wrangler kv key put holidays --namespace-id f87daf29923048d69a3211ad7472b0fe --path public/data/holidays.json"
+    "populate-kv": "node scripts/update_holidays.js && npx wrangler kv key put holidays --binding HOLIDAY_DATA --path .wrangler/holidays.json"
   },
   "repository": {
     "type": "git",

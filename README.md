@@ -75,13 +75,15 @@ The application uses a simple but effective algorithm to find the best leave com
 
 ## Holiday Data Refresh
 
-The Cloudflare Worker schedules a weekly refresh (Monday 03:00 UTC) to rebuild the Qatar/UAE holiday dataset from Calendarific and Tallyfy, preferring Calendarific on overlapping dates. The latest dataset is stored in KV and served from `public/data/holidays.json` if KV is empty.
+The Cloudflare Worker schedules a weekly refresh (Monday 03:00 UTC) to rebuild the Qatar/UAE holiday dataset from Calendarific and Tallyfy, preferring Calendarific on overlapping dates. The latest dataset is stored in KV and served directly from KV (no local fallback).
 
 For local development or manual refreshes, run:
 
 ```bash
-CALENDARIFIC_API_KEY=your_key node scripts/update_holidays.js
+calendarific=your_key npm run populate-kv
 ```
+
+In Cloudflare, store the Calendarific key as a Worker secret named `calendarific` (for example, `wrangler secret put calendarific`).
 
 ## License
 

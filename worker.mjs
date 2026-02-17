@@ -52,7 +52,7 @@ function applySecurityHeaders(response, pathname) {
     );
 
     const cacheControl = getCacheControl(pathname);
-    if (cacheControl) {
+    if (cacheControl && !newHeaders.has('Cache-Control')) {
         newHeaders.set('Cache-Control', cacheControl);
     }
 
@@ -64,9 +64,25 @@ function applySecurityHeaders(response, pathname) {
 }
 
 async function handleHolidayDataRequest(env) {
-    if (!env.HOLIDAY_DATA) return null;
+    if (!env.HOLIDAY_DATA) {
+        return new Response(JSON.stringify({ error: 'Holiday data store not configured.' }), {
+            status: 503,
+            headers: {
+                'Content-Type': 'application/json; charset=utf-8',
+                'Cache-Control': 'no-store'
+            }
+        });
+    }
     const data = await env.HOLIDAY_DATA.get(HOLIDAY_DATA_KEY);
-    if (!data) return null;
+    if (!data) {
+        return new Response(JSON.stringify({ error: 'Holiday data unavailable.' }), {
+            status: 503,
+            headers: {
+                'Content-Type': 'application/json; charset=utf-8',
+                'Cache-Control': 'no-store'
+            }
+        });
+    }
     return new Response(data, {
         status: 200,
         headers: {
@@ -78,8 +94,7 @@ async function handleHolidayDataRequest(env) {
 async function handleRequest(request, env) {
     const url = new URL(request.url);
     if (url.pathname === '/data/holidays.json') {
-        const kvResponse = await handleHolidayDataRequest(env);
-        if (kvResponse) return kvResponse;
+        return handleHolidayDataRequest(env);
     }
     return env.ASSETS.fetch(request);
 }
@@ -147,10 +162,15 @@ function getYearsToFetch() {
     return Array.from({ length: YEARS_AHEAD + 1 }, (_, i) => currentYear + i);
 }
 
+function getCalendarificApiKey(env) {
+    return (env && (env.calendarific || env.CALENDARIFIC_API_KEY)) || '';
+}
+
 async function fetchCalendarificHolidays(env, countryCode, year) {
-    if (!env.CALENDARIFIC_API_KEY) return [];
+    const apiKey = getCalendarificApiKey(env);
+    if (!apiKey) return [];
     const url = new URL(CALENDARIFIC_URL);
-    url.searchParams.set('api_key', env.CALENDARIFIC_API_KEY);
+    url.searchParams.set('api_key', apiKey);
     url.searchParams.set('country', countryCode);
     url.searchParams.set('year', String(year));
     url.searchParams.set('type', CALENDARIFIC_TYPES);
@@ -167,12 +187,13 @@ async function fetchTallyfyHolidays(countryCode, year) {
 
 async function buildHolidayDataset(env) {
     const years = getYearsToFetch();
+    const apiKey = getCalendarificApiKey(env);
     const dataset = {
         generatedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString().slice(0, 10),
         sources: {
             calendarific: {
-                enabled: Boolean(env.CALENDARIFIC_API_KEY),
+                enabled: Boolean(apiKey),
                 types: CALENDARIFIC_TYPES
             },
             tallyfy: {
