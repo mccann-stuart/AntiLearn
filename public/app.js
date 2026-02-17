@@ -489,6 +489,9 @@ function hasHolidayDataForYear(location, year) {
 
 function warnHolidayDataUnavailable(location, year) {
     if (!isDatasetLocation(location)) return;
+    // Only surface warnings for the actively selected year to avoid noise
+    // from cross-year checks (e.g., year-over-year insights or boundary scans).
+    if (year !== currentYear) return;
     const key = `${location}-${year}`;
     if (holidayDataWarnings.has(key)) return;
     holidayDataWarnings.add(key);
@@ -981,6 +984,12 @@ function getLongestBlockDays(plan) {
  * Compares the best consecutive-days-off block between the selected year and the previous year.
  */
 function getYearComparison(year, allowance) {
+    if (isDatasetLocation(currentRegion)) {
+        if (!holidayDataset) return null;
+        if (!hasHolidayDataForYear(currentRegion, year) || !hasHolidayDataForYear(currentRegion, year - 1)) {
+            return null;
+        }
+    }
     const customCount = getCustomHolidaysForLocation(currentRegion).length;
     const key = `${year}-${allowance}-${currentRegion}-${currentWeekendPattern}-${customCount}`;
     if (!yearComparisonCache.has(key)) {
