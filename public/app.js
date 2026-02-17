@@ -496,11 +496,13 @@ const yearComparisonCache = new Map();
 // Cache day types for current year to avoid repeated checks
 let dayTypeCache = null;
 let dayTypeCacheYear = null;
+let dayTypeCacheStartTs = null;
 
 function invalidateInsightCaches() {
     dayInsightCache.clear();
     yearComparisonCache.clear();
     dayTypeCache = null;
+    dayTypeCacheStartTs = null;
 }
 
 /**
@@ -510,6 +512,7 @@ function ensureDayTypeCache() {
     if (dayTypeCache && dayTypeCacheYear === currentYear) return;
 
     dayTypeCacheYear = currentYear;
+    dayTypeCacheStartTs = new Date(currentYear, 0, 1).getTime();
 
     // Determine number of days in year
     const isLeap = new Date(currentYear, 1, 29).getMonth() === 1;
@@ -588,8 +591,7 @@ function getDayType(date) {
     if (date.getFullYear() === currentYear) {
         if (!dayTypeCache) ensureDayTypeCache();
 
-        const startOfYear = new Date(currentYear, 0, 1);
-        const diff = date - startOfYear;
+        const diff = date.getTime() - dayTypeCacheStartTs;
         // Use Math.round to handle potential DST shifts (usually 1 hour)
         const dayIndex = Math.round(diff / (1000 * 60 * 60 * 24));
 
