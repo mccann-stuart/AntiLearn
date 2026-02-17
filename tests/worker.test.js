@@ -92,6 +92,7 @@ describe('Cloudflare Worker Logic', () => {
         expect(response.headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
         expect(response.headers.get('Permissions-Policy')).toBe('geolocation=(), microphone=(), camera=()');
         expect(response.headers.get('Content-Security-Policy')).toContain("default-src 'self'");
+        expect(response.headers.get('Content-Security-Policy')).not.toContain("'unsafe-inline'");
     });
 
     test('should set Cache-Control for app.js (no-cache)', async () => {
