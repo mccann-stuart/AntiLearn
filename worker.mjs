@@ -64,8 +64,8 @@ function applySecurityHeaders(response, pathname) {
 }
 
 async function handleHolidayDataRequest(env) {
-    if (!env.KV_BINDING) return null;
-    const data = await env.KV_BINDING.get(HOLIDAY_DATA_KEY);
+    if (!env.HOLIDAY_DATA) return null;
+    const data = await env.HOLIDAY_DATA.get(HOLIDAY_DATA_KEY);
     if (!data) return null;
     return new Response(data, {
         status: 200,
