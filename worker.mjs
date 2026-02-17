@@ -219,12 +219,15 @@ async function fetchTallyfyHolidays(countryCode, year) {
 async function buildHolidayDataset(env) {
     const years = getYearsToFetch();
     const apiKey = await getCalendarificApiKey(env);
+    if (!apiKey) {
+        console.warn('Warning: Calendarific API key not found. Skipping Calendarific holidays.');
+    }
     const dataset = {
         generatedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString().slice(0, 10),
         sources: {
             calendarific: {
-                enabled: true
+                enabled: Boolean(apiKey)
             },
             tallyfy: {
                 enabled: true
@@ -241,6 +244,7 @@ async function buildHolidayDataset(env) {
             try {
                 calendarificList = await fetchCalendarificHolidays(apiKey, country.code, year);
             } catch (e) {
+                console.error(`Failed to fetch Calendarific holidays for ${country.code} ${year}:`, e);
                 calendarificList = [];
             }
             try {

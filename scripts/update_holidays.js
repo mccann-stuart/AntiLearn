@@ -175,6 +175,9 @@ async function fetchTallyfyHolidays(countryCode, year) {
 async function buildHolidayDataset() {
     const years = getYearsToFetch();
     const apiKey = getCalendarificApiKey();
+    if (!apiKey) {
+        console.warn('Warning: Calendarific API key not found. Skipping Calendarific holidays.');
+    }
     const dataset = {
         generatedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString().slice(0, 10),
