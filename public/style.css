@@ -271,6 +271,13 @@ h1 {
     box-shadow: 0 0 0 1px rgba(0, 113, 227, 0.4);
 }
 
+.day.today {
+    font-weight: 700;
+    box-shadow: inset 0 0 0 2px var(--accent-color);
+    position: relative;
+    z-index: 1;
+}
+
 /* Ensure booked leave overrides heatmap colours */
 .day.leave {
     background: var(--success-color) !important;
@@ -1017,6 +1024,15 @@ body.scrolled .region-group {
     align-items: center;
     box-shadow: none;
     backdrop-filter: none;
+}
+
+.empty-message {
+    font-style: italic;
+    opacity: 0.7;
+    font-size: 0.9rem;
+    width: 100%;
+    text-align: center;
+    padding: 1rem 0;
 }
 
 @media (max-width: 768px) {

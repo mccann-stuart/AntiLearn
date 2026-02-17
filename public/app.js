@@ -1227,6 +1227,12 @@ function renderCustomHolidays() {
     const list = document.getElementById('custom-holidays-list');
     if (!list) return;
     list.innerHTML = '';
+
+    if (customHolidays.length === 0) {
+        list.innerHTML = '<div class="empty-message">No custom holidays added.</div>';
+        return;
+    }
+
     customHolidays.forEach(h => {
         const tag = document.createElement('div');
         tag.className = 'custom-tag';
@@ -1234,6 +1240,9 @@ function renderCustomHolidays() {
 
         const btn = document.createElement('button');
         btn.innerHTML = '&times;';
+        // Strip HTML tags for safety and cleaner accessibility label
+        const safeName = h.name.replace(/<[^>]*>?/gm, '');
+        btn.setAttribute('aria-label', `Remove ${safeName || 'holiday'}`);
         btn.addEventListener('click', (e) => {
             e.stopPropagation(); // prevent other clicks
             removeCustomHoliday(h.date);
@@ -1545,6 +1554,16 @@ function updateDayNode(el, date) {
         el.style.cursor = 'pointer';
         el.tabIndex = 0;
         el.setAttribute('role', 'button');
+    }
+
+    const isToday = date.toDateString() === new Date().toDateString();
+    if (isToday) {
+        el.classList.add('today');
+        const currentLabel = el.getAttribute('aria-label');
+        if (currentLabel) {
+            el.setAttribute('aria-label', `Today, ${currentLabel}`);
+        }
+        tooltipParts.unshift('Today');
     }
 
     if (isBooked) {
