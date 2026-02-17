@@ -6,6 +6,7 @@ assets = { directory = "./public", binding = "ASSETS" }
 [[kv_namespaces]]
 binding = "KV_BINDING"
 id = "eec002ff8d5b4f018da8f7203a2f7eb7"
+binding = "HOLIDAY_DATA"
 
 [triggers]
 crons = ["0 3 * * 1"]

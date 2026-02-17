@@ -154,6 +154,7 @@ describe('Cloudflare Worker Logic', () => {
     test('should serve holiday data from KV when available', async () => {
         const request = createRequest('https://example.com/data/holidays.json');
         env.KV_BINDING = {
+        env.HOLIDAY_DATA = {
             get: jest.fn().mockResolvedValue(JSON.stringify({ updatedAt: '2026-02-17' }))
         };
         mockFetch.mockResolvedValue(createResponse());
