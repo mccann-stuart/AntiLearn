@@ -224,8 +224,7 @@ async function buildHolidayDataset(env) {
         updatedAt: new Date().toISOString().slice(0, 10),
         sources: {
             calendarific: {
-                enabled: Boolean(apiKey),
-                types: CALENDARIFIC_TYPES
+                enabled: true
             },
             tallyfy: {
                 enabled: true
