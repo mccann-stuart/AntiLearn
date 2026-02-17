@@ -3,6 +3,13 @@ compatibility_date = "2024-09-23"
 main = "worker.mjs"
 assets = { directory = "./public", binding = "ASSETS" }
 
+[[kv_namespaces]]
+binding = "KV_BINDING"
+id = "eec002ff8d5b4f018da8f7203a2f7eb7"
+
+[triggers]
+crons = ["0 3 * * 1"]
+
 [observability]
 enabled = false
 head_sampling_rate = 1

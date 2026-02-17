@@ -151,6 +151,20 @@ describe('Cloudflare Worker Logic', () => {
         }
     });
 
+    test('should serve holiday data from KV when available', async () => {
+        const request = createRequest('https://example.com/data/holidays.json');
+        env.KV_BINDING = {
+            get: jest.fn().mockResolvedValue(JSON.stringify({ updatedAt: '2026-02-17' }))
+        };
+        mockFetch.mockResolvedValue(createResponse());
+
+        const response = await worker.fetch(request, env);
+
+        expect(env.KV_BINDING.get).toHaveBeenCalledWith('holidays');
+        expect(response.headers.get('Content-Type')).toBe('application/json; charset=utf-8');
+        expect(await response.text()).toContain('2026-02-17');
+    });
+
     test('should handle errors gracefully', async () => {
         const request = createRequest('https://example.com/');
         mockFetch.mockRejectedValue(new Error('Asset fetch failed'));
