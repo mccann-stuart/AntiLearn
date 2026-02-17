@@ -12,7 +12,7 @@ binding = "HOLIDAY_DATA"
 id = "f87daf29923048d69a3211ad7472b0fe"
 
 [triggers]
-crons = ["0 3 * * 1"]
+crons = ["0 3 * * 3"]
 
 [build]
 command = "npm run populate-kv"

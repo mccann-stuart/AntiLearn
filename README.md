@@ -75,7 +75,7 @@ The application uses a simple but effective algorithm to find the best leave com
 
 ## Holiday Data Refresh
 
-The Cloudflare Worker schedules a weekly refresh (Monday 03:00 UTC) to rebuild the Qatar/UAE holiday dataset from Calendarific and Tallyfy, preferring Calendarific on overlapping dates. The latest dataset is stored in KV and served directly from KV (no local fallback).
+The Cloudflare Worker schedules a weekly refresh (Wednesday 03:00 UTC) to rebuild the Qatar/UAE holiday dataset from Calendarific and Tallyfy, preferring Calendarific on overlapping dates. The latest dataset is stored in KV and served directly from KV (no local fallback).
 
 For local development or manual refreshes, run:
 
