@@ -1455,7 +1455,7 @@ function renderRecommendations() {
     const top3 = blocks.slice(0, 3);
 
     if (top3.length === 0) {
-        container.innerHTML = '<p style="text-align:center; width:100%; opacity:0.7;">Select days on the calendar to plan your leave.</p>';
+        container.innerHTML = '<p class="empty-rec-message">Select days on the calendar to plan your leave.</p>';
         return;
     }
 
@@ -1669,23 +1669,18 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
         const container = document.querySelector('.container');
         if (container) {
             container.innerHTML = `
-                <div style="text-align: center; padding: 4rem 2rem;">
-                    <h1 style="color: var(--text-color); margin-bottom: 1rem;">Unable to Load Application</h1>
-                    <p style="color: var(--text-color); opacity: 0.8; margin-bottom: 2rem;">
+                <div class="error-container">
+                    <h1 class="error-title">Unable to Load Application</h1>
+                    <p class="error-message">
                         We're sorry, but something went wrong. Please try refreshing the page.
                     </p>
-                    <button onclick="location.reload()" style="
-                        background: var(--accent-color);
-                        color: white;
-                        border: none;
-                        padding: 1rem 2rem;
-                        font-size: 1rem;
-                        font-weight: 600;
-                        border-radius: 50px;
-                        cursor: pointer;
-                    ">Refresh Page</button>
+                    <button id="refresh-btn" class="refresh-btn">Refresh Page</button>
                 </div>
             `;
+            const refreshBtn = document.getElementById('refresh-btn');
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', () => location.reload());
+            }
         }
     }
 }

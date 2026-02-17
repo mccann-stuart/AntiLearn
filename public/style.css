@@ -944,7 +944,7 @@ body.scrolled .region-group {
     padding: 1.5rem;
     border-radius: 16px;
     border: 1px solid var(--border-color);
-    margin: 1rem 0 2rem 0;
+    margin: 1rem 0 1.25rem 0;
 }
 
 .custom-holidays-section h3 {
@@ -1128,4 +1128,39 @@ body.scrolled .region-group {
         opacity: 0;
         transform: translateY(-10px);
     }
+}
+
+/* --- Error Handling & Empty States --- */
+
+.error-container {
+    text-align: center;
+    padding: 4rem 2rem;
+}
+
+.error-title {
+    color: var(--text-color);
+    margin-bottom: 1rem;
+}
+
+.error-message {
+    color: var(--text-color);
+    opacity: 0.8;
+    margin-bottom: 2rem;
+}
+
+.refresh-btn {
+    background: var(--accent-color);
+    color: white;
+    border: none;
+    padding: 1rem 2rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 50px;
+    cursor: pointer;
+}
+
+.empty-rec-message {
+    text-align: center;
+    width: 100%;
+    opacity: 0.7;
 }
