@@ -3,13 +3,13 @@ compatibility_date = "2024-09-23"
 main = "worker.mjs"
 assets = { directory = "./public", binding = "ASSETS" }
 
-[[kv_namespaces]]
-binding = "HOLIDAY_DATA"
-id = "f87daf29923048d69a3211ad7472b0fe"
-
 secrets_store_secrets = [
   { binding = "calendarific", store_id = "fdfe90262239479a8209ce7ceef6103d", secret_name = "calendarific" }
 ]
+
+[[kv_namespaces]]
+binding = "HOLIDAY_DATA"
+id = "f87daf29923048d69a3211ad7472b0fe"
 
 [triggers]
 crons = ["0 3 * * 1"]
