@@ -14,7 +14,8 @@ const {
     getEfficiencyTier,
     encodePlanString,
     decodePlanString,
-    getCurrentState
+    getCurrentState,
+    setHolidayDatasetForTests
 } = require('../public/app.js');
 
 describe('State Management', () => {
@@ -23,10 +24,12 @@ describe('State Management', () => {
         expect(state).toHaveProperty('currentAllowance');
         expect(state).toHaveProperty('currentYear');
         expect(state).toHaveProperty('currentRegion');
+        expect(state).toHaveProperty('currentWeekendPattern');
+        expect(state).toHaveProperty('weekendByLocation');
         expect(state).toHaveProperty('bookedDates');
-        expect(state).toHaveProperty('customHolidays');
+        expect(state).toHaveProperty('customHolidaysByLocation');
         expect(Array.isArray(state.bookedDates)).toBe(true);
-        expect(Array.isArray(state.customHolidays)).toBe(true);
+        expect(typeof state.customHolidaysByLocation).toBe('object');
     });
 });
 
@@ -50,6 +53,17 @@ describe('Date Utilities', () => {
         expect(isWeekend(saturday)).toBe(true);
         expect(isWeekend(sunday)).toBe(true);
         expect(isWeekend(monday)).toBe(false);
+    });
+
+    test('isWeekend respects weekend pattern', () => {
+        setTestState(2023, REGIONS.QATAR, [], [], 'fri-sat');
+        const friday = new Date(2023, 0, 6); // Fri
+        const saturday = new Date(2023, 0, 7); // Sat
+        const sunday = new Date(2023, 0, 8); // Sun
+
+        expect(isWeekend(friday)).toBe(true);
+        expect(isWeekend(saturday)).toBe(true);
+        expect(isWeekend(sunday)).toBe(false);
     });
 });
 
@@ -215,6 +229,40 @@ describe('Holiday Calculations', () => {
         expect(holidayDates).toContain('2024-03-29'); // Good Friday
         expect(holidayDates).toContain('2024-04-01'); // Easter Monday
     });
+
+    test('Dataset holidays are used for Qatar and UAE', () => {
+        const dataset = {
+            updatedAt: '2026-02-17',
+            countries: {
+                QA: {
+                    name: 'Qatar',
+                    years: {
+                        '2026': [
+                            { date: '2026-01-01', name: 'New Year', type: 'national', source: 'calendarific' }
+                        ]
+                    }
+                },
+                AE: {
+                    name: 'United Arab Emirates',
+                    years: {
+                        '2026': [
+                            { date: '2026-12-02', name: 'National Day', type: 'national', source: 'tallyfy' }
+                        ]
+                    }
+                }
+            }
+        };
+
+        setHolidayDatasetForTests(dataset);
+
+        setTestState(2026, REGIONS.QATAR, []);
+        expect(getHolidayName(new Date(2026, 0, 1))).toBe('New Year');
+
+        setTestState(2026, REGIONS.UAE, []);
+        expect(getHolidayName(new Date(2026, 11, 2))).toBe('National Day');
+
+        setHolidayDatasetForTests(null);
+    });
 });
 
 describe('Optimization Logic', () => {
@@ -364,6 +412,7 @@ describe('Shareable Links', () => {
             currentAllowance: 15,
             currentYear: 2025,
             currentRegion: REGIONS.SCOTLAND,
+            currentWeekendPattern: 'sat-sun',
             bookedDates: ['2025-06-01', '2025-06-02'],
             customHolidays: [{ date: '2025-06-05', name: 'Test Holiday' }]
         };
@@ -376,6 +425,7 @@ describe('Shareable Links', () => {
         expect(decoded.currentAllowance).toBe(payload.currentAllowance);
         expect(decoded.currentYear).toBe(payload.currentYear);
         expect(decoded.currentRegion).toBe(payload.currentRegion);
+        expect(decoded.currentWeekendPattern).toBe(payload.currentWeekendPattern);
         expect(decoded.bookedDates).toEqual(payload.bookedDates);
         expect(decoded.customHolidays).toEqual(payload.customHolidays);
     });

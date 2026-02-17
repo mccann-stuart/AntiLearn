@@ -1,95 +1,53 @@
-const IMAGE_EXTENSIONS_REGEX = /\.(ico|png|jpg|jpeg|svg|webp)$/;
-const JSON_EXTENSIONS_REGEX = /\.json$/;
-const HOLIDAY_DATA_KEY = 'holidays';
+#!/usr/bin/env node
+
+const fs = require('fs');
+const path = require('path');
+const https = require('https');
+
 const CALENDARIFIC_URL = 'https://calendarific.com/api/v2/holidays';
 const TALLYFY_URL = 'https://tallyfy.com/national-holidays/api';
 const CALENDARIFIC_TYPES = 'national,religious';
-const HOLIDAY_COUNTRIES = [
+const COUNTRIES = [
     { code: 'QA', name: 'Qatar' },
     { code: 'AE', name: 'United Arab Emirates' }
 ];
 const YEARS_AHEAD = 5;
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+const OUTPUT_PATH = path.join(__dirname, '..', 'public', 'data', 'holidays.json');
 
-function getCacheControl(pathname) {
-    if (pathname.endsWith('app.js')) {
-        return 'public, max-age=0, must-revalidate';
-    }
-    if (pathname.endsWith('.css') || pathname.endsWith('.js')) {
-        return 'public, max-age=31536000, immutable';
-    }
-    if (pathname.endsWith('.html') || pathname === '/') {
-        return 'public, max-age=3600, must-revalidate';
-    }
-    if (pathname.match(IMAGE_EXTENSIONS_REGEX)) {
-        return 'public, max-age=86400';
-    }
-    if (pathname.match(JSON_EXTENSIONS_REGEX)) {
-        return 'public, max-age=3600, must-revalidate';
-    }
-    return null;
-}
-
-function applySecurityHeaders(response, pathname) {
-    const newHeaders = new Headers(response.headers);
-
-    // Security Headers
-    newHeaders.set('X-Content-Type-Options', 'nosniff');
-    newHeaders.set('X-Frame-Options', 'DENY');
-    newHeaders.set('X-XSS-Protection', '1; mode=block');
-    newHeaders.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
-    newHeaders.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-    newHeaders.set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
-
-    // Content Security Policy
-    newHeaders.set('Content-Security-Policy',
-        "default-src 'self'; " +
-        "style-src 'self' https://fonts.googleapis.com; " +
-        "font-src https://fonts.gstatic.com; " +
-        "img-src 'self' data:; " +
-        "script-src 'self'; " +
-        "connect-src 'self';"
-    );
-
-    const cacheControl = getCacheControl(pathname);
-    if (cacheControl) {
-        newHeaders.set('Cache-Control', cacheControl);
-    }
-
-    return new Response(response.body, {
-        status: response.status,
-        statusText: response.statusText,
-        headers: newHeaders
+function fetchJsonWithHttps(url) {
+    return new Promise((resolve, reject) => {
+        https
+            .get(url, (res) => {
+                let data = '';
+                res.on('data', chunk => {
+                    data += chunk;
+                });
+                res.on('end', () => {
+                    if (res.statusCode && res.statusCode >= 400) {
+                        reject(new Error(`Request failed with status ${res.statusCode}`));
+                        return;
+                    }
+                    try {
+                        resolve(JSON.parse(data));
+                    } catch (e) {
+                        reject(e);
+                    }
+                });
+            })
+            .on('error', reject);
     });
-}
-
-async function handleHolidayDataRequest(env) {
-    if (!env.HOLIDAY_DATA) return null;
-    const data = await env.HOLIDAY_DATA.get(HOLIDAY_DATA_KEY);
-    if (!data) return null;
-    return new Response(data, {
-        status: 200,
-        headers: {
-            'Content-Type': 'application/json; charset=utf-8'
-        }
-    });
-}
-
-async function handleRequest(request, env) {
-    const url = new URL(request.url);
-    if (url.pathname === '/data/holidays.json') {
-        const kvResponse = await handleHolidayDataRequest(env);
-        if (kvResponse) return kvResponse;
-    }
-    return env.ASSETS.fetch(request);
 }
 
 async function fetchJson(url) {
-    const response = await fetch(url);
-    if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`);
+    if (typeof fetch === 'function') {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Request failed with status ${response.status}`);
+        }
+        return response.json();
     }
-    return response.json();
+    return fetchJsonWithHttps(url);
 }
 
 function normalizeCalendarific(holidays) {
@@ -147,10 +105,10 @@ function getYearsToFetch() {
     return Array.from({ length: YEARS_AHEAD + 1 }, (_, i) => currentYear + i);
 }
 
-async function fetchCalendarificHolidays(env, countryCode, year) {
-    if (!env.CALENDARIFIC_API_KEY) return [];
+async function fetchCalendarificHolidays(apiKey, countryCode, year) {
+    if (!apiKey) return [];
     const url = new URL(CALENDARIFIC_URL);
-    url.searchParams.set('api_key', env.CALENDARIFIC_API_KEY);
+    url.searchParams.set('api_key', apiKey);
     url.searchParams.set('country', countryCode);
     url.searchParams.set('year', String(year));
     url.searchParams.set('type', CALENDARIFIC_TYPES);
@@ -165,14 +123,15 @@ async function fetchTallyfyHolidays(countryCode, year) {
     return normalizeTallyfy(data ? data.holidays : null);
 }
 
-async function buildHolidayDataset(env) {
+async function buildHolidayDataset() {
     const years = getYearsToFetch();
+    const apiKey = process.env.CALENDARIFIC_API_KEY || '';
     const dataset = {
         generatedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString().slice(0, 10),
         sources: {
             calendarific: {
-                enabled: Boolean(env.CALENDARIFIC_API_KEY),
+                enabled: Boolean(apiKey),
                 types: CALENDARIFIC_TYPES
             },
             tallyfy: {
@@ -182,13 +141,13 @@ async function buildHolidayDataset(env) {
         countries: {}
     };
 
-    for (const country of HOLIDAY_COUNTRIES) {
+    for (const country of COUNTRIES) {
         const yearsData = {};
         for (const year of years) {
             let calendarificList = [];
             let tallyfyList = [];
             try {
-                calendarificList = await fetchCalendarificHolidays(env, country.code, year);
+                calendarificList = await fetchCalendarificHolidays(apiKey, country.code, year);
             } catch (e) {
                 calendarificList = [];
             }
@@ -209,24 +168,14 @@ async function buildHolidayDataset(env) {
     return dataset;
 }
 
-async function refreshHolidayDataset(env) {
-    if (!env.HOLIDAY_DATA) return;
-    const dataset = await buildHolidayDataset(env);
-    await env.HOLIDAY_DATA.put(HOLIDAY_DATA_KEY, JSON.stringify(dataset));
+async function main() {
+    const dataset = await buildHolidayDataset();
+    fs.mkdirSync(path.dirname(OUTPUT_PATH), { recursive: true });
+    fs.writeFileSync(OUTPUT_PATH, JSON.stringify(dataset, null, 2));
+    console.log(`Holiday dataset written to ${OUTPUT_PATH}`);
 }
 
-export default {
-    async fetch(request, env) {
-        try {
-            const response = await handleRequest(request, env);
-            const pathname = new URL(request.url).pathname;
-            return applySecurityHeaders(response, pathname);
-        } catch (error) {
-            console.error('Worker error:', error);
-            return new Response('Internal Server Error', { status: 500 });
-        }
-    },
-    async scheduled(event, env, ctx) {
-        ctx.waitUntil(refreshHolidayDataset(env));
-    }
-};
+main().catch(err => {
+    console.error('Failed to update holiday dataset:', err);
+    process.exitCode = 1;
+});

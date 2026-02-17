@@ -1,25 +1,74 @@
 /**
- * UK Vacation Maximiser Logic
+ * Vacation Maximiser Logic
  * Combined into one file to ensure it runs locally without a server.
  */
 
 // --- STATE MANAGEMENT ---
-/** @type {Object} Supported regions. */
+/** @type {Object} Supported locations. */
 const REGIONS = {
     ENGLAND_WALES: 'england-wales',
     SCOTLAND: 'scotland',
-    NORTHERN_IRELAND: 'northern-ireland'
+    NORTHERN_IRELAND: 'northern-ireland',
+    QATAR: 'qatar',
+    UAE: 'uae'
+};
+const WEEKEND_PRESETS = {
+    'sat-sun': { label: 'Sat/Sun', days: [6, 0] },
+    'fri-sat': { label: 'Fri/Sat', days: [5, 6] }
+};
+const LOCATION_CONFIG = {
+    [REGIONS.ENGLAND_WALES]: {
+        label: 'England & Wales',
+        countryCode: 'GB',
+        holidaySource: 'uk',
+        defaultWeekend: 'sat-sun'
+    },
+    [REGIONS.SCOTLAND]: {
+        label: 'Scotland',
+        countryCode: 'GB',
+        holidaySource: 'uk',
+        defaultWeekend: 'sat-sun'
+    },
+    [REGIONS.NORTHERN_IRELAND]: {
+        label: 'Northern Ireland',
+        countryCode: 'GB',
+        holidaySource: 'uk',
+        defaultWeekend: 'sat-sun'
+    },
+    [REGIONS.QATAR]: {
+        label: 'Qatar',
+        countryCode: 'QA',
+        holidaySource: 'dataset',
+        defaultWeekend: 'fri-sat'
+    },
+    [REGIONS.UAE]: {
+        label: 'United Arab Emirates',
+        countryCode: 'AE',
+        holidaySource: 'dataset',
+        defaultWeekend: 'sat-sun'
+    }
 };
 /** @type {number} Current number of annual leave days available. */
 let currentAllowance = 25;
 /** @type {number} The year being planned for. */
 let currentYear = new Date().getFullYear();
-/** @type {string} The selected region (england-wales, scotland, northern-ireland). */
+/** @type {string} The selected location. */
 let currentRegion = REGIONS.ENGLAND_WALES;
+/** @type {string} The current weekend pattern key. */
+let currentWeekendPattern = LOCATION_CONFIG[REGIONS.ENGLAND_WALES].defaultWeekend;
 /** @type {Set<string>} Set of dates (YYYY-MM-DD) that the user has booked. */
 let bookedDates = new Set();
-/** @type {Array<{date: string, name: string}>} List of custom user-defined holidays. */
-let customHolidays = [];
+/** @type {Object<string, Array<{date: string, name: string}>>} Custom holidays by location. */
+let customHolidaysByLocation = {};
+/** @type {Object<string, string>} Weekend pattern per location. */
+let weekendByLocation = {};
+
+// Holiday dataset cache (for non-UK locations)
+const HOLIDAY_DATA_STORAGE_KEY = 'vacationMaximiserHolidayData';
+let holidayDataset = null;
+let holidayDatasetPromise = null;
+let holidayDatasetFromCache = false;
+const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
 // --- PERSISTENCE ---
 const STORAGE_KEY = 'vacationMaximiser';
@@ -34,8 +83,10 @@ function getCurrentState() {
         currentAllowance,
         currentYear,
         currentRegion,
+        currentWeekendPattern,
+        weekendByLocation,
         bookedDates: Array.from(bookedDates),
-        customHolidays
+        customHolidaysByLocation
     };
 }
 
@@ -44,9 +95,79 @@ function getCurrentState() {
  */
 function getPlanPayload() {
     return {
-        v: 1,
-        ...getCurrentState()
+        v: 2,
+        currentAllowance,
+        currentYear,
+        currentRegion,
+        currentWeekendPattern,
+        bookedDates: Array.from(bookedDates),
+        customHolidays: getCustomHolidaysForLocation(currentRegion)
     };
+}
+
+/**
+ * Ensures a custom holiday list exists for the given location.
+ */
+function ensureCustomHolidays(location) {
+    if (!customHolidaysByLocation[location]) {
+        customHolidaysByLocation[location] = [];
+    }
+    return customHolidaysByLocation[location];
+}
+
+/**
+ * Retrieves custom holidays for a specific location.
+ */
+function getCustomHolidaysForLocation(location) {
+    return customHolidaysByLocation[location] || [];
+}
+
+/**
+ * Sanitizes a list of custom holidays.
+ */
+function sanitizeHolidayList(list) {
+    return Array.isArray(list)
+        ? list.filter(h =>
+            h && typeof h === 'object' &&
+            typeof h.date === 'string' && DATE_REGEX.test(h.date) &&
+            typeof h.name === 'string' && h.name.length < 100
+          )
+        : [];
+}
+
+/**
+ * Sanitizes a map of custom holidays by location.
+ */
+function sanitizeHolidayMap(map) {
+    if (!map || typeof map !== 'object') return {};
+    const result = {};
+    Object.entries(map).forEach(([key, value]) => {
+        if (typeof key === 'string') {
+            const safeList = sanitizeHolidayList(value);
+            if (safeList.length > 0) {
+                result[key] = safeList;
+            }
+        }
+    });
+    return result;
+}
+
+/**
+ * Determines whether a location relies on the holiday dataset.
+ */
+function isDatasetLocation(location) {
+    return LOCATION_CONFIG[location] && LOCATION_CONFIG[location].holidaySource === 'dataset';
+}
+
+/**
+ * Retrieves the weekend preset for a given key with safe fallback.
+ */
+function getWeekendPreset(key) {
+    if (WEEKEND_PRESETS[key]) return WEEKEND_PRESETS[key];
+    const fallbackKey = LOCATION_CONFIG[currentRegion]
+        ? LOCATION_CONFIG[currentRegion].defaultWeekend
+        : 'sat-sun';
+    return WEEKEND_PRESETS[fallbackKey] || WEEKEND_PRESETS['sat-sun'];
 }
 
 /**
@@ -82,21 +203,19 @@ function decodePlanString(encoded) {
         const allowance = typeof obj.currentAllowance === 'number' && obj.currentAllowance > 0 && obj.currentAllowance <= 365
             ? obj.currentAllowance
             : currentAllowance;
-        const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        const weekendPattern = typeof obj.currentWeekendPattern === 'string' && WEEKEND_PRESETS[obj.currentWeekendPattern]
+            ? obj.currentWeekendPattern
+            : null;
         return {
             currentAllowance: allowance,
             currentYear: typeof obj.currentYear === 'number' ? obj.currentYear : currentYear,
             currentRegion: typeof obj.currentRegion === 'string' ? obj.currentRegion : currentRegion,
+            currentWeekendPattern: weekendPattern,
             bookedDates: Array.isArray(obj.bookedDates)
-                ? obj.bookedDates.filter(d => typeof d === 'string' && dateRegex.test(d))
+                ? obj.bookedDates.filter(d => typeof d === 'string' && DATE_REGEX.test(d))
                 : [],
-            customHolidays: Array.isArray(obj.customHolidays)
-                ? obj.customHolidays.filter(h =>
-                    h && typeof h === 'object' &&
-                    typeof h.date === 'string' && dateRegex.test(h.date) &&
-                    typeof h.name === 'string' && h.name.length < 100
-                  )
-                : []
+            customHolidays: sanitizeHolidayList(obj.customHolidays),
+            customHolidaysByLocation: sanitizeHolidayMap(obj.customHolidaysByLocation)
         };
     } catch (e) {
         if (!(typeof process !== 'undefined' && process.env.JEST_WORKER_ID)) {
@@ -128,8 +247,24 @@ function applySharedPlanFromUrl() {
         currentAllowance = decoded.currentAllowance;
         currentYear = decoded.currentYear;
         currentRegion = decoded.currentRegion;
+
+        const defaultWeekend = LOCATION_CONFIG[currentRegion].defaultWeekend;
+        currentWeekendPattern = decoded.currentWeekendPattern && WEEKEND_PRESETS[decoded.currentWeekendPattern]
+            ? decoded.currentWeekendPattern
+            : defaultWeekend;
+        weekendByLocation = {};
+        weekendByLocation[currentRegion] = currentWeekendPattern;
+
         bookedDates = new Set(decoded.bookedDates || []);
-        customHolidays = decoded.customHolidays || [];
+
+        if (decoded.customHolidaysByLocation && Object.keys(decoded.customHolidaysByLocation).length > 0) {
+            customHolidaysByLocation = decoded.customHolidaysByLocation;
+        } else {
+            customHolidaysByLocation = {};
+            if (decoded.customHolidays && decoded.customHolidays.length > 0) {
+                customHolidaysByLocation[currentRegion] = decoded.customHolidays;
+            }
+        }
 
         holidaysCache.clear();
         invalidateInsightCaches();
@@ -256,6 +391,137 @@ function loadState() {
  */
 function clearState() {
     localStorage.removeItem(STORAGE_KEY);
+}
+
+// --- HOLIDAY DATASET ---
+
+const HOLIDAY_DATA_URL = '/data/holidays.json';
+const holidayDataWarnings = new Set();
+
+/**
+ * Loads the holiday dataset from the server (or local cache).
+ */
+async function loadHolidayDataset(force = false) {
+    if (holidayDatasetPromise && !force) return holidayDatasetPromise;
+    holidayDatasetPromise = (async () => {
+        let data = null;
+        let fromCache = false;
+
+        if (typeof fetch === 'function') {
+            try {
+                const response = await fetch(HOLIDAY_DATA_URL, { cache: 'no-store' });
+                if (response.ok) {
+                    data = await response.json();
+                }
+            } catch (e) {
+                data = null;
+            }
+        }
+
+        if (!data) {
+            try {
+                const cached = localStorage.getItem(HOLIDAY_DATA_STORAGE_KEY);
+                if (cached) {
+                    data = JSON.parse(cached);
+                    fromCache = true;
+                }
+            } catch (e) {
+                data = null;
+            }
+        }
+
+        if (data) {
+            holidayDataset = data;
+            holidayDatasetFromCache = fromCache;
+            try {
+                localStorage.setItem(HOLIDAY_DATA_STORAGE_KEY, JSON.stringify(data));
+            } catch (e) {
+                // Ignore cache failures
+            }
+            holidaysCache.clear();
+            invalidateInsightCaches();
+            renderHolidayDataStatus();
+        }
+
+        return holidayDataset;
+    })();
+
+    return holidayDatasetPromise;
+}
+
+/**
+ * Retrieves dataset holidays for a specific location/year.
+ */
+function getDatasetHolidays(year, location) {
+    const config = LOCATION_CONFIG[location];
+    if (!config || !holidayDataset) return [];
+
+    const countries = holidayDataset.countries || holidayDataset.locations || holidayDataset.data || {};
+    const countryData = countries[config.countryCode];
+    const years = countryData && countryData.years ? countryData.years : countryData;
+    const list = years ? years[String(year)] : null;
+
+    if (!Array.isArray(list) || list.length === 0) {
+        warnHolidayDataUnavailable(location, year);
+        return [];
+    }
+
+    return list
+        .filter(item =>
+            item &&
+            typeof item.date === 'string' && DATE_REGEX.test(item.date) &&
+            typeof item.name === 'string'
+        )
+        .map(item => ({
+            date: item.date,
+            name: item.name
+        }));
+}
+
+function hasHolidayDataForYear(location, year) {
+    const config = LOCATION_CONFIG[location];
+    if (!config || !holidayDataset) return false;
+    const countries = holidayDataset.countries || holidayDataset.locations || holidayDataset.data || {};
+    const countryData = countries[config.countryCode];
+    const years = countryData && countryData.years ? countryData.years : countryData;
+    return Boolean(years && Array.isArray(years[String(year)]) && years[String(year)].length > 0);
+}
+
+function warnHolidayDataUnavailable(location, year) {
+    if (!isDatasetLocation(location)) return;
+    const key = `${location}-${year}`;
+    if (holidayDataWarnings.has(key)) return;
+    holidayDataWarnings.add(key);
+    showToast(`Holiday data unavailable for ${year}. Using weekends + custom holidays only.`, 'info');
+    renderHolidayDataStatus();
+}
+
+function renderHolidayDataStatus() {
+    if (typeof document === 'undefined') return;
+    const statusEl = document.getElementById('holiday-data-status');
+    if (!statusEl) return;
+
+    if (!isDatasetLocation(currentRegion)) {
+        statusEl.textContent = '';
+        return;
+    }
+
+    if (!holidayDataset) {
+        statusEl.textContent = 'Holiday data unavailable. Using weekends + custom holidays only.';
+        return;
+    }
+
+    if (!hasHolidayDataForYear(currentRegion, currentYear)) {
+        statusEl.textContent = `Holiday data unavailable for ${currentYear}. Using weekends + custom holidays only.`;
+        return;
+    }
+
+    const updatedAt = holidayDataset.updatedAt || holidayDataset.generatedAt;
+    if (updatedAt) {
+        statusEl.textContent = `Holiday data updated: ${String(updatedAt).slice(0, 10)}${holidayDatasetFromCache ? ' (cached)' : ''}`;
+    } else {
+        statusEl.textContent = 'Holiday data loaded.';
+    }
 }
 
 // --- HOLIDAYS ---
@@ -476,6 +742,7 @@ function getUKHolidays(year, region) {
     holidays.push(...getChristmasHolidays(year));
 
     // Merge Custom Holidays
+    const customHolidays = getCustomHolidaysForLocation(region);
     customHolidays.forEach(h => {
         // Only if it doesn't already exist (simple check)
         if (!holidays.some(eh => eh.date === h.date)) {
@@ -497,21 +764,39 @@ const yearComparisonCache = new Map();
 let dayTypeCache = null;
 let dayTypeCacheYear = null;
 let dayTypeCacheStartTs = null;
+let dayTypeCacheRegion = null;
+let dayTypeCacheWeekend = null;
+let dayTypeCacheCustomCount = null;
 
 function invalidateInsightCaches() {
     dayInsightCache.clear();
     yearComparisonCache.clear();
     dayTypeCache = null;
     dayTypeCacheStartTs = null;
+    dayTypeCacheRegion = null;
+    dayTypeCacheWeekend = null;
+    dayTypeCacheCustomCount = null;
 }
 
 /**
  * Ensures the day type cache is populated for the current year.
  */
 function ensureDayTypeCache() {
-    if (dayTypeCache && dayTypeCacheYear === currentYear) return;
+    const customCount = getCustomHolidaysForLocation(currentRegion).length;
+    if (
+        dayTypeCache &&
+        dayTypeCacheYear === currentYear &&
+        dayTypeCacheRegion === currentRegion &&
+        dayTypeCacheWeekend === currentWeekendPattern &&
+        dayTypeCacheCustomCount === customCount
+    ) {
+        return;
+    }
 
     dayTypeCacheYear = currentYear;
+    dayTypeCacheRegion = currentRegion;
+    dayTypeCacheWeekend = currentWeekendPattern;
+    dayTypeCacheCustomCount = customCount;
     dayTypeCacheStartTs = new Date(currentYear, 0, 1).getTime();
 
     // Determine number of days in year
@@ -532,15 +817,30 @@ function ensureDayTypeCache() {
 }
 
 /**
- * Retrieves UK bank holidays for a given year and region.
+ * Retrieves holidays for a given year and location.
  * @param {number} year The year to get holidays for.
- * @param {string} region The region code.
+ * @param {string} region The location code.
  * @returns {Array<{date: string, name: string}>} A list of holiday objects.
  */
 function getHolidaysForYear(year, region) {
-    const key = `${year}-${region}-${customHolidays.length}`; // Simple cache bust on custom change
+    const customCount = getCustomHolidaysForLocation(region).length;
+    const datasetKey = holidayDataset && (holidayDataset.updatedAt || holidayDataset.generatedAt)
+        ? (holidayDataset.updatedAt || holidayDataset.generatedAt)
+        : 'no-data';
+    const key = `${year}-${region}-${customCount}-${datasetKey}`; // Simple cache bust on custom change
     if (!holidaysCache.has(key)) {
-        const holidays = getUKHolidays(year, region);
+        let holidays = [];
+        if (isDatasetLocation(region)) {
+            holidays = getDatasetHolidays(year, region);
+            const customHolidays = getCustomHolidaysForLocation(region);
+            customHolidays.forEach(h => {
+                if (!holidays.some(eh => eh.date === h.date)) {
+                    holidays.push(h);
+                }
+            });
+        } else {
+            holidays = getUKHolidays(year, region);
+        }
         const lookup = new Map(holidays.map(h => [h.date, h]));
         holidaysCache.set(key, { holidays, lookup });
     }
@@ -554,7 +854,8 @@ function getHolidaysForYear(year, region) {
  */
 function isWeekend(date) {
     const day = date.getDay();
-    return day === 0 || day === 6;
+    const preset = getWeekendPreset(currentWeekendPattern);
+    return preset.days.includes(day);
 }
 
 /**
@@ -648,7 +949,8 @@ function isDayOff(date, bookedSet = null) {
  */
 function getDayInsight(date) {
     if (getDayType(date) !== 'workday') return null;
-    const key = `${toLocalISOString(date)}-${currentRegion}-${customHolidays.length}`;
+    const customCount = getCustomHolidaysForLocation(currentRegion).length;
+    const key = `${toLocalISOString(date)}-${currentRegion}-${currentWeekendPattern}-${customCount}`;
     if (!dayInsightCache.has(key)) {
         const result = calculateContinuousLeave(date, 1, bookedDates);
         const prev = addDays(date, -1);
@@ -679,7 +981,8 @@ function getLongestBlockDays(plan) {
  * Compares the best consecutive-days-off block between the selected year and the previous year.
  */
 function getYearComparison(year, allowance) {
-    const key = `${year}-${allowance}-${currentRegion}-${customHolidays.length}`;
+    const customCount = getCustomHolidaysForLocation(currentRegion).length;
+    const key = `${year}-${allowance}-${currentRegion}-${currentWeekendPattern}-${customCount}`;
     if (!yearComparisonCache.has(key)) {
         const currentPlan = findOptimalPlan(year, allowance);
         const previousPlan = findOptimalPlan(year - 1, allowance);
@@ -1009,7 +1312,7 @@ function exportToICS() {
     const icsLines = [
         'BEGIN:VCALENDAR',
         'VERSION:2.0',
-        'PRODID:-//UK Vacation Maximiser//EN',
+        'PRODID:-//Vacation Maximiser//EN',
         'CALSCALE:GREGORIAN',
         'METHOD:PUBLISH'
     ];
@@ -1029,7 +1332,7 @@ function exportToICS() {
             `DTSTART;VALUE=DATE:${startStr}`,
             `DTEND;VALUE=DATE:${endStr}`,
             `SUMMARY:Annual Leave (${block.leaveDays} days)`,
-            `DESCRIPTION:${block.totalDays} days off using ${block.leaveDays} leave days\\nGenerated by UK Vacation Maximiser`,
+            `DESCRIPTION:${block.totalDays} days off using ${block.leaveDays} leave days\\nGenerated by Vacation Maximiser`,
             `UID:${uid}`,
             'STATUS:CONFIRMED',
             'TRANSP:OPAQUE',
@@ -1066,6 +1369,7 @@ function init() {
     let shouldRestoreFromSaved = false;
 
     const appliedSharedPlan = applySharedPlanFromUrl();
+    const allowedRegions = Object.values(REGIONS);
 
     if (!appliedSharedPlan && savedState) {
         // Restore state variables from local storage if no shared plan
@@ -1075,21 +1379,51 @@ function init() {
         if (typeof savedState.currentYear === 'number') {
             currentYear = savedState.currentYear;
         }
-        if (typeof savedState.currentRegion === 'string') {
+        if (typeof savedState.currentRegion === 'string' && allowedRegions.includes(savedState.currentRegion)) {
             currentRegion = savedState.currentRegion;
         }
         if (Array.isArray(savedState.bookedDates)) {
             bookedDates = new Set(savedState.bookedDates);
             shouldRestoreFromSaved = savedState.bookedDates.length > 0;
         }
-        if (Array.isArray(savedState.customHolidays)) {
-            customHolidays = savedState.customHolidays;
+        if (savedState.customHolidaysByLocation) {
+            customHolidaysByLocation = sanitizeHolidayMap(savedState.customHolidaysByLocation);
+        } else if (Array.isArray(savedState.customHolidays)) {
+            customHolidaysByLocation = {};
+            const safeList = sanitizeHolidayList(savedState.customHolidays);
+            if (safeList.length > 0) {
+                customHolidaysByLocation[currentRegion] = safeList;
+            }
         }
+        if (savedState.weekendByLocation && typeof savedState.weekendByLocation === 'object') {
+            weekendByLocation = {};
+            Object.entries(savedState.weekendByLocation).forEach(([location, pattern]) => {
+                if (allowedRegions.includes(location) && WEEKEND_PRESETS[pattern]) {
+                    weekendByLocation[location] = pattern;
+                }
+            });
+        }
+        if (typeof savedState.currentWeekendPattern === 'string' && WEEKEND_PRESETS[savedState.currentWeekendPattern]) {
+            currentWeekendPattern = savedState.currentWeekendPattern;
+        } else if (weekendByLocation[currentRegion]) {
+            currentWeekendPattern = weekendByLocation[currentRegion];
+        } else {
+            currentWeekendPattern = LOCATION_CONFIG[currentRegion].defaultWeekend;
+        }
+        weekendByLocation[currentRegion] = currentWeekendPattern;
     } else if (appliedSharedPlan) {
         shouldRestoreFromSaved = bookedDates.size > 0;
         // Persist the shared plan locally for subsequent visits
         saveState();
     }
+
+    if (!allowedRegions.includes(currentRegion)) {
+        currentRegion = REGIONS.ENGLAND_WALES;
+        currentWeekendPattern = LOCATION_CONFIG[currentRegion].defaultWeekend;
+        weekendByLocation[currentRegion] = currentWeekendPattern;
+    }
+
+    ensureCustomHolidays(currentRegion);
 
     const yearSelect = document.getElementById('year-select');
     if (yearSelect) {
@@ -1113,22 +1447,60 @@ function init() {
 
         yearSelect.addEventListener('change', (e) => {
             currentYear = parseInt(e.target.value);
+            if (isDatasetLocation(currentRegion)) {
+                loadHolidayDataset();
+            }
             invalidateInsightCaches();
             resetToOptimal();
             saveState();
         });
     }
 
-    const regionSelect = document.getElementById('region-select');
-    if (regionSelect) {
-        regionSelect.value = currentRegion;
-        regionSelect.addEventListener('change', (e) => {
+    const locationSelect = document.getElementById('location-select');
+    if (locationSelect) {
+        locationSelect.value = currentRegion;
+        locationSelect.addEventListener('change', (e) => {
             currentRegion = e.target.value;
-            // Clear cache to force reload of holidays for new region
+            if (!LOCATION_CONFIG[currentRegion]) {
+                currentRegion = REGIONS.ENGLAND_WALES;
+            }
+            ensureCustomHolidays(currentRegion);
+
+            const defaultWeekend = LOCATION_CONFIG[currentRegion].defaultWeekend;
+            currentWeekendPattern = weekendByLocation[currentRegion] || defaultWeekend;
+            weekendByLocation[currentRegion] = currentWeekendPattern;
+
+            const weekendSelect = document.getElementById('weekend-select');
+            if (weekendSelect) {
+                weekendSelect.value = currentWeekendPattern;
+            }
+
+            if (isDatasetLocation(currentRegion)) {
+                loadHolidayDataset();
+            }
+
+            // Clear cache to force reload of holidays for new location
             holidaysCache.clear();
             invalidateInsightCaches();
+            renderCustomHolidays();
+            renderHolidayDataStatus();
             resetToOptimal();
             saveState();
+        });
+    }
+
+    const weekendSelect = document.getElementById('weekend-select');
+    if (weekendSelect) {
+        weekendSelect.value = currentWeekendPattern;
+        weekendSelect.addEventListener('change', (e) => {
+            const value = e.target.value;
+            if (WEEKEND_PRESETS[value]) {
+                currentWeekendPattern = value;
+                weekendByLocation[currentRegion] = currentWeekendPattern;
+                invalidateInsightCaches();
+                resetToOptimal();
+                saveState();
+            }
         });
     }
 
@@ -1171,6 +1543,10 @@ function init() {
         shareBtn.addEventListener('click', handleShareLink);
     }
 
+    if (isDatasetLocation(currentRegion)) {
+        loadHolidayDataset();
+    }
+
     // If we have saved booked dates, restore and render; otherwise compute optimal
     if (shouldRestoreFromSaved) {
         updateUI();
@@ -1192,6 +1568,7 @@ function addCustomHoliday() {
     const nameVal = nameInput.value.trim();
 
     if (dateVal && nameVal) {
+        const customHolidays = ensureCustomHolidays(currentRegion);
         // Prevent dupes
         if (!customHolidays.some(h => h.date === dateVal)) {
             customHolidays.push({ date: dateVal, name: nameVal, isCustom: true });
@@ -1214,7 +1591,8 @@ function addCustomHoliday() {
  * Removes a custom holiday.
  */
 function removeCustomHoliday(dateStr) {
-    customHolidays = customHolidays.filter(h => h.date !== dateStr);
+    const customHolidays = getCustomHolidaysForLocation(currentRegion);
+    customHolidaysByLocation[currentRegion] = customHolidays.filter(h => h.date !== dateStr);
     renderCustomHolidays();
     holidaysCache.clear();
     invalidateInsightCaches();
@@ -1229,6 +1607,8 @@ function renderCustomHolidays() {
     const list = document.getElementById('custom-holidays-list');
     if (!list) return;
     list.innerHTML = '';
+
+    const customHolidays = getCustomHolidaysForLocation(currentRegion);
 
     if (customHolidays.length === 0) {
         list.innerHTML = '<div class="empty-message">No custom holidays added.</div>';
@@ -1311,8 +1691,11 @@ function hideLoading() {
 /**
  * Resets the current plan to the optimal plan and updates the UI.
  */
-function resetToOptimal() {
+async function resetToOptimal() {
     showLoading();
+    if (isDatasetLocation(currentRegion) && !holidayDataset) {
+        await loadHolidayDataset();
+    }
     setTimeout(() => {
         try {
             const blocks = findOptimalPlan(currentYear, currentAllowance);
@@ -1338,6 +1721,7 @@ function updateUI() {
     renderStats();
     renderRecommendations();
     renderInsights();
+    renderHolidayDataStatus();
     renderCalendar();
 }
 
@@ -1587,7 +1971,8 @@ function renderCalendar() {
 
     // Bolt Optimization: Prevent DOM trashing.
     // Check if we are re-rendering the same year/region/holiday-state.
-    const renderKey = `${currentYear}-${currentRegion}-${customHolidays.length}`;
+    const customCount = getCustomHolidaysForLocation(currentRegion).length;
+    const renderKey = `${currentYear}-${currentRegion}-${currentWeekendPattern}-${customCount}`;
     const isUpdate = container.getAttribute('data-render-key') === renderKey && container.children.length > 0;
 
     if (isUpdate) {
@@ -1727,18 +2112,33 @@ if (typeof module !== 'undefined' && module.exports) {
         decodePlanString,
         renderCustomHolidays,
         getCurrentState,
+        LOCATION_CONFIG,
+        WEEKEND_PRESETS,
       
     
         // Helper to set state for testing
-        setTestState: (year, region, holidays, booked) => {
+        setTestState: (year, region, holidays, booked, weekendPattern) => {
             currentYear = year;
             currentRegion = region;
-            if (holidays) customHolidays = holidays;
+            customHolidaysByLocation = {};
+            if (holidays) {
+                customHolidaysByLocation[region] = holidays;
+            }
+            currentWeekendPattern = WEEKEND_PRESETS[weekendPattern]
+                ? weekendPattern
+                : (LOCATION_CONFIG[region] ? LOCATION_CONFIG[region].defaultWeekend : 'sat-sun');
+            weekendByLocation = { [region]: currentWeekendPattern };
             if (booked) {
                 bookedDates = new Set(booked);
             } else {
                 bookedDates = new Set();
             }
+            holidaysCache.clear();
+            invalidateInsightCaches();
+        },
+        setHolidayDatasetForTests: (dataset) => {
+            holidayDataset = dataset;
+            holidayDatasetFromCache = false;
             holidaysCache.clear();
             invalidateInsightCaches();
         }

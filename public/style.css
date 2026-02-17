@@ -892,15 +892,17 @@ body.scrolled .rec-details {
 }
 
 
-/* Selectors Row - Year and Region side by side */
+/* Selectors Row - Year, Location, and Weekend side by side */
 .selectors-row {
     display: flex;
     align-items: flex-end;
+    flex-wrap: wrap;
     gap: 1rem;
 }
 
-/* Region Selector */
-.region-group {
+/* Location + Weekend Selectors */
+.location-group,
+.weekend-group {
     display: flex;
     flex-direction: row;
     /* Changed from column to row */
@@ -910,7 +912,8 @@ body.scrolled .rec-details {
     /* Add transition */
 }
 
-.region-group label {
+.location-group label,
+.weekend-group label {
     font-size: inherit;
     /* Match year-group label */
     font-weight: inherit;
@@ -918,7 +921,8 @@ body.scrolled .rec-details {
     opacity: 1;
 }
 
-.region-group select {
+.location-group select,
+.weekend-group select {
     padding: 0.25rem 0.5rem;
     /* Reduced from 0.5rem 1rem */
     font-size: 0.9rem;
@@ -935,8 +939,16 @@ body.scrolled .rec-details {
     width: auto;
 }
 
-/* Scrolled state for region group */
-body.scrolled .region-group {
+/* Holiday data status */
+.holiday-data-status {
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    opacity: 0.85;
+}
+
+/* Scrolled state for location + weekend group */
+body.scrolled .location-group,
+body.scrolled .weekend-group {
     opacity: 0;
     max-height: 0;
     margin: 0;
@@ -1050,12 +1062,14 @@ body.scrolled .region-group {
         gap: 1rem;
     }
 
-    .region-group {
+    .location-group,
+    .weekend-group {
         margin-left: 0;
         width: 100%;
     }
 
-    .region-group select {
+    .location-group select,
+    .weekend-group select {
         width: 100%;
     }
 

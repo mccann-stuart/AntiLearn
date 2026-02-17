@@ -4,27 +4,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UK Vacation Maximiser - Smart Annual Leave Planning</title>
+    <title>Vacation Maximiser - Smart Annual Leave Planning</title>
 
     <!-- SEO Meta Tags -->
     <meta name="description"
-        content="Optimize your UK annual leave with smart vacation planning. Find the best combinations of bank holidays and weekends to maximize your time off.">
+        content="Optimize your annual leave with smart vacation planning. Find the best combinations of public holidays and weekends to maximize your time off.">
     <meta name="keywords"
-        content="UK vacation planner, annual leave optimizer, bank holidays, vacation planning, leave calculator">
+        content="vacation planner, annual leave optimizer, public holidays, vacation planning, leave calculator">
     <meta name="author" content="AntiLearn">
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
-    <meta property="og:title" content="UK Vacation Maximiser - Smart Annual Leave Planning">
+    <meta property="og:title" content="Vacation Maximiser - Smart Annual Leave Planning">
     <meta property="og:description"
-        content="Optimize your UK annual leave with smart vacation planning. Find the best combinations of bank holidays and weekends to maximize your time off.">
-    <meta property="og:site_name" content="UK Vacation Maximiser">
+        content="Optimize your annual leave with smart vacation planning. Find the best combinations of public holidays and weekends to maximize your time off.">
+    <meta property="og:site_name" content="Vacation Maximiser">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="UK Vacation Maximiser - Smart Annual Leave Planning">
+    <meta name="twitter:title" content="Vacation Maximiser - Smart Annual Leave Planning">
     <meta name="twitter:description"
-        content="Optimize your UK annual leave with smart vacation planning. Find the best combinations of bank holidays and weekends to maximize your time off.">
+        content="Optimize your annual leave with smart vacation planning. Find the best combinations of public holidays and weekends to maximize your time off.">
 
     <!-- Favicons -->
     <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -46,7 +46,7 @@
             <header>
                 <div class="header-content">
                     <div class="title-group">
-                        <h1>Vacation Maximiser 🇬🇧</h1>
+                        <h1>Vacation Maximiser</h1>
                         <p class="subtitle">Maximum time off.</p>
                     </div>
 
@@ -58,15 +58,30 @@
                             </select>
                         </div>
 
-                        <div class="region-group">
-                            <label for="region-select">Region:</label>
-                            <select id="region-select">
-                                <option value="england-wales" selected>England & Wales</option>
-                                <option value="scotland">Scotland</option>
-                                <option value="northern-ireland">Northern Ireland</option>
+                        <div class="location-group">
+                            <label for="location-select">Location:</label>
+                            <select id="location-select">
+                                <optgroup label="United Kingdom">
+                                    <option value="england-wales" selected>England & Wales</option>
+                                    <option value="scotland">Scotland</option>
+                                    <option value="northern-ireland">Northern Ireland</option>
+                                </optgroup>
+                                <optgroup label="Persian Gulf">
+                                    <option value="qatar">Qatar</option>
+                                    <option value="uae">United Arab Emirates</option>
+                                </optgroup>
+                            </select>
+                        </div>
+
+                        <div class="weekend-group">
+                            <label for="weekend-select">Weekend:</label>
+                            <select id="weekend-select">
+                                <option value="sat-sun">Sat/Sun</option>
+                                <option value="fri-sat">Fri/Sat</option>
                             </select>
                         </div>
                     </div>
+                    <div id="holiday-data-status" class="holiday-data-status" aria-live="polite"></div>
                 </div>
             </header>
 
@@ -128,7 +143,7 @@
         </div>
     </div>
     <div class="custom-holidays-section">
-        <h3>Custom extra Bank Holidays</h3>
+        <h3>Custom Public Holidays</h3>
         <div class="custom-holiday-inputs">
             <input type="date" id="custom-date-input" aria-label="Custom holiday date">
             <input type="text" id="custom-name-input" placeholder="Holiday Name (e.g. My Birthday)"

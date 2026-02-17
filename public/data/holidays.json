@@ -1,0 +1,23 @@
+{
+  "generatedAt": "2026-02-17T00:00:00Z",
+  "updatedAt": "2026-02-17",
+  "sources": {
+    "calendarific": {
+      "enabled": false,
+      "types": "national,religious"
+    },
+    "tallyfy": {
+      "enabled": false
+    }
+  },
+  "countries": {
+    "QA": {
+      "name": "Qatar",
+      "years": {}
+    },
+    "AE": {
+      "name": "United Arab Emirates",
+      "years": {}
+    }
+  }
+}
