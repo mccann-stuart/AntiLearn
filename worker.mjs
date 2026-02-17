@@ -162,12 +162,23 @@ function getYearsToFetch() {
     return Array.from({ length: YEARS_AHEAD + 1 }, (_, i) => currentYear + i);
 }
 
-function getCalendarificApiKey(env) {
-    return (env && (env.calendarific || env.CALENDARIFIC_API_KEY)) || '';
+async function getCalendarificApiKey(env) {
+    if (!env) return '';
+    const binding = env.calendarific || env.CALENDARIFIC_API_KEY;
+    if (!binding) return '';
+    if (typeof binding === 'string') return binding;
+    if (typeof binding.get === 'function') {
+        try {
+            const value = await binding.get();
+            return typeof value === 'string' ? value : '';
+        } catch (e) {
+            return '';
+        }
+    }
+    return '';
 }
 
-async function fetchCalendarificHolidays(env, countryCode, year) {
-    const apiKey = getCalendarificApiKey(env);
+async function fetchCalendarificHolidays(apiKey, countryCode, year) {
     if (!apiKey) return [];
     const url = new URL(CALENDARIFIC_URL);
     url.searchParams.set('api_key', apiKey);
@@ -187,7 +198,7 @@ async function fetchTallyfyHolidays(countryCode, year) {
 
 async function buildHolidayDataset(env) {
     const years = getYearsToFetch();
-    const apiKey = getCalendarificApiKey(env);
+    const apiKey = await getCalendarificApiKey(env);
     const dataset = {
         generatedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString().slice(0, 10),
@@ -209,7 +220,7 @@ async function buildHolidayDataset(env) {
             let calendarificList = [];
             let tallyfyList = [];
             try {
-                calendarificList = await fetchCalendarificHolidays(env, country.code, year);
+                calendarificList = await fetchCalendarificHolidays(apiKey, country.code, year);
             } catch (e) {
                 calendarificList = [];
             }

@@ -83,7 +83,9 @@ For local development or manual refreshes, run:
 calendarific=your_key npm run populate-kv
 ```
 
-In Cloudflare, store the Calendarific key as a Worker secret named `calendarific` (for example, `wrangler secret put calendarific`).
+In Cloudflare, store the Calendarific key in a Secrets Store secret named `calendarific` and ensure it is bound in `wrangler.toml` via `secrets_store_secrets`.
+
+For local dev, prefer adding `calendarific=...` to `.dev.vars` (and keep it out of git).
 
 ## License
 

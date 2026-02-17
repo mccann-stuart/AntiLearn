@@ -7,14 +7,16 @@ assets = { directory = "./public", binding = "ASSETS" }
 binding = "HOLIDAY_DATA"
 id = "f87daf29923048d69a3211ad7472b0fe"
 
+secrets_store_secrets = [
+  { binding = "calendarific", store_id = "fdfe90262239479a8209ce7ceef6103d", secret_name = "calendarific" }
+]
+
 [triggers]
 crons = ["0 3 * * 1"]
 
 [build]
 command = "npm run populate-kv"
 
-[vars]
-calendarific = ""
 
 [observability]
 enabled = false
