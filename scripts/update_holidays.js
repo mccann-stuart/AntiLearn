@@ -7,6 +7,12 @@ const https = require('https');
 const CALENDARIFIC_URL = 'https://calendarific.com/api/v2/holidays';
 const TALLYFY_URL = 'https://tallyfy.com/national-holidays/api';
 const CALENDARIFIC_TYPES = 'national,religious';
+const CALENDARIFIC_ENV_KEYS = [
+    'calendarific',
+    'CALENDARIFIC_API_KEY',
+    'CALENDARIFIC_KEY',
+    'CALENDARIFIC'
+];
 const COUNTRIES = [
     { code: 'QA', name: 'Qatar' },
     { code: 'AE', name: 'United Arab Emirates' }
@@ -14,6 +20,49 @@ const COUNTRIES = [
 const YEARS_AHEAD = 5;
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 const OUTPUT_PATH = path.join(__dirname, '..', '.wrangler', 'holidays.json');
+const DEV_VARS_PATH = path.join(__dirname, '..', '.dev.vars');
+const DOTENV_PATH = path.join(__dirname, '..', '.env');
+
+function loadEnvFile(filePath) {
+    if (!fs.existsSync(filePath)) return;
+    const raw = fs.readFileSync(filePath, 'utf8');
+    raw.split(/\r?\n/).forEach(line => {
+        let trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) return;
+        if (trimmed.startsWith('export ')) {
+            trimmed = trimmed.slice('export '.length).trim();
+        }
+        const eqIndex = trimmed.indexOf('=');
+        if (eqIndex === -1) return;
+        const key = trimmed.slice(0, eqIndex).trim();
+        if (!key) return;
+        let value = trimmed.slice(eqIndex + 1).trim();
+        if (
+            (value.startsWith('"') && value.endsWith('"')) ||
+            (value.startsWith("'") && value.endsWith("'"))
+        ) {
+            value = value.slice(1, -1);
+        }
+        if (!process.env[key]) {
+            process.env[key] = value;
+        }
+    });
+}
+
+function loadLocalEnv() {
+    loadEnvFile(DEV_VARS_PATH);
+    loadEnvFile(DOTENV_PATH);
+}
+
+function getCalendarificApiKey() {
+    for (const key of CALENDARIFIC_ENV_KEYS) {
+        const value = process.env[key];
+        if (value) return value;
+    }
+    return '';
+}
+
+loadLocalEnv();
 
 function fetchJsonWithHttps(url) {
     return new Promise((resolve, reject) => {
@@ -125,7 +174,7 @@ async function fetchTallyfyHolidays(countryCode, year) {
 
 async function buildHolidayDataset() {
     const years = getYearsToFetch();
-    const apiKey = process.env.calendarific || process.env.CALENDARIFIC_API_KEY || '';
+    const apiKey = getCalendarificApiKey();
     const dataset = {
         generatedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString().slice(0, 10),

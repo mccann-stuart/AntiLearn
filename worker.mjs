@@ -4,6 +4,12 @@ const HOLIDAY_DATA_KEY = 'holidays';
 const CALENDARIFIC_URL = 'https://calendarific.com/api/v2/holidays';
 const TALLYFY_URL = 'https://tallyfy.com/national-holidays/api';
 const CALENDARIFIC_TYPES = 'national,religious';
+const CALENDARIFIC_ENV_KEYS = [
+    'calendarific',
+    'CALENDARIFIC_API_KEY',
+    'CALENDARIFIC_KEY',
+    'CALENDARIFIC'
+];
 const HOLIDAY_COUNTRIES = [
     { code: 'QA', name: 'Qatar' },
     { code: 'AE', name: 'United Arab Emirates' }
@@ -162,18 +168,32 @@ function getYearsToFetch() {
     return Array.from({ length: YEARS_AHEAD + 1 }, (_, i) => currentYear + i);
 }
 
-async function getCalendarificApiKey(env) {
-    if (!env) return '';
-    const binding = env.calendarific || env.CALENDARIFIC_API_KEY;
+async function resolveSecretBinding(binding, secretName) {
     if (!binding) return '';
     if (typeof binding === 'string') return binding;
     if (typeof binding.get === 'function') {
         try {
             const value = await binding.get();
-            return typeof value === 'string' ? value : '';
+            if (typeof value === 'string') return value;
+        } catch (e) {
+            // Ignore and try alternate access patterns
+        }
+        try {
+            const value = await binding.get(secretName);
+            if (typeof value === 'string') return value;
         } catch (e) {
             return '';
         }
+    }
+    return '';
+}
+
+async function getCalendarificApiKey(env) {
+    if (!env) return '';
+    for (const key of CALENDARIFIC_ENV_KEYS) {
+        const binding = env[key];
+        const value = await resolveSecretBinding(binding, key);
+        if (value) return value;
     }
     return '';
 }
