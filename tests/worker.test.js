@@ -153,6 +153,7 @@ describe('Cloudflare Worker Logic', () => {
 
     test('should serve holiday data from KV when available', async () => {
         const request = createRequest('https://example.com/data/holidays.json');
+        env.KV_BINDING = {
         env.HOLIDAY_DATA = {
             get: jest.fn().mockResolvedValue(JSON.stringify({ updatedAt: '2026-02-17' }))
         };
@@ -160,7 +161,7 @@ describe('Cloudflare Worker Logic', () => {
 
         const response = await worker.fetch(request, env);
 
-        expect(env.HOLIDAY_DATA.get).toHaveBeenCalledWith('holidays');
+        expect(env.KV_BINDING.get).toHaveBeenCalledWith('holidays');
         expect(response.headers.get('Content-Type')).toBe('application/json; charset=utf-8');
         expect(await response.text()).toContain('2026-02-17');
     });
