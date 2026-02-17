@@ -5,7 +5,8 @@
   "main": "worker.mjs",
   "scripts": {
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
-    "update-holidays": "node scripts/update_holidays.js"
+    "update-holidays": "node scripts/update_holidays.js",
+    "populate-kv": "wrangler kv:key put --namespace-id f87daf29923048d69a3211ad7472b0fe holidays --path public/data/holidays.json"
   },
   "repository": {
     "type": "git",
