@@ -5,3 +5,7 @@
 ## 2024-05-22 - [Hidden Cost of Date Objects]
 **Learning:** Creating `new Date()` objects inside tight loops (like `getDayType` which is called thousands of times) can be a significant bottleneck. Caching the timestamp of reference dates (e.g., `startOfYear`) and using `date.getTime()` arithmetic is orders of magnitude faster.
 **Action:** Identify loop-invariant Date objects and cache their timestamps outside the loop.
+
+## 2024-05-22 - [Integer-based Iteration]
+**Learning:** For date-range calculations (like finding leave blocks), converting dates to 0-based integers (indices into a year array) eliminated thousands of `new Date()` allocations and reduced execution time by ~5x (85ms -> 17ms).
+**Action:** When processing continuous ranges over a fixed domain (like days in a year), precompute a lookup array and operate on indices instead of Date objects.
