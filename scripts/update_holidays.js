@@ -200,6 +200,7 @@ async function buildHolidayDataset() {
             try {
                 calendarificList = await fetchCalendarificHolidays(apiKey, country.code, year);
             } catch (e) {
+                console.error(`Failed to fetch Calendarific holidays for ${country.code} ${year}:`, e);
                 calendarificList = [];
             }
             try {
@@ -209,6 +210,7 @@ async function buildHolidayDataset() {
             }
             yearsData[String(year)] = mergeHolidayLists(calendarificList, tallyfyList);
         }
+        console.log(`Finished processing ${country.name} (${country.code})`);
 
         dataset.countries[country.code] = {
             name: country.name,
@@ -220,6 +222,7 @@ async function buildHolidayDataset() {
 }
 
 async function main() {
+    console.log('Starting holiday dataset update...');
     const dataset = await buildHolidayDataset();
     fs.mkdirSync(path.dirname(OUTPUT_PATH), { recursive: true });
     fs.writeFileSync(OUTPUT_PATH, JSON.stringify(dataset, null, 2));

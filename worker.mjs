@@ -254,6 +254,7 @@ async function buildHolidayDataset(env) {
             }
             yearsData[String(year)] = mergeHolidayLists(calendarificList, tallyfyList);
         }
+        console.log(`Finished processing ${country.name} (${country.code})`);
 
         dataset.countries[country.code] = {
             name: country.name,
@@ -267,7 +268,9 @@ async function buildHolidayDataset(env) {
 async function refreshHolidayDataset(env) {
     if (!env.HOLIDAY_DATA) return;
     const dataset = await buildHolidayDataset(env);
+    console.log('Holiday dataset built successfully. Saving to KV...');
     await env.HOLIDAY_DATA.put(HOLIDAY_DATA_KEY, JSON.stringify(dataset));
+    console.log('Holiday dataset saved to KV.');
 }
 
 export default {
@@ -282,6 +285,11 @@ export default {
         }
     },
     async scheduled(event, env, ctx) {
-        ctx.waitUntil(refreshHolidayDataset(env));
+        console.log('Cron trigger started: Refreshing holiday dataset...');
+        ctx.waitUntil(refreshHolidayDataset(env).then(() => {
+            console.log('Cron trigger finished successfully.');
+        }).catch(err => {
+            console.error('Cron trigger failed:', err);
+        }));
     }
 };
