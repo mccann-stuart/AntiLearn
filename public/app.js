@@ -782,13 +782,14 @@ function invalidateInsightCaches() {
 }
 
 /**
- * Ensures the day type cache is populated for the current year.
+ * Ensures the day type cache is populated for the specified year.
+ * Defaults to currentYear if not provided.
  */
-function ensureDayTypeCache() {
+function ensureDayTypeCache(year = currentYear) {
     const customCount = getCustomHolidaysForLocation(currentRegion).length;
     if (
         dayTypeCache &&
-        dayTypeCacheYear === currentYear &&
+        dayTypeCacheYear === year &&
         dayTypeCacheRegion === currentRegion &&
         dayTypeCacheWeekend === currentWeekendPattern &&
         dayTypeCacheCustomCount === customCount
@@ -796,19 +797,19 @@ function ensureDayTypeCache() {
         return;
     }
 
-    dayTypeCacheYear = currentYear;
+    dayTypeCacheYear = year;
     dayTypeCacheRegion = currentRegion;
     dayTypeCacheWeekend = currentWeekendPattern;
     dayTypeCacheCustomCount = customCount;
-    dayTypeCacheStartTs = new Date(currentYear, 0, 1).getTime();
+    dayTypeCacheStartTs = new Date(year, 0, 1).getTime();
 
     // Determine number of days in year
-    const isLeap = new Date(currentYear, 1, 29).getMonth() === 1;
+    const isLeap = new Date(year, 1, 29).getMonth() === 1;
     const daysCount = isLeap ? 366 : 365;
 
     dayTypeCache = new Array(daysCount);
 
-    let current = new Date(currentYear, 0, 1);
+    let current = new Date(year, 0, 1);
     for (let i = 0; i < daysCount; i++) {
         let type = 'workday';
         if (isHoliday(current)) type = 'holiday';
@@ -891,16 +892,22 @@ function getHolidayName(date) {
  * @returns {('workday'|'weekend'|'holiday')} The type of the day.
  */
 function getDayType(date) {
-    // Optimization: Check if date is within current cached year
-    if (date.getFullYear() === currentYear) {
-        if (!dayTypeCache) ensureDayTypeCache();
-
+    // Optimization: Check if date is within currently cached year
+    const year = date.getFullYear();
+    // Check if cache matches the year (even if not currentYear)
+    if (dayTypeCache && dayTypeCacheYear === year) {
         const diff = date.getTime() - dayTypeCacheStartTs;
         // Use Math.round to handle potential DST shifts (usually 1 hour)
         const dayIndex = Math.round(diff / (1000 * 60 * 60 * 24));
 
         if (dayIndex >= 0 && dayIndex < dayTypeCache.length) {
             return dayTypeCache[dayIndex];
+        }
+    } else if (year === currentYear) {
+        // Fallback: Populate cache for currentYear if it's the requested year
+        if (!dayTypeCache || dayTypeCacheYear !== currentYear) {
+            ensureDayTypeCache(currentYear);
+            return getDayType(date); // Retry with populated cache
         }
     }
 
@@ -1019,6 +1026,80 @@ function getYearComparison(year, allowance) {
 }
 
 /**
+ * Helper to check if a day is off using an index.
+ * Falls back to Date logic if index is out of bounds (year boundary).
+ */
+function isOffByIndex(idx, isOffArray, year) {
+    if (idx >= 0 && idx < isOffArray.length) {
+        return isOffArray[idx] === 1;
+    }
+    // Boundary fallback
+    const date = new Date(year, 0, 1);
+    date.setDate(date.getDate() + idx);
+    // isDayOff defaults to null bookedSet (which is what generateAllCandidates uses)
+    return isDayOff(date);
+}
+
+/**
+ * Optimized version of calculateContinuousLeave using integer indices.
+ * @param {number} startIdx Index of the start day (0 = Jan 1).
+ * @param {number} leaveDaysToUse Number of leave days to add.
+ * @param {Uint8Array} isOffArray Array where 1=off, 0=workday.
+ * @param {number} year The year (for boundary dates).
+ */
+function calculateContinuousLeaveByIndex(startIdx, leaveDaysToUse, isOffArray, year) {
+    let currentIdx = startIdx;
+    let daysCounted = 0;
+
+    // Find first bookable workday (skip existing off days)
+    while (isOffByIndex(currentIdx, isOffArray, year)) {
+        currentIdx++;
+    }
+
+    // Expand to consume allowance
+    const firstBookedIdx = currentIdx;
+    let lastBookedIdx = currentIdx;
+
+    while (daysCounted < leaveDaysToUse) {
+        if (!isOffByIndex(currentIdx, isOffArray, year)) {
+            daysCounted++;
+            lastBookedIdx = currentIdx;
+        }
+        currentIdx++;
+    }
+
+    // Expand backwards
+    let rangeStartIdx = firstBookedIdx;
+    while (true) {
+        if (!isOffByIndex(rangeStartIdx - 1, isOffArray, year)) {
+            break;
+        }
+        rangeStartIdx--;
+    }
+
+    // Expand forwards
+    let rangeEndIdx = lastBookedIdx;
+    while (true) {
+        if (!isOffByIndex(rangeEndIdx + 1, isOffArray, year)) {
+            break;
+        }
+        rangeEndIdx++;
+    }
+
+    const totalDaysOff = rangeEndIdx - rangeStartIdx + 1;
+
+    return {
+        startIdx: rangeStartIdx,
+        endIdx: rangeEndIdx,
+        startDate: rangeStartIdx, // for findBestCombination sorting
+        endDate: rangeEndIdx,     // for findBestCombination overlap check
+        leaveDaysUsed: leaveDaysToUse,
+        totalDaysOff: totalDaysOff,
+        efficiency: totalDaysOff / leaveDaysToUse
+    };
+}
+
+/**
  * Calculates a continuous block of time off based on a starting workday and a number of leave days.
  * It expands the block to include adjacent weekends, holidays, and already booked leave.
  * @param {Date} startDate First day of leave to book.
@@ -1087,30 +1168,41 @@ function calculateContinuousLeave(startDate, leaveDaysToUse, bookedSet = null) {
  * @returns {Array<Object>} List of unique candidate blocks.
  */
 function generateAllCandidates(year, allowance) {
-    const candidates = [];
-    const startOfYear = new Date(year, 0, 1);
-    const endOfYear = new Date(year, 11, 31);
+    // Ensure cache is ready for the requested year
+    ensureDayTypeCache(year);
 
-    let current = new Date(startOfYear);
-    while (current <= endOfYear) {
-        if (getDayType(current) === 'workday') {
-            const maxChunk = allowance; // Allow checking up to full allowance
-            for (let i = 1; i <= maxChunk; i++) {
-                const result = calculateContinuousLeave(current, i);
+    const isLeap = new Date(year, 1, 29).getMonth() === 1;
+    const daysCount = isLeap ? 366 : 365;
+
+    // Create boolean lookup for fast checking
+    // 0 = workday, 1 = off
+    const isOffArray = new Uint8Array(daysCount);
+    for (let i = 0; i < daysCount; i++) {
+        // We can access dayTypeCache directly since we called ensureDayTypeCache(year)
+        isOffArray[i] = dayTypeCache[i] !== 'workday' ? 1 : 0;
+    }
+
+    const candidates = [];
+    for (let i = 0; i < daysCount; i++) {
+        // Only start from workdays (isOffArray[i] === 0)
+        if (isOffArray[i] === 0) {
+            const maxChunk = allowance;
+            for (let len = 1; len <= maxChunk; len++) {
+                // Use optimized index-based calculation
+                const result = calculateContinuousLeaveByIndex(i, len, isOffArray, year);
                 if (result) {
                     candidates.push(result);
                 }
             }
         }
-        // Optimization: Mutate date in place
-        current.setDate(current.getDate() + 1);
     }
 
     // Deduplicate candidates
     const uniqueCandidates = [];
     const seen = new Set();
     candidates.forEach(c => {
-        const key = `${c.startDate.toISOString()}-${c.endDate.toISOString()}`;
+        // Use indices for key generation (much faster than toISOString)
+        const key = `${c.startIdx}-${c.endIdx}`;
         if (!seen.has(key)) {
             seen.add(key);
             uniqueCandidates.push(c);
@@ -1137,7 +1229,8 @@ function selectTopCandidates(candidates) {
     const finalSeen = new Set();
 
     combinedCandidates.forEach(c => {
-        const key = `${c.startDate.toISOString()}-${c.endDate.toISOString()}`;
+        // Updated to use indices for key (startIdx/endIdx are numbers)
+        const key = `${c.startIdx}-${c.endIdx}`;
         if (!finalSeen.has(key)) {
             finalSeen.add(key);
             finalCandidates.push(c);
@@ -1295,7 +1388,45 @@ function findBestCombination(candidates, allowance) {
 function findOptimalPlan(year, allowance) {
     const uniqueCandidates = generateAllCandidates(year, allowance);
     const topCandidates = selectTopCandidates(uniqueCandidates);
-    return findBestCombination(topCandidates, allowance);
+    const bestCombo = findBestCombination(topCandidates, allowance);
+
+    // Convert optimized index-based candidates back to full Date objects
+    return bestCombo.map(c => {
+        // startIdx and endIdx are 0-based from Jan 1 of 'year'
+        const startDate = new Date(year, 0, 1);
+        startDate.setDate(startDate.getDate() + c.startIdx);
+
+        const endDate = new Date(year, 0, 1);
+        endDate.setDate(endDate.getDate() + c.endIdx);
+
+        // Generate the list of booked dates (workdays)
+        const bookedDates = [];
+
+        // We reconstruct the booked dates by checking which days in the range are workdays.
+        // Since candidates were generated from valid workdays within the year,
+        // any workdays within the [start, end] range must be the booked ones.
+        // Any days outside the year boundary (indices < 0 or >= length) in the range
+        // are by definition OFF days (otherwise expansion wouldn't have included them),
+        // so we don't need to check them for booking.
+        for (let i = c.startIdx; i <= c.endIdx; i++) {
+            if (i >= 0 && i < dayTypeCache.length) {
+                if (dayTypeCache[i] === 'workday') {
+                    const d = new Date(year, 0, 1);
+                    d.setDate(d.getDate() + i);
+                    bookedDates.push(d);
+                }
+            }
+        }
+
+        return {
+            startDate,
+            endDate,
+            leaveDaysUsed: c.leaveDaysUsed,
+            totalDaysOff: c.totalDaysOff,
+            efficiency: c.efficiency,
+            bookedDates
+        };
+    });
 }
 
 /**
