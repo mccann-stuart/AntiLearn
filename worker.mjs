@@ -54,7 +54,12 @@ function applySecurityHeaders(response, pathname) {
         "font-src https://fonts.gstatic.com; " +
         "img-src 'self' data:; " +
         "script-src 'self'; " +
-        "connect-src 'self';"
+        "connect-src 'self'; " +
+        "object-src 'none'; " +
+        "base-uri 'none'; " +
+        "form-action 'self'; " +
+        "frame-ancestors 'none'; " +
+        "upgrade-insecure-requests;"
     );
 
     const cacheControl = getCacheControl(pathname);
