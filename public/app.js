@@ -349,6 +349,18 @@ async function handleShareLink() {
         if (navigator.clipboard && navigator.clipboard.writeText) {
             await navigator.clipboard.writeText(shareUrl);
             showShareStatus('Link copied!');
+
+            // Visual feedback on the button itself
+            const btn = document.getElementById('share-btn');
+            if (btn && !btn.classList.contains('btn-success')) {
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '✅ Copied!';
+                btn.classList.add('btn-success');
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.classList.remove('btn-success');
+                }, 2000);
+            }
         } else {
             throw new Error('Clipboard API not available');
         }

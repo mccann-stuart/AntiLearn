@@ -333,6 +333,12 @@ button:hover {
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
 }
 
+.btn-success {
+    background: var(--success-color) !important;
+    color: #1a1a1a !important;
+    border-color: var(--success-color) !important;
+}
+
 .share-status {
     min-width: 140px;
     font-weight: 600;
