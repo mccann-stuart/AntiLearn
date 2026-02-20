@@ -1194,3 +1194,14 @@ body.scrolled .weekend-group {
     width: 100%;
     opacity: 0.7;
 }
+
+/* --- Mobile Polish --- */
+@media (max-width: 768px) {
+    /* Prevent iOS zoom on focus by ensuring font size is at least 16px */
+    #year-select,
+    .location-group select,
+    .weekend-group select,
+    .custom-holiday-inputs input {
+        font-size: 16px;
+    }
+}
