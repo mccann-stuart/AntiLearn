@@ -5,6 +5,7 @@ const {
     getUKHolidays,
     isWeekend,
     isHoliday,
+    getHolidayName,
     calculateContinuousLeave,
     findOptimalPlan,
     addDays,
