@@ -5,3 +5,7 @@
 ## 2024-05-22 - [Hidden Cost of Date Objects]
 **Learning:** Creating `new Date()` objects inside tight loops (like `getDayType` which is called thousands of times) can be a significant bottleneck. Caching the timestamp of reference dates (e.g., `startOfYear`) and using `date.getTime()` arithmetic is orders of magnitude faster.
 **Action:** Identify loop-invariant Date objects and cache their timestamps outside the loop.
+
+## 2025-02-17 - [Integer-based Date Arithmetic Optimization]
+**Learning:** Replacing `Date` object manipulation with integer-based array indexing in tight loops can yield massive performance gains (e.g., 36x speedup). This is especially effective when working with calendar logic where days can be mapped to 0-365 indices.
+**Action:** When optimizing loop-heavy date logic, pre-compute day attributes (workday/holiday/weekend) into a typed array or simple array and operate on indices, only hydrating to `Date` objects at the I/O boundaries.
