@@ -2167,11 +2167,20 @@ function renderCalendar() {
             // Attach event listeners (only needed on creation)
             if (getDayType(date) === 'workday') {
                  const toggleDate = () => {
+                    const prevCount = bookedDates.size;
                     if (bookedDates.has(dateStr)) {
                         bookedDates.delete(dateStr);
                     } else {
                         bookedDates.add(dateStr);
                     }
+                    const newCount = bookedDates.size;
+
+                    if (prevCount < currentAllowance && newCount === currentAllowance) {
+                        showToast(`Perfect! You've used all ${currentAllowance} days of your allowance.`, 'success');
+                    } else if (prevCount <= currentAllowance && newCount > currentAllowance) {
+                        showToast(`Note: You've exceeded your allowance (${newCount}/${currentAllowance}).`, 'info');
+                    }
+
                     invalidateInsightCaches();
                     updateUI();
                     saveState();
@@ -2247,9 +2256,12 @@ if (typeof module !== 'undefined' && module.exports) {
       
     
         // Helper to set state for testing
-        setTestState: (year, region, holidays, booked, weekendPattern) => {
+        setTestState: (year, region, holidays, booked, weekendPattern, allowance) => {
             currentYear = year;
             currentRegion = region;
+            if (typeof allowance === 'number') {
+                currentAllowance = allowance;
+            }
             customHolidaysByLocation = {};
             if (holidays) {
                 customHolidaysByLocation[region] = holidays;
@@ -2271,6 +2283,8 @@ if (typeof module !== 'undefined' && module.exports) {
             holidayDatasetFromCache = false;
             holidaysCache.clear();
             invalidateInsightCaches();
-        }
+        },
+        showToast,
+        renderCalendar
     };
 }
