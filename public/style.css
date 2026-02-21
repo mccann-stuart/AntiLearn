@@ -333,15 +333,22 @@ button:hover {
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
 }
 
-.share-status {
-    min-width: 140px;
-    font-weight: 600;
-    text-align: left;
-    color: var(--accent-color);
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
 }
 
-.share-status.error {
-    color: var(--error-color);
+.btn-success {
+    background: rgba(48, 209, 88, 0.2);
+    border-color: var(--success-color);
+    color: white;
 }
 
 /* --- Insights & Legend --- */

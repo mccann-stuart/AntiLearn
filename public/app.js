@@ -73,7 +73,6 @@ const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 // --- PERSISTENCE ---
 const STORAGE_KEY = 'vacationMaximiser';
 const SHARE_PARAM = 'plan';
-let shareStatusTimer = null;
 
 /**
  * Returns the current application state.
@@ -316,45 +315,36 @@ function showToast(message, type = 'info') {
 }
 
 /**
- * Shows a temporary status message near the share button.
- */
-function showShareStatus(message, isError = false) {
-    const statusEl = document.getElementById('share-status');
-    if (!statusEl) return;
-    statusEl.textContent = message;
-    if (isError) {
-        statusEl.classList.add('error');
-    } else {
-        statusEl.classList.remove('error');
-    }
-    statusEl.style.color = '';
-    if (shareStatusTimer) clearTimeout(shareStatusTimer);
-    shareStatusTimer = setTimeout(() => {
-        statusEl.textContent = '';
-        statusEl.classList.remove('error');
-    }, 3000);
-}
-
-/**
  * Copies the shareable link to the clipboard (with fallback).
  */
 async function handleShareLink() {
     const shareUrl = buildShareableUrl();
     if (!shareUrl) {
-        showShareStatus('Unable to create share link', true);
+        showToast('Unable to create share link', 'error');
         return;
     }
 
     try {
         if (navigator.clipboard && navigator.clipboard.writeText) {
             await navigator.clipboard.writeText(shareUrl);
-            showShareStatus('Link copied!');
+
+            const btn = document.getElementById('share-btn');
+            if (btn && !btn.classList.contains('btn-success')) {
+                const originalText = btn.textContent;
+                btn.textContent = '✅ Copied!';
+                btn.classList.add('btn-success');
+
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.classList.remove('btn-success');
+                }, 2000);
+            }
         } else {
             throw new Error('Clipboard API not available');
         }
     } catch (e) {
         console.warn('Copy failed:', e);
-        showShareStatus('Copy failed', true);
+        showToast('Copy failed. Please try again.', 'error');
     }
 }
 
