@@ -123,11 +123,23 @@ async function handleRequest(request, env) {
 }
 
 async function fetchJson(url) {
-    const response = await fetch(url);
-    if (!response.ok) {
-        throw new Error(`Request failed with status ${response.status}`);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+    try {
+        const response = await fetch(url, { signal: controller.signal });
+        if (!response.ok) {
+            throw new Error(`Request failed with status ${response.status}`);
+        }
+        return await response.json();
+    } catch (error) {
+        if (error.name === 'AbortError') {
+            throw new Error(`Request timed out for ${redactUrl(url)}`);
+        }
+        throw error;
+    } finally {
+        clearTimeout(timeoutId);
     }
-    return response.json();
 }
 
 function normalizeCalendarific(holidays) {
