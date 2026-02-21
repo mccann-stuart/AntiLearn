@@ -761,6 +761,10 @@ let dayTypeCacheRegion = null;
 let dayTypeCacheWeekend = null;
 let dayTypeCacheCustomCount = null;
 
+// Cache booked days as indices for fast lookup
+let bookedDaysIndices = null;
+let bookedDaysYear = null;
+
 function invalidateInsightCaches() {
     dayInsightCache.clear();
     yearComparisonCache.clear();
@@ -769,6 +773,7 @@ function invalidateInsightCaches() {
     dayTypeCacheRegion = null;
     dayTypeCacheWeekend = null;
     dayTypeCacheCustomCount = null;
+    bookedDaysIndices = null;
 }
 
 /**
@@ -808,6 +813,40 @@ function ensureDayTypeCache(year = currentYear) {
         dayTypeCache[i] = type;
         current.setDate(current.getDate() + 1);
     }
+}
+
+/**
+ * Ensures the booked days index cache is populated for the specified year.
+ * Relies on dayTypeCacheStartTs being set.
+ */
+function ensureBookedDaysIndices(year) {
+    if (bookedDaysIndices && bookedDaysYear === year) return;
+
+    // Ensure dayTypeCache is ready so we have the start timestamp
+    ensureDayTypeCache(year);
+
+    const isLeap = new Date(year, 1, 29).getMonth() === 1;
+    const daysCount = isLeap ? 366 : 365;
+
+    bookedDaysIndices = new Uint8Array(daysCount);
+    bookedDaysYear = year;
+
+    if (bookedDates.size === 0) return;
+
+    // Populate indices
+    bookedDates.forEach(dateStr => {
+        // Simple check if dateStr belongs to year
+        if (dateStr.startsWith(String(year))) {
+             // Calculate index
+             const [y, m, d] = dateStr.split('-').map(Number);
+             const date = new Date(y, m - 1, d);
+             const diff = date.getTime() - dayTypeCacheStartTs;
+             const idx = Math.round(diff / (1000 * 60 * 60 * 24));
+             if (idx >= 0 && idx < daysCount) {
+                 bookedDaysIndices[idx] = 1;
+             }
+        }
+    });
 }
 
 /**
@@ -952,12 +991,33 @@ function getDayInsight(date) {
     const customCount = getCustomHolidaysForLocation(currentRegion).length;
     const key = `${toLocalISOString(date)}-${currentRegion}-${currentWeekendPattern}-${customCount}`;
     if (!dayInsightCache.has(key)) {
-        const result = calculateContinuousLeave(date, 1, bookedDates);
-        const prev = addDays(date, -1);
-        const next = addDays(date, 1);
-        const bridge = isDayOff(prev, bookedDates) && isDayOff(next, bookedDates);
-        const efficiency = result ? result.efficiency : 1;
-        const totalDaysOff = result ? result.totalDaysOff : 1;
+        let efficiency, totalDaysOff, bridge;
+
+        // Optimization: Use integer-based calculation if caches are ready/compatible
+        const year = date.getFullYear();
+        if (dayTypeCache && dayTypeCacheYear === year) {
+             const diff = date.getTime() - dayTypeCacheStartTs;
+             // Use Math.round to handle potential DST shifts (usually 1 hour)
+             const idx = Math.round(diff / (1000 * 60 * 60 * 24));
+             if (idx >= 0 && idx < dayTypeCache.length) {
+                 ensureBookedDaysIndices(year);
+                 const result = calculateInsightByIndex(idx, year);
+                 efficiency = result.efficiency;
+                 totalDaysOff = result.totalDaysOff;
+                 bridge = result.bridge;
+             }
+        }
+
+        // Fallback to Date-based logic if optimization couldn't be used
+        if (efficiency === undefined) {
+            const result = calculateContinuousLeave(date, 1, bookedDates);
+            const prev = addDays(date, -1);
+            const next = addDays(date, 1);
+            bridge = isDayOff(prev, bookedDates) && isDayOff(next, bookedDates);
+            efficiency = result ? result.efficiency : 1;
+            totalDaysOff = result ? result.totalDaysOff : 1;
+        }
+
         dayInsightCache.set(key, { efficiency, totalDaysOff, bridge });
     }
     return dayInsightCache.get(key);
@@ -1028,6 +1088,65 @@ function isOffByIndex(idx, isOffArray, year) {
     date.setDate(date.getDate() + idx);
     // isDayOff defaults to null bookedSet (which is what generateAllCandidates uses)
     return isDayOff(date);
+}
+
+/**
+ * Optimized calculation for single-day insight using integer indices.
+ * Assumes ensureDayTypeCache and ensureBookedDaysIndices have been called.
+ */
+function calculateInsightByIndex(startIdx, year) {
+    const daysCount = dayTypeCache.length;
+
+    // Helper to check if a day is off (holiday, weekend, or booked)
+    // Uses bookedDaysIndices for O(1) lookup within the year
+    const isOff = (idx) => {
+        // Boundary check
+        if (idx < 0 || idx >= daysCount) {
+             // Fallback to Date logic for boundary
+             const date = new Date(year, 0, 1);
+             date.setDate(date.getDate() + idx);
+             return isDayOff(date, bookedDates);
+        }
+
+        // Within bounds
+        return dayTypeCache[idx] !== 'workday' || bookedDaysIndices[idx] === 1;
+    };
+
+    let currentIdx = startIdx;
+
+    // Skip already off days to find first bookable day
+    // (Matches calculateContinuousLeave logic)
+    while (isOff(currentIdx)) {
+        currentIdx++;
+    }
+
+    // Book the day (conceptually)
+    // currentIdx is now the booked day.
+
+    // Expand backwards
+    let start = currentIdx;
+    while (isOff(start - 1)) {
+        start--;
+    }
+
+    // Expand forwards
+    let end = currentIdx;
+    while (isOff(end + 1)) {
+        end++;
+    }
+
+    const totalDaysOff = end - start + 1;
+
+    // Bridge check:
+    // Original logic: bridge = isDayOff(prev) && isDayOff(next)
+    // where prev/next are immediately adjacent to the QUERY date (startIdx).
+    const bridge = isOff(startIdx - 1) && isOff(startIdx + 1);
+
+    return {
+        efficiency: totalDaysOff, // leaveDaysUsed is 1
+        totalDaysOff: totalDaysOff,
+        bridge: bridge
+    };
 }
 
 /**
