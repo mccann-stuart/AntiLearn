@@ -5,3 +5,7 @@
 ## 2024-05-22 - [Hidden Cost of Date Objects]
 **Learning:** Creating `new Date()` objects inside tight loops (like `getDayType` which is called thousands of times) can be a significant bottleneck. Caching the timestamp of reference dates (e.g., `startOfYear`) and using `date.getTime()` arithmetic is orders of magnitude faster.
 **Action:** Identify loop-invariant Date objects and cache their timestamps outside the loop.
+
+## 2025-05-23 - Date vs Integer Performance in Calendar Apps
+**Learning:** Heavy Date object manipulation in loops is extremely costly in JavaScript. Converting date-based logic to integer-based logic (0-365) using precomputed lookup tables provided a ~14x speedup (515ms -> 36ms).
+**Action:** When performing thousands of date calculations (e.g., calendar scanning), always prefer integer arithmetic and convert back to Date objects only at the very end. Use Uint8Array for boolean lookups.
