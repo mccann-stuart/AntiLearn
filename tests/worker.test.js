@@ -92,6 +92,10 @@ describe('Cloudflare Worker Logic', () => {
         expect(response.headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
         expect(response.headers.get('Permissions-Policy')).toBe('geolocation=(), microphone=(), camera=()');
         expect(response.headers.get('Content-Security-Policy')).toContain("default-src 'self'");
+        expect(response.headers.get('Content-Security-Policy')).toContain("object-src 'none'");
+        expect(response.headers.get('Content-Security-Policy')).toContain("base-uri 'none'");
+        expect(response.headers.get('Content-Security-Policy')).toContain("form-action 'self'");
+        expect(response.headers.get('Content-Security-Policy')).toContain("frame-ancestors 'none'");
         expect(response.headers.get('Content-Security-Policy')).not.toContain("'unsafe-inline'");
     });
 
