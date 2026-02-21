@@ -17,6 +17,18 @@ const HOLIDAY_COUNTRIES = [
 const YEARS_AHEAD = 5;
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
+function redactUrl(urlStr) {
+    try {
+        const url = new URL(urlStr);
+        if (url.searchParams.has('api_key')) {
+            url.searchParams.set('api_key', 'REDACTED');
+        }
+        return url.toString();
+    } catch (e) {
+        return 'invalid-url';
+    }
+}
+
 function getCacheControl(pathname) {
     if (pathname.endsWith('app.js')) {
         return 'public, max-age=0, must-revalidate';
@@ -210,8 +222,17 @@ async function fetchCalendarificHolidays(apiKey, countryCode, year) {
     url.searchParams.set('year', String(year));
     url.searchParams.set('type', CALENDARIFIC_TYPES);
 
-    const data = await fetchJson(url.toString());
-    return normalizeCalendarific(data && data.response ? data.response.holidays : null);
+    try {
+        const data = await fetchJson(url.toString());
+        return normalizeCalendarific(data && data.response ? data.response.holidays : null);
+    } catch (error) {
+        let errorMessage = error.message || String(error);
+        if (apiKey) {
+            errorMessage = errorMessage.replace(apiKey, 'REDACTED');
+        }
+        console.error(`Failed to fetch Calendarific holidays from ${redactUrl(url.toString())}: ${errorMessage}`);
+        throw new Error('Calendarific fetch failed');
+    }
 }
 
 async function fetchTallyfyHolidays(countryCode, year) {

@@ -196,4 +196,35 @@ describe('Cloudflare Worker Logic', () => {
         // And check if our security headers are still added
         expect(response.headers.get('X-Frame-Options')).toBe('DENY');
     });
+
+    test('should redact API key in logs when Calendarific fetch fails', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        global.fetch = jest.fn().mockRejectedValue(new Error('Network error with https://api.calendarific.com/?api_key=secret-key-123'));
+
+        const envWithSecrets = {
+            ...env,
+            CALENDARIFIC_API_KEY: 'secret-key-123',
+            HOLIDAY_DATA: {
+                put: jest.fn()
+            }
+        };
+
+        let capturedPromise;
+        const ctx = {
+            waitUntil: (promise) => { capturedPromise = promise; }
+        };
+
+        await worker.scheduled({}, envWithSecrets, ctx);
+        await capturedPromise;
+
+        expect(consoleSpy).toHaveBeenCalled();
+        const errorCalls = consoleSpy.mock.calls.map(args => args.join(' '));
+        const combinedErrors = errorCalls.join('\n');
+
+        expect(combinedErrors).not.toContain('secret-key-123');
+        expect(combinedErrors).toContain('REDACTED');
+
+        consoleSpy.mockRestore();
+        delete global.fetch;
+    });
 });
