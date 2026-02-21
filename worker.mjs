@@ -70,7 +70,8 @@ function applySecurityHeaders(response, pathname) {
         "object-src 'none'; " +
         "base-uri 'none'; " +
         "form-action 'self'; " +
-        "frame-ancestors 'none';"
+        "frame-ancestors 'none'; " +
+        "upgrade-insecure-requests;"
     );
 
     const cacheControl = getCacheControl(pathname);
