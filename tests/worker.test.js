@@ -228,4 +228,70 @@ describe('Cloudflare Worker Logic', () => {
         consoleSpy.mockRestore();
         delete global.fetch;
     });
+
+    test('should timeout and redact URL after 10 seconds', async () => {
+        jest.useFakeTimers();
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+        let callCount = 0;
+        // Mock fetch to handle AbortSignal
+        global.fetch = jest.fn().mockImplementation((url, options) => {
+            callCount++;
+            // Only hang the first request (Calendarific) to test timeout logic
+            if (callCount === 1) {
+                return new Promise((resolve, reject) => {
+                    if (options && options.signal) {
+                        const onAbort = () => {
+                            const error = new Error('The operation was aborted');
+                            error.name = 'AbortError';
+                            reject(error);
+                        };
+                        if (options.signal.aborted) {
+                            onAbort();
+                        } else {
+                            options.signal.addEventListener('abort', onAbort);
+                        }
+                    }
+                });
+            } else {
+                // Resolve others immediately to avoid test timeout
+                return Promise.resolve({
+                    ok: true,
+                    json: () => Promise.resolve({ response: { holidays: [] } })
+                });
+            }
+        });
+
+        const envWithSecrets = {
+            ...env,
+            CALENDARIFIC_API_KEY: 'secret-key-123',
+            HOLIDAY_DATA: {
+                put: jest.fn()
+            }
+        };
+
+        let capturedPromise;
+        const ctx = {
+            waitUntil: (promise) => { capturedPromise = promise; }
+        };
+
+        await worker.scheduled({}, envWithSecrets, ctx);
+
+        // Fast-forward time
+        jest.advanceTimersByTime(11000);
+
+        jest.useRealTimers();
+        await capturedPromise;
+
+        expect(consoleSpy).toHaveBeenCalled();
+        const errorCalls = consoleSpy.mock.calls.map(args => args.join(' '));
+        const combinedErrors = errorCalls.join('\n');
+
+        expect(combinedErrors).toContain('Request timed out for');
+        expect(combinedErrors).not.toContain('secret-key-123');
+        expect(combinedErrors).toContain('REDACTED');
+
+        consoleSpy.mockRestore();
+        delete global.fetch;
+    }, 15000);
 });
