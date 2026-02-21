@@ -96,6 +96,7 @@ describe('Cloudflare Worker Logic', () => {
         expect(response.headers.get('Content-Security-Policy')).toContain("base-uri 'none'");
         expect(response.headers.get('Content-Security-Policy')).toContain("form-action 'self'");
         expect(response.headers.get('Content-Security-Policy')).toContain("frame-ancestors 'none'");
+        expect(response.headers.get('Content-Security-Policy')).toContain("upgrade-insecure-requests");
         expect(response.headers.get('Content-Security-Policy')).not.toContain("'unsafe-inline'");
     });
 
