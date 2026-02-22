@@ -1227,7 +1227,8 @@ function calculateContinuousLeave(startDate, leaveDaysToUse, bookedSet = null) {
 
     while (daysCounted < leaveDaysToUse) {
         if (!isDayOff(current, bookedSet)) {
-            leaveDaysBooked.push(new Date(current));
+            // Optimization: Store timestamps to avoid excessive Date object allocation
+            leaveDaysBooked.push(current.getTime());
             daysCounted++;
         }
         current.setDate(current.getDate() + 1);
@@ -1266,7 +1267,18 @@ function calculateContinuousLeave(startDate, leaveDaysToUse, bookedSet = null) {
         leaveDaysUsed: leaveDaysToUse,
         totalDaysOff: Math.round(totalDaysOff),
         efficiency: totalDaysOff / leaveDaysToUse,
-        bookedDates: leaveDaysBooked
+        get bookedDates() {
+            if (!this._bookedDates) {
+                const dates = leaveDaysBooked.map(ts => new Date(ts));
+                Object.defineProperty(this, '_bookedDates', {
+                    value: dates,
+                    enumerable: false,
+                    writable: true
+                });
+                return dates;
+            }
+            return this._bookedDates;
+        }
     };
 }
 
