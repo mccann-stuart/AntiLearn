@@ -200,7 +200,11 @@ async function buildHolidayDataset() {
             try {
                 calendarificList = await fetchCalendarificHolidays(apiKey, country.code, year);
             } catch (e) {
-                console.error(`Failed to fetch Calendarific holidays for ${country.code} ${year}:`, e);
+                let errorMessage = e.message || String(e);
+                if (apiKey) {
+                    errorMessage = errorMessage.replaceAll(apiKey, 'REDACTED');
+                }
+                console.error(`Failed to fetch Calendarific holidays for ${country.code} ${year}: ${errorMessage}`);
                 calendarificList = [];
             }
             try {
@@ -229,7 +233,16 @@ async function main() {
     console.log(`Holiday dataset written to ${OUTPUT_PATH}`);
 }
 
-main().catch(err => {
-    console.error('Failed to update holiday dataset:', err);
-    process.exitCode = 1;
-});
+if (require.main === module) {
+    main().catch(err => {
+        console.error('Failed to update holiday dataset:', err);
+        process.exitCode = 1;
+    });
+}
+
+module.exports = {
+    buildHolidayDataset,
+    fetchCalendarificHolidays,
+    getCalendarificApiKey,
+    COUNTRIES
+};
