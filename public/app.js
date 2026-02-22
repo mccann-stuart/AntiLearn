@@ -1291,18 +1291,80 @@ function generateAllCandidates(year, allowance) {
         isOffArray[i] = dayTypeCache[i] !== 'workday' ? 1 : 0;
     }
 
-    const candidates = [];
+    // Bolt Optimization: Pre-calculate expansion boundaries to avoid repeated Date creation and scanning
+    // Complexity reduces from O(N * Allowance^2) to O(N * Allowance)
+
+    // 1. Calculate expansionStart (backwards expansion)
+    const expansionStart = new Int32Array(daysCount);
+    let run = 0;
+    // Check previous year boundary
+    let idx = -1;
+    while (isOffByIndex(idx, isOffArray, year)) {
+        run++;
+        idx--;
+    }
+    // Forward pass to fill expansionStart
     for (let i = 0; i < daysCount; i++) {
-        // Only start from workdays (isOffArray[i] === 0)
+        if (isOffArray[i] === 1) { // OFF
+            run++;
+        } else { // Workday
+            expansionStart[i] = i - run;
+            run = 0;
+        }
+    }
+
+    // 2. Calculate expansionEnd (forwards expansion)
+    const expansionEnd = new Int32Array(daysCount);
+    run = 0;
+    // Check next year boundary
+    idx = daysCount;
+    while (isOffByIndex(idx, isOffArray, year)) {
+        run++;
+        idx++;
+    }
+    // Backward pass to fill expansionEnd
+    for (let i = daysCount - 1; i >= 0; i--) {
+        if (isOffArray[i] === 1) { // OFF
+            run++;
+        } else { // Workday
+            expansionEnd[i] = i + run;
+            run = 0;
+        }
+    }
+
+    // 3. Identify workday indices
+    const workdayIndices = [];
+    for (let i = 0; i < daysCount; i++) {
         if (isOffArray[i] === 0) {
-            const maxChunk = allowance;
-            for (let len = 1; len <= maxChunk; len++) {
-                // Use optimized index-based calculation
-                const result = calculateContinuousLeaveByIndex(i, len, isOffArray, year);
-                if (result) {
-                    candidates.push(result);
-                }
-            }
+            workdayIndices.push(i);
+        }
+    }
+
+    // 4. Generate candidates using pre-calculated data
+    const candidates = [];
+    const numWorkdays = workdayIndices.length;
+
+    for (let k = 0; k < numWorkdays; k++) {
+        const firstBookedIdx = workdayIndices[k];
+        const realStart = expansionStart[firstBookedIdx];
+
+        // Max possible length is limited by allowance AND remaining workdays
+        const maxL = Math.min(allowance, numWorkdays - k);
+
+        for (let len = 1; len <= maxL; len++) {
+            const lastBookedIdx = workdayIndices[k + len - 1];
+            const realEnd = expansionEnd[lastBookedIdx];
+            const totalDaysOff = realEnd - realStart + 1;
+
+            candidates.push({
+                startIdx: realStart,
+                endIdx: realEnd,
+                startDate: realStart, // for findBestCombination sorting (index)
+                endDate: realEnd,     // for findBestCombination overlap check (index)
+                leaveDaysUsed: len,
+                totalDaysOff: totalDaysOff,
+                efficiency: totalDaysOff / len
+            });
         }
     }
 
