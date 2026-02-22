@@ -19,12 +19,6 @@ describe('Security Vulnerability: decodePlanString Input Validation', () => {
         const encoded = encodePlanString(maliciousPayload);
         const decoded = decodePlanString(encoded);
 
-        // BEFORE FIX: The non-string items would be present
-        // AFTER FIX: We expect only valid strings (maybe even valid date strings) or an empty array if invalid
-
-        // For now, let's just log what we get to confirm behavior
-        // console.log('Decoded bookedDates:', decoded.bookedDates);
-
         // We want to enforce that bookedDates contains ONLY strings
         const allStrings = decoded.bookedDates.every(d => typeof d === 'string');
         expect(allStrings).toBe(true);
@@ -47,8 +41,6 @@ describe('Security Vulnerability: decodePlanString Input Validation', () => {
 
         const encoded = encodePlanString(maliciousPayload);
         const decoded = decodePlanString(encoded);
-
-        // console.log('Decoded customHolidays:', decoded.customHolidays);
 
         // We want to enforce that customHolidays contains ONLY objects with string date and name
         const isValidHoliday = (h) =>
