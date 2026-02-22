@@ -2434,6 +2434,7 @@ if (typeof module !== 'undefined' && module.exports) {
         getEfficiencyTier,
         encodePlanString,
         decodePlanString,
+        applySharedPlanFromUrl,
         renderCustomHolidays,
         getCurrentState,
         LOCATION_CONFIG,
