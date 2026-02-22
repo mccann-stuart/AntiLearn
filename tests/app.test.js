@@ -304,6 +304,18 @@ describe('Optimization Logic', () => {
         expect(result.totalDaysOff).toBe(3);
     });
 
+    test('calculateContinuousLeave handles year boundary (Dec -> Jan)', () => {
+        const start = new Date(2023, 11, 28); // Dec 28 (Thu)
+        const leaveDaysToUse = 3; // Thu, Fri, Tue (Jan 2) - Mon Jan 1 is holiday
+
+        const result = calculateContinuousLeave(start, leaveDaysToUse);
+
+        expect(result.leaveDaysUsed).toBe(3);
+        expect(toLocalISOString(result.startDate)).toBe('2023-12-28');
+        expect(toLocalISOString(result.endDate)).toBe('2024-01-02');
+        expect(result.totalDaysOff).toBe(6);
+    });
+
     test('findOptimalPlan returns valid plan', () => {
         // 2023, 25 days allowance
         const plan = findOptimalPlan(2023, 25);
