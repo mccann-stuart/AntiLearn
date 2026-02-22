@@ -241,7 +241,7 @@ async function fetchCalendarificHolidays(apiKey, countryCode, year) {
     } catch (error) {
         let errorMessage = error.message || String(error);
         if (apiKey) {
-            errorMessage = errorMessage.replace(apiKey, 'REDACTED');
+            errorMessage = errorMessage.replaceAll(apiKey, 'REDACTED');
         }
         console.error(`Failed to fetch Calendarific holidays from ${redactUrl(url.toString())}: ${errorMessage}`);
         throw new Error('Calendarific fetch failed');

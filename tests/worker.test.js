@@ -229,6 +229,38 @@ describe('Cloudflare Worker Logic', () => {
         delete global.fetch;
     });
 
+    test('should redact all occurrences of API key in logs', async () => {
+        const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        // Simulate error message with repeated API key
+        global.fetch = jest.fn().mockRejectedValue(new Error('Failed to fetch from https://api.calendarific.com/?api_key=secret-key-123 because secret-key-123 is invalid'));
+
+        const envWithSecrets = {
+            ...env,
+            CALENDARIFIC_API_KEY: 'secret-key-123',
+            HOLIDAY_DATA: {
+                put: jest.fn()
+            }
+        };
+
+        let capturedPromise;
+        const ctx = {
+            waitUntil: (promise) => { capturedPromise = promise; }
+        };
+
+        await worker.scheduled({}, envWithSecrets, ctx);
+        await capturedPromise;
+
+        expect(consoleSpy).toHaveBeenCalled();
+        const errorCalls = consoleSpy.mock.calls.map(args => args.join(' '));
+        const combinedErrors = errorCalls.join('\n');
+
+        expect(combinedErrors).not.toContain('secret-key-123');
+        expect(combinedErrors).toContain('REDACTED');
+
+        consoleSpy.mockRestore();
+        delete global.fetch;
+    });
+
     test('should timeout and redact URL after 10 seconds', async () => {
         jest.useFakeTimers();
         const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
