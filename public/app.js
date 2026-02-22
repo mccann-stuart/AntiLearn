@@ -753,13 +753,13 @@ const dayInsightCache = new Map();
 // Cache year-over-year comparison to avoid recomputing optimal plans unnecessarily.
 const yearComparisonCache = new Map();
 
-// Cache day types for current year to avoid repeated checks
-let dayTypeCache = null;
-let dayTypeCacheYear = null;
-let dayTypeCacheStartTs = null;
-let dayTypeCacheRegion = null;
-let dayTypeCacheWeekend = null;
-let dayTypeCacheCustomCount = null;
+// Cache day types for each year to avoid repeated checks and allow cross-year persistence
+const dayTypeCache = new Map(); // Map<year, { types: Array, startTs: number }>
+let dayTypeCacheContext = {
+    region: null,
+    weekend: null,
+    customCount: null
+};
 
 // Cache booked days as indices for fast lookup
 let bookedDaysIndices = null;
@@ -768,11 +768,12 @@ let bookedDaysYear = null;
 function invalidateInsightCaches() {
     dayInsightCache.clear();
     yearComparisonCache.clear();
-    dayTypeCache = null;
-    dayTypeCacheStartTs = null;
-    dayTypeCacheRegion = null;
-    dayTypeCacheWeekend = null;
-    dayTypeCacheCustomCount = null;
+    dayTypeCache.clear();
+    dayTypeCacheContext = {
+        region: null,
+        weekend: null,
+        customCount: null
+    };
     bookedDaysIndices = null;
 }
 
@@ -782,27 +783,32 @@ function invalidateInsightCaches() {
  */
 function ensureDayTypeCache(year = currentYear) {
     const customCount = getCustomHolidaysForLocation(currentRegion).length;
+
+    // Invalidate entire cache if context changes
     if (
-        dayTypeCache &&
-        dayTypeCacheYear === year &&
-        dayTypeCacheRegion === currentRegion &&
-        dayTypeCacheWeekend === currentWeekendPattern &&
-        dayTypeCacheCustomCount === customCount
+        dayTypeCacheContext.region !== currentRegion ||
+        dayTypeCacheContext.weekend !== currentWeekendPattern ||
+        dayTypeCacheContext.customCount !== customCount
     ) {
+        dayTypeCache.clear();
+        dayTypeCacheContext = {
+            region: currentRegion,
+            weekend: currentWeekendPattern,
+            customCount: customCount
+        };
+    }
+
+    if (dayTypeCache.has(year)) {
         return;
     }
 
-    dayTypeCacheYear = year;
-    dayTypeCacheRegion = currentRegion;
-    dayTypeCacheWeekend = currentWeekendPattern;
-    dayTypeCacheCustomCount = customCount;
-    dayTypeCacheStartTs = new Date(year, 0, 1).getTime();
+    const startTs = new Date(year, 0, 1).getTime();
 
     // Determine number of days in year
     const isLeap = new Date(year, 1, 29).getMonth() === 1;
     const daysCount = isLeap ? 366 : 365;
 
-    dayTypeCache = new Array(daysCount);
+    const types = new Array(daysCount);
 
     let current = new Date(year, 0, 1);
     for (let i = 0; i < daysCount; i++) {
@@ -810,20 +816,23 @@ function ensureDayTypeCache(year = currentYear) {
         if (isHoliday(current)) type = 'holiday';
         else if (isWeekend(current)) type = 'weekend';
 
-        dayTypeCache[i] = type;
+        types[i] = type;
         current.setDate(current.getDate() + 1);
     }
+
+    dayTypeCache.set(year, { types, startTs });
 }
 
 /**
  * Ensures the booked days index cache is populated for the specified year.
- * Relies on dayTypeCacheStartTs being set.
+ * Relies on dayTypeCache being populated for the year.
  */
 function ensureBookedDaysIndices(year) {
     if (bookedDaysIndices && bookedDaysYear === year) return;
 
     // Ensure dayTypeCache is ready so we have the start timestamp
     ensureDayTypeCache(year);
+    const cache = dayTypeCache.get(year);
 
     const isLeap = new Date(year, 1, 29).getMonth() === 1;
     const daysCount = isLeap ? 366 : 365;
@@ -840,7 +849,7 @@ function ensureBookedDaysIndices(year) {
              // Calculate index
              const [y, m, d] = dateStr.split('-').map(Number);
              const date = new Date(y, m - 1, d);
-             const diff = date.getTime() - dayTypeCacheStartTs;
+             const diff = date.getTime() - cache.startTs;
              const idx = Math.round(diff / (1000 * 60 * 60 * 24));
              if (idx >= 0 && idx < daysCount) {
                  bookedDaysIndices[idx] = 1;
@@ -923,21 +932,21 @@ function getHolidayName(date) {
 function getDayType(date) {
     // Optimization: Check if date is within currently cached year
     const year = date.getFullYear();
-    // Check if cache matches the year (even if not currentYear)
-    if (dayTypeCache && dayTypeCacheYear === year) {
-        const diff = date.getTime() - dayTypeCacheStartTs;
+    // Check if cache matches the year
+    const cache = dayTypeCache.get(year);
+
+    if (cache) {
+        const diff = date.getTime() - cache.startTs;
         // Use Math.round to handle potential DST shifts (usually 1 hour)
         const dayIndex = Math.round(diff / (1000 * 60 * 60 * 24));
 
-        if (dayIndex >= 0 && dayIndex < dayTypeCache.length) {
-            return dayTypeCache[dayIndex];
+        if (dayIndex >= 0 && dayIndex < cache.types.length) {
+            return cache.types[dayIndex];
         }
     } else if (year === currentYear) {
         // Fallback: Populate cache for currentYear if it's the requested year
-        if (!dayTypeCache || dayTypeCacheYear !== currentYear) {
-            ensureDayTypeCache(currentYear);
-            return getDayType(date); // Retry with populated cache
-        }
+        ensureDayTypeCache(currentYear);
+        return getDayType(date); // Retry with populated cache
     }
 
     if (isHoliday(date)) return 'holiday';
@@ -995,11 +1004,12 @@ function getDayInsight(date) {
 
         // Optimization: Use integer-based calculation if caches are ready/compatible
         const year = date.getFullYear();
-        if (dayTypeCache && dayTypeCacheYear === year) {
-             const diff = date.getTime() - dayTypeCacheStartTs;
+        const cache = dayTypeCache.get(year);
+        if (cache) {
+             const diff = date.getTime() - cache.startTs;
              // Use Math.round to handle potential DST shifts (usually 1 hour)
              const idx = Math.round(diff / (1000 * 60 * 60 * 24));
-             if (idx >= 0 && idx < dayTypeCache.length) {
+             if (idx >= 0 && idx < cache.types.length) {
                  ensureBookedDaysIndices(year);
                  const result = calculateInsightByIndex(idx, year);
                  efficiency = result.efficiency;
@@ -1095,7 +1105,9 @@ function isOffByIndex(idx, isOffArray, year) {
  * Assumes ensureDayTypeCache and ensureBookedDaysIndices have been called.
  */
 function calculateInsightByIndex(startIdx, year) {
-    const daysCount = dayTypeCache.length;
+    const cache = dayTypeCache.get(year);
+    const types = cache ? cache.types : [];
+    const daysCount = types.length;
 
     // Helper to check if a day is off (holiday, weekend, or booked)
     // Uses bookedDaysIndices for O(1) lookup within the year
@@ -1109,7 +1121,7 @@ function calculateInsightByIndex(startIdx, year) {
         }
 
         // Within bounds
-        return dayTypeCache[idx] !== 'workday' || bookedDaysIndices[idx] === 1;
+        return types[idx] !== 'workday' || bookedDaysIndices[idx] === 1;
     };
 
     let currentIdx = startIdx;
@@ -1279,6 +1291,7 @@ function calculateContinuousLeave(startDate, leaveDaysToUse, bookedSet = null) {
 function generateAllCandidates(year, allowance) {
     // Ensure cache is ready for the requested year
     ensureDayTypeCache(year);
+    const types = dayTypeCache.get(year).types;
 
     const isLeap = new Date(year, 1, 29).getMonth() === 1;
     const daysCount = isLeap ? 366 : 365;
@@ -1287,8 +1300,7 @@ function generateAllCandidates(year, allowance) {
     // 0 = workday, 1 = off
     const isOffArray = new Uint8Array(daysCount);
     for (let i = 0; i < daysCount; i++) {
-        // We can access dayTypeCache directly since we called ensureDayTypeCache(year)
-        isOffArray[i] = dayTypeCache[i] !== 'workday' ? 1 : 0;
+        isOffArray[i] = types[i] !== 'workday' ? 1 : 0;
     }
 
     // Bolt Optimization: Pre-calculate expansion boundaries to avoid repeated Date creation and scanning
@@ -1579,9 +1591,10 @@ function findOptimalPlan(year, allowance) {
         // Any days outside the year boundary (indices < 0 or >= length) in the range
         // are by definition OFF days (otherwise expansion wouldn't have included them),
         // so we don't need to check them for booking.
+        const types = dayTypeCache.get(year).types;
         for (let i = c.startIdx; i <= c.endIdx; i++) {
-            if (i >= 0 && i < dayTypeCache.length) {
-                if (dayTypeCache[i] === 'workday') {
+            if (i >= 0 && i < types.length) {
+                if (types[i] === 'workday') {
                     const d = new Date(year, 0, 1);
                     d.setDate(d.getDate() + i);
                     bookedDates.push(d);
