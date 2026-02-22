@@ -170,6 +170,32 @@ describe('Cloudflare Worker Logic', () => {
         expect(await response.text()).toContain('2026-02-17');
     });
 
+    test('should return 503 when HOLIDAY_DATA binding is missing', async () => {
+        const request = createRequest('https://example.com/data/holidays.json');
+        delete env.HOLIDAY_DATA;
+
+        const response = await worker.fetch(request, env);
+
+        expect(response.status).toBe(503);
+        expect(response.headers.get('Content-Type')).toBe('application/json; charset=utf-8');
+        expect(response.headers.get('Cache-Control')).toBe('no-store');
+        expect(await response.text()).toContain('Holiday data store not configured.');
+    });
+
+    test('should return 503 when holiday data is unavailable in KV', async () => {
+        const request = createRequest('https://example.com/data/holidays.json');
+        env.HOLIDAY_DATA = {
+            get: jest.fn().mockResolvedValue(null)
+        };
+
+        const response = await worker.fetch(request, env);
+
+        expect(response.status).toBe(503);
+        expect(response.headers.get('Content-Type')).toBe('application/json; charset=utf-8');
+        expect(response.headers.get('Cache-Control')).toBe('no-store');
+        expect(await response.text()).toContain('Holiday data unavailable.');
+    });
+
     test('should handle errors gracefully', async () => {
         const request = createRequest('https://example.com/');
         mockFetch.mockRejectedValue(new Error('Asset fetch failed'));
