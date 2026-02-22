@@ -154,7 +154,11 @@ async function buildHolidayDataset() {
             try {
                 calendarificList = await fetchCalendarificHolidays(apiKey, country.code, year);
             } catch (e) {
-                console.error(`Failed to fetch Calendarific holidays for ${country.code} ${year}:`, e);
+                let errorMessage = e.message || String(e);
+                if (apiKey) {
+                    errorMessage = errorMessage.replaceAll(apiKey, 'REDACTED');
+                }
+                console.error(`Failed to fetch Calendarific holidays for ${country.code} ${year}: ${errorMessage}`);
                 calendarificList = [];
             }
             try {
@@ -183,19 +187,24 @@ async function main() {
     console.log(`Holiday dataset written to ${OUTPUT_PATH}`);
 }
 
-if (require.main === module) {
+const isDirectRun = process.argv[1]
+    && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (isDirectRun) {
     main().catch(err => {
         console.error('Failed to update holiday dataset:', err);
         process.exitCode = 1;
     });
 }
 
-module.exports = {
+export {
     loadEnvFile,
     getCalendarificApiKey,
     fetchJson,
+    fetchCalendarificHolidays,
+    buildHolidayDataset,
+    COUNTRIES,
     normalizeCalendarific,
     normalizeTallyfy,
-    mergeHolidayLists,
-    buildHolidayDataset
+    mergeHolidayLists
 };

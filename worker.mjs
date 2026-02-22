@@ -1,4 +1,4 @@
-import { DATE_REGEX, normalizeCalendarific, normalizeTallyfy, mergeHolidayLists } from './lib/holiday_utils.mjs';
+import { normalizeCalendarific, normalizeTallyfy, mergeHolidayLists } from './lib/holiday_utils.mjs';
 
 const IMAGE_EXTENSIONS_REGEX = /\.(ico|png|jpg|jpeg|svg|webp)$/;
 const JSON_EXTENSIONS_REGEX = /\.json$/;
