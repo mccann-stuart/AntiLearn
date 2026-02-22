@@ -2303,6 +2303,8 @@ function renderCalendar() {
     container.innerHTML = '';
     container.setAttribute('data-render-key', renderKey);
 
+    const fragment = document.createDocumentFragment();
+
     const months = [
         "January", "February", "March", "April", "May", "June",
         "July", "August", "September", "October", "November", "December"
@@ -2381,8 +2383,10 @@ function renderCalendar() {
         }
 
         monthDiv.appendChild(grid);
-        container.appendChild(monthDiv);
+        fragment.appendChild(monthDiv);
     });
+
+    container.appendChild(fragment);
 }
 
 // Initialize application with error handling.
