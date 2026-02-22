@@ -276,22 +276,28 @@ async function buildHolidayDataset(env) {
 
     for (const country of HOLIDAY_COUNTRIES) {
         const yearsData = {};
-        for (const year of years) {
+        await Promise.all(years.map(async (year) => {
             let calendarificList = [];
             let tallyfyList = [];
-            try {
-                calendarificList = await fetchCalendarificHolidays(apiKey, country.code, year);
-            } catch (e) {
-                console.error(`Failed to fetch Calendarific holidays for ${country.code} ${year}:`, e);
-                calendarificList = [];
-            }
-            try {
-                tallyfyList = await fetchTallyfyHolidays(country.code, year);
-            } catch (e) {
-                tallyfyList = [];
-            }
+            await Promise.all([
+                (async () => {
+                    try {
+                        calendarificList = await fetchCalendarificHolidays(apiKey, country.code, year);
+                    } catch (e) {
+                        console.error(`Failed to fetch Calendarific holidays for ${country.code} ${year}:`, e);
+                        calendarificList = [];
+                    }
+                })(),
+                (async () => {
+                    try {
+                        tallyfyList = await fetchTallyfyHolidays(country.code, year);
+                    } catch (e) {
+                        tallyfyList = [];
+                    }
+                })()
+            ]);
             yearsData[String(year)] = mergeHolidayLists(calendarificList, tallyfyList);
-        }
+        }));
         console.log(`Finished processing ${country.name} (${country.code})`);
 
         dataset.countries[country.code] = {
