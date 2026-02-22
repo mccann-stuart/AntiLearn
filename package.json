@@ -5,8 +5,8 @@
   "main": "worker.mjs",
   "scripts": {
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
-    "update-holidays": "node scripts/update_holidays.js",
-    "populate-kv": "node scripts/update_holidays.js && npx wrangler kv key put holidays --binding HOLIDAY_DATA --path .wrangler/holidays.json --remote"
+    "update-holidays": "node scripts/update_holidays.mjs",
+    "populate-kv": "node scripts/update_holidays.mjs && npx wrangler kv key put holidays --binding HOLIDAY_DATA --path .wrangler/holidays.json --remote"
   },
   "repository": {
     "type": "git",
