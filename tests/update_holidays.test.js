@@ -1,8 +1,17 @@
-const {
-    normalizeCalendarific,
-    normalizeTallyfy,
-    mergeHolidayLists
-} = require('../scripts/update_holidays');
+let normalizeCalendarific;
+let normalizeTallyfy;
+let mergeHolidayLists;
+let buildHolidayDataset;
+
+beforeAll(async () => {
+    const mod = await import('../scripts/update_holidays.mjs');
+    ({
+        normalizeCalendarific,
+        normalizeTallyfy,
+        mergeHolidayLists,
+        buildHolidayDataset
+    } = mod);
+});
 
 describe('Holiday Data Normalization', () => {
     describe('normalizeCalendarific', () => {
@@ -36,7 +45,7 @@ describe('Holiday Data Normalization', () => {
             const input = [
                 { date: { iso: 'invalid-date' }, name: 'Bad Date' },
                 { date: null, name: 'No Date' },
-                { date: { iso: '2025-01-01' }, name: 'Good Date' } // valid
+                { date: { iso: '2025-01-01' }, name: 'Good Date' }
             ];
             const expected = [
                 { date: '2025-01-01', name: 'Good Date', type: 'national', source: 'calendarific' }
@@ -72,7 +81,7 @@ describe('Holiday Data Normalization', () => {
         });
 
         test('should filter out invalid dates', () => {
-             const input = [
+            const input = [
                 { date: 'invalid', name: 'Bad Date' },
                 { date: '2025-01-01', name: 'Good Date' }
             ];
@@ -109,5 +118,84 @@ describe('Holiday Data Normalization', () => {
             expect(mergeHolidayLists([], list1)).toEqual(list1);
             expect(mergeHolidayLists([], [])).toEqual([]);
         });
+    });
+});
+
+describe('update_holidays.mjs', () => {
+    let originalConsoleError;
+    let originalFetch;
+    let consoleErrorMock;
+    let originalEnvValues;
+    const apiKeyEnvKeys = [
+        'calendarific',
+        'CALENDARIFIC_API_KEY',
+        'CALENDARIFIC_KEY',
+        'CALENDARIFIC'
+    ];
+
+    beforeEach(() => {
+        consoleErrorMock = jest.fn();
+        originalConsoleError = console.error;
+        console.error = consoleErrorMock;
+
+        originalFetch = global.fetch;
+        global.fetch = jest.fn();
+
+        originalEnvValues = {};
+        apiKeyEnvKeys.forEach((key) => {
+            originalEnvValues[key] = process.env[key];
+            process.env[key] = 'secret-api-key-123';
+        });
+    });
+
+    afterEach(() => {
+        console.error = originalConsoleError;
+        global.fetch = originalFetch;
+        apiKeyEnvKeys.forEach((key) => {
+            if (typeof originalEnvValues[key] === 'undefined') {
+                delete process.env[key];
+            } else {
+                process.env[key] = originalEnvValues[key];
+            }
+        });
+    });
+
+    test('buildHolidayDataset should redact API key from error logs when fetch fails', async () => {
+        const apiKey = 'secret-api-key-123';
+        const leakedUrl = `https://calendarific.com/api/v2/holidays?api_key=${apiKey}&country=QA&year=2024`;
+
+        global.fetch.mockImplementation(() => {
+            return Promise.reject(new Error(`Request to ${leakedUrl} failed`));
+        });
+
+        await buildHolidayDataset();
+
+        expect(consoleErrorMock).toHaveBeenCalled();
+
+        const errorCalls = consoleErrorMock.mock.calls.map(args => args.join(' '));
+        const combinedErrors = errorCalls.join('\n');
+
+        expect(combinedErrors).toContain('REDACTED');
+        expect(combinedErrors).not.toContain(apiKey);
+    });
+
+    test('buildHolidayDataset should redact API key even if error object string conversion leaks it', async () => {
+        const apiKey = 'secret-api-key-123';
+
+        const errorWithSecret = {
+            toString: () => `Error: Failed to fetch ${apiKey}`
+        };
+
+        global.fetch.mockImplementation(() => {
+            return Promise.reject(errorWithSecret);
+        });
+
+        await buildHolidayDataset();
+
+        const errorCalls = consoleErrorMock.mock.calls.map(args => args.join(' '));
+        const combinedErrors = errorCalls.join('\n');
+
+        expect(combinedErrors).toContain('REDACTED');
+        expect(combinedErrors).not.toContain(apiKey);
     });
 });

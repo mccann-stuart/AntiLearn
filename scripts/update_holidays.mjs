@@ -1,8 +1,13 @@
 #!/usr/bin/env node
 
-const fs = require('fs');
-const path = require('path');
-const https = require('https');
+import fs from 'fs';
+import path from 'path';
+import https from 'https';
+import { fileURLToPath } from 'url';
+import { normalizeCalendarific, normalizeTallyfy, mergeHolidayLists } from '../lib/holiday_utils.mjs';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const CALENDARIFIC_URL = 'https://calendarific.com/api/v2/holidays';
 const TALLYFY_URL = 'https://tallyfy.com/national-holidays/api';
@@ -18,7 +23,6 @@ const COUNTRIES = [
     { code: 'AE', name: 'United Arab Emirates' }
 ];
 const YEARS_AHEAD = 5;
-const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 const OUTPUT_PATH = path.join(__dirname, '..', '.wrangler', 'holidays.json');
 const DEV_VARS_PATH = path.join(__dirname, '..', '.dev.vars');
 const DOTENV_PATH = path.join(__dirname, '..', '.env');
@@ -99,56 +103,6 @@ async function fetchJson(url) {
     return fetchJsonWithHttps(url);
 }
 
-function normalizeCalendarific(holidays) {
-    if (!Array.isArray(holidays)) return [];
-    return holidays
-        .map(holiday => {
-            const dateIso = holiday && holiday.date ? holiday.date.iso : null;
-            const date = typeof dateIso === 'string' ? dateIso.slice(0, 10) : null;
-            if (!date || !DATE_REGEX.test(date)) return null;
-            const name = typeof holiday.name === 'string' ? holiday.name : 'Holiday';
-            const type = Array.isArray(holiday.type)
-                ? holiday.type[0]
-                : (typeof holiday.type === 'string' ? holiday.type : 'national');
-            return { date, name, type, source: 'calendarific' };
-        })
-        .filter(Boolean);
-}
-
-function normalizeTallyfy(holidays) {
-    if (!Array.isArray(holidays)) return [];
-    return holidays
-        .map(holiday => {
-            const date = holiday && typeof holiday.date === 'string' ? holiday.date : null;
-            if (!date || !DATE_REGEX.test(date)) return null;
-            const name = typeof holiday.name === 'string' ? holiday.name : 'Holiday';
-            const type = typeof holiday.type === 'string' ? holiday.type : 'national';
-            return { date, name, type, source: 'tallyfy' };
-        })
-        .filter(Boolean);
-}
-
-function mergeHolidayLists(calendarificList, tallyfyList) {
-    const byDate = new Map();
-
-    tallyfyList.forEach(item => {
-        if (!byDate.has(item.date)) {
-            byDate.set(item.date, item);
-        }
-    });
-
-    calendarificList.forEach(item => {
-        if (byDate.has(item.date)) {
-            const existing = byDate.get(item.date);
-            byDate.set(item.date, { ...item, sourceAlt: existing.source });
-        } else {
-            byDate.set(item.date, item);
-        }
-    });
-
-    return Array.from(byDate.values()).sort((a, b) => a.date.localeCompare(b.date));
-}
-
 function getYearsToFetch() {
     const currentYear = new Date().getUTCFullYear();
     return Array.from({ length: YEARS_AHEAD + 1 }, (_, i) => currentYear + i);
@@ -200,7 +154,11 @@ async function buildHolidayDataset() {
             try {
                 calendarificList = await fetchCalendarificHolidays(apiKey, country.code, year);
             } catch (e) {
-                console.error(`Failed to fetch Calendarific holidays for ${country.code} ${year}:`, e);
+                let errorMessage = e.message || String(e);
+                if (apiKey) {
+                    errorMessage = errorMessage.replaceAll(apiKey, 'REDACTED');
+                }
+                console.error(`Failed to fetch Calendarific holidays for ${country.code} ${year}: ${errorMessage}`);
                 calendarificList = [];
             }
             try {
@@ -229,19 +187,24 @@ async function main() {
     console.log(`Holiday dataset written to ${OUTPUT_PATH}`);
 }
 
-if (require.main === module) {
+const isDirectRun = process.argv[1]
+    && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+
+if (isDirectRun) {
     main().catch(err => {
         console.error('Failed to update holiday dataset:', err);
         process.exitCode = 1;
     });
 }
 
-module.exports = {
+export {
     loadEnvFile,
     getCalendarificApiKey,
     fetchJson,
+    fetchCalendarificHolidays,
+    buildHolidayDataset,
+    COUNTRIES,
     normalizeCalendarific,
     normalizeTallyfy,
-    mergeHolidayLists,
-    buildHolidayDataset
+    mergeHolidayLists
 };
