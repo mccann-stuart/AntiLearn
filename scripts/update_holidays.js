@@ -229,7 +229,19 @@ async function main() {
     console.log(`Holiday dataset written to ${OUTPUT_PATH}`);
 }
 
-main().catch(err => {
-    console.error('Failed to update holiday dataset:', err);
-    process.exitCode = 1;
-});
+if (require.main === module) {
+    main().catch(err => {
+        console.error('Failed to update holiday dataset:', err);
+        process.exitCode = 1;
+    });
+}
+
+module.exports = {
+    loadEnvFile,
+    getCalendarificApiKey,
+    fetchJson,
+    normalizeCalendarific,
+    normalizeTallyfy,
+    mergeHolidayLists,
+    buildHolidayDataset
+};
