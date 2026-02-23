@@ -22,11 +22,11 @@ describe('Security Input Validation', () => {
             <div id="yoy-main"></div>
             <div id="yoy-sub"></div>
             <div id="holiday-data-status"></div>
-            <div class="custom-holiday-inputs">
-                <input type="date" id="custom-date-input">
-                <input type="text" id="custom-name-input">
-                <button id="add-custom-btn">Add</button>
-            </div>
+            <form id="custom-holiday-form" class="custom-holiday-inputs">
+                <input type="date" id="custom-date-input" required>
+                <input type="text" id="custom-name-input" required>
+                <button type="submit" id="add-custom-btn">Add</button>
+            </form>
             <div id="custom-holidays-list"></div>
             <div id="toast-container"></div>
         `;

@@ -1863,9 +1863,12 @@ function init() {
     }
 
     // Custom Holiday Logic
-    const addCustomBtn = document.getElementById('add-custom-btn');
-    if (addCustomBtn) {
-        addCustomBtn.addEventListener('click', addCustomHoliday);
+    const customHolidayForm = document.getElementById('custom-holiday-form');
+    if (customHolidayForm) {
+        customHolidayForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            addCustomHoliday();
+        });
     }
 
     // Export Button
