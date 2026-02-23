@@ -1904,6 +1904,16 @@ function addCustomHoliday() {
     const nameVal = nameInput.value.trim();
 
     if (dateVal && nameVal) {
+        if (!DATE_REGEX.test(dateVal)) {
+            showToast('Invalid date format. Please use YYYY-MM-DD.', 'error');
+            return;
+        }
+
+        if (nameVal.length > 50) {
+            showToast('Holiday name is too long (max 50 characters).', 'error');
+            return;
+        }
+
         const customHolidays = ensureCustomHolidays(currentRegion);
         // Prevent dupes
         if (!customHolidays.some(h => h.date === dateVal)) {
