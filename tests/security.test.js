@@ -19,9 +19,17 @@ describe('Security Vulnerability: decodePlanString Input Validation', () => {
         const encoded = encodePlanString(maliciousPayload);
         const decoded = decodePlanString(encoded);
 
-        // We want to enforce that bookedDates contains ONLY strings
-        const allStrings = decoded.bookedDates.every(d => typeof d === 'string');
-        expect(allStrings).toBe(true);
+        // BEFORE FIX: The non-string items would be present
+        // AFTER FIX: We expect only valid strings (maybe even valid date strings) or an empty array if invalid
+
+        // We want to enforce that bookedDates contains ONLY valid date strings
+        const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+        const allValidDates = decoded.bookedDates.every(d => typeof d === 'string' && DATE_REGEX.test(d));
+        expect(allValidDates).toBe(true);
+
+        // Also verify that invalid items (like the script tag) were removed
+        expect(decoded.bookedDates).not.toContain("<script>alert(1)</script>");
+        expect(decoded.bookedDates).toContain("2023-01-01");
     });
 
     test('should validate structure of customHolidays', () => {
@@ -43,10 +51,12 @@ describe('Security Vulnerability: decodePlanString Input Validation', () => {
         const decoded = decodePlanString(encoded);
 
         // We want to enforce that customHolidays contains ONLY objects with string date and name
+        const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
         const isValidHoliday = (h) =>
             typeof h === 'object' &&
             h !== null &&
             typeof h.date === 'string' &&
+            DATE_REGEX.test(h.date) &&
             typeof h.name === 'string';
 
         const allValid = decoded.customHolidays.every(isValidHoliday);
