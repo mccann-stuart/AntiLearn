@@ -905,20 +905,21 @@ function isWeekend(date) {
  * @param {Date} date The date to check.
  * @returns {boolean} True if the date is a holiday.
  */
-function isHoliday(date) {
-    return getHolidayName(date) !== null;
+function isHoliday(date, dateStr = null) {
+    return getHolidayName(date, dateStr) !== null;
 }
 
 /**
  * Retrieves the name of the holiday for a given date.
  * @param {Date} date The date to check.
+ * @param {string|null} [dateStr=null] Optional optimization: the ISO string for the date if already known.
  * @returns {string|null} The name of the holiday or null if it's not a holiday.
  */
-function getHolidayName(date) {
+function getHolidayName(date, dateStr = null) {
     const year = date.getFullYear();
     const { lookup } = getHolidaysForYear(year, currentRegion);
-    const dateString = toLocalISOString(date);
-    const holiday = lookup.get(dateString);
+    const dStr = dateStr || toLocalISOString(date);
+    const holiday = lookup.get(dStr);
     return holiday ? holiday.name : null;
 }
 
@@ -929,7 +930,7 @@ function getHolidayName(date) {
  * @param {Date} date The date to classify.
  * @returns {('workday'|'weekend'|'holiday')} The type of the day.
  */
-function getDayType(date) {
+function getDayType(date, dateStr = null) {
     // Optimization: Check if date is within currently cached year
     const year = date.getFullYear();
     // Check if cache matches the year
@@ -946,10 +947,10 @@ function getDayType(date) {
     } else if (year === currentYear) {
         // Fallback: Populate cache for currentYear if it's the requested year
         ensureDayTypeCache(currentYear);
-        return getDayType(date); // Retry with populated cache
+        return getDayType(date, dateStr); // Retry with populated cache
     }
 
-    if (isHoliday(date)) return 'holiday';
+    if (isHoliday(date, dateStr)) return 'holiday';
     if (isWeekend(date)) return 'weekend';
     return 'workday';
 }
@@ -995,10 +996,11 @@ function isDayOff(date, bookedSet = null) {
  * Computes the potential efficiency and bridge status for booking a single day of leave.
  * Results are cached per date/region/custom-holiday state.
  */
-function getDayInsight(date) {
-    if (getDayType(date) !== 'workday') return null;
+function getDayInsight(date, dateStr = null) {
+    if (getDayType(date, dateStr) !== 'workday') return null;
     const customCount = getCustomHolidaysForLocation(currentRegion).length;
-    const key = `${toLocalISOString(date)}-${currentRegion}-${currentWeekendPattern}-${customCount}`;
+    const dStr = dateStr || toLocalISOString(date);
+    const key = `${dStr}-${currentRegion}-${currentWeekendPattern}-${customCount}`;
     if (!dayInsightCache.has(key)) {
         let efficiency, totalDaysOff, bridge;
 
@@ -2090,7 +2092,7 @@ function analyzeCurrentPlan() {
 
     while (current <= endOfYear) {
         const dateStr = toLocalISOString(current);
-        const type = getDayType(current);
+        const type = getDayType(current, dateStr);
         const isBooked = bookedDates.has(dateStr);
         const isOff = isBooked || type === 'weekend' || type === 'holiday';
 
@@ -2239,26 +2241,26 @@ const ariaLabelFormatter = new Intl.DateTimeFormat('en-GB', { weekday: 'long', d
  * Updates the visual state of a day element.
  * Shared logic for both initial render and updates.
  */
-function updateDayNode(el, date) {
-    const dateStr = toLocalISOString(date);
-    const isBooked = bookedDates.has(dateStr);
+function updateDayNode(el, date, dateStr = null) {
+    const dStr = dateStr || toLocalISOString(date);
+    const isBooked = bookedDates.has(dStr);
 
     // Reset classes
     el.className = 'day';
 
-    const type = getDayType(date);
+    const type = getDayType(date, dStr);
     if (type === 'weekend') el.classList.add('weekend');
 
     const tooltipParts = [];
 
-    const holidayName = getHolidayName(date);
+    const holidayName = getHolidayName(date, dStr);
     if (holidayName) {
         el.classList.add('holiday');
         tooltipParts.push(holidayName);
     }
 
     if (type === 'workday') {
-        const insight = getDayInsight(date);
+        const insight = getDayInsight(date, dStr);
         if (insight) {
             const tier = getEfficiencyTier(insight.efficiency);
             el.classList.add(`heat-${tier}`);
@@ -2335,7 +2337,7 @@ function renderCalendar() {
             // Reconstruct date object from string (YYYY-MM-DD)
             const [y, m, d] = dateStr.split('-').map(Number);
             const date = new Date(y, m - 1, d);
-            updateDayNode(el, date);
+            updateDayNode(el, date, dateStr);
         });
         return;
     }
@@ -2389,7 +2391,7 @@ function renderCalendar() {
             el.dataset.date = dateStr;
 
             // Attach event listeners (only needed on creation)
-            if (getDayType(date) === 'workday') {
+            if (getDayType(date, dateStr) === 'workday') {
                  const toggleDate = () => {
                     const prevCount = bookedDates.size;
                     if (bookedDates.has(dateStr)) {
@@ -2419,7 +2421,7 @@ function renderCalendar() {
                  });
             }
 
-            updateDayNode(el, date);
+            updateDayNode(el, date, dateStr);
             grid.appendChild(el);
         }
 
