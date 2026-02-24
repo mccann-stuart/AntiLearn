@@ -59,7 +59,7 @@ function applySecurityHeaders(response, pathname) {
     newHeaders.set('X-XSS-Protection', '1; mode=block');
     newHeaders.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
     newHeaders.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-    newHeaders.set('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+    newHeaders.set('Permissions-Policy', 'accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=(), display-capture=()');
 
     // Content Security Policy
     newHeaders.set('Content-Security-Policy',

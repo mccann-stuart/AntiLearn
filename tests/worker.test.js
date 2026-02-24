@@ -90,7 +90,7 @@ describe('Cloudflare Worker Logic', () => {
         expect(response.headers.get('X-XSS-Protection')).toBe('1; mode=block');
         expect(response.headers.get('Strict-Transport-Security')).toBe('max-age=31536000; includeSubDomains; preload');
         expect(response.headers.get('Referrer-Policy')).toBe('strict-origin-when-cross-origin');
-        expect(response.headers.get('Permissions-Policy')).toBe('geolocation=(), microphone=(), camera=()');
+        expect(response.headers.get('Permissions-Policy')).toBe('accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=(), display-capture=()');
         expect(response.headers.get('Content-Security-Policy')).toContain("default-src 'self'");
         expect(response.headers.get('Content-Security-Policy')).toContain("object-src 'none'");
         expect(response.headers.get('Content-Security-Policy')).toContain("base-uri 'none'");
