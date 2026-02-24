@@ -1856,9 +1856,32 @@ function init() {
 
     const resetBtn = document.getElementById('reset-btn');
     if (resetBtn) {
+        let isResetConfirming = false;
+        let resetTimeout = null;
+
         resetBtn.addEventListener('click', () => {
-            resetToOptimal();
-            saveState();
+            if (!isResetConfirming) {
+                // First click: Request confirmation
+                isResetConfirming = true;
+                resetBtn.textContent = 'Are you sure?';
+                resetBtn.classList.add('btn-danger');
+
+                resetTimeout = setTimeout(() => {
+                    isResetConfirming = false;
+                    resetBtn.textContent = 'Reset Plan';
+                    resetBtn.classList.remove('btn-danger');
+                }, 3000);
+            } else {
+                // Second click: Execute reset
+                if (resetTimeout) clearTimeout(resetTimeout);
+                isResetConfirming = false;
+                resetBtn.textContent = 'Reset Plan';
+                resetBtn.classList.remove('btn-danger');
+
+                resetToOptimal();
+                saveState();
+                showToast('Plan reset to optimal suggestions', 'success');
+            }
         });
     }
 
