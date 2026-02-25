@@ -117,6 +117,16 @@ async function handleHolidayDataRequest(env) {
 }
 
 async function handleRequest(request, env) {
+    if (request.method !== 'GET' && request.method !== 'HEAD') {
+        return new Response('Method Not Allowed', {
+            status: 405,
+            headers: {
+                'Allow': 'GET, HEAD',
+                'Content-Type': 'text/plain'
+            }
+        });
+    }
+
     const url = new URL(request.url);
     if (url.pathname === '/data/holidays.json') {
         return handleHolidayDataRequest(env);
