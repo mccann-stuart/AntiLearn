@@ -1856,13 +1856,7 @@ function init() {
         });
     }
 
-    const resetBtn = document.getElementById('reset-btn');
-    if (resetBtn) {
-        resetBtn.addEventListener('click', () => {
-            resetToOptimal();
-            saveState();
-        });
-    }
+    setupResetHandler();
 
     // Custom Holiday Logic
     const customHolidayForm = document.getElementById('custom-holiday-form');
@@ -2006,6 +2000,39 @@ function initScrollHandler() {
         if (!ticking) {
             window.requestAnimationFrame(handleScroll);
             ticking = true;
+        }
+    });
+}
+
+/**
+ * Sets up the reset button with a confirmation step.
+ */
+function setupResetHandler() {
+    const resetBtn = document.getElementById('reset-btn');
+    if (!resetBtn) return;
+
+    let resetTimeout;
+    resetBtn.addEventListener('click', () => {
+        if (resetBtn.dataset.confirm === 'true') {
+            // Confirmed
+            resetToOptimal();
+            saveState();
+            // Reset button state immediately
+            clearTimeout(resetTimeout);
+            resetBtn.textContent = 'Reset Plan';
+            resetBtn.classList.remove('btn-danger');
+            delete resetBtn.dataset.confirm;
+        } else {
+            // First click - ask for confirmation
+            resetBtn.textContent = 'Are you sure?';
+            resetBtn.classList.add('btn-danger');
+            resetBtn.dataset.confirm = 'true';
+
+            resetTimeout = setTimeout(() => {
+                resetBtn.textContent = 'Reset Plan';
+                resetBtn.classList.remove('btn-danger');
+                delete resetBtn.dataset.confirm;
+            }, 3000);
         }
     });
 }
@@ -2514,6 +2541,7 @@ if (typeof module !== 'undefined' && module.exports) {
             invalidateInsightCaches();
         },
         showToast,
-        renderCalendar
+        renderCalendar,
+        setupResetHandler
     };
 }

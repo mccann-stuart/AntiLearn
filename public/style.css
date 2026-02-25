@@ -378,6 +378,12 @@ button:hover {
     color: white;
 }
 
+.btn-danger {
+    background: rgba(255, 107, 107, 0.2);
+    border-color: var(--error-color);
+    color: white;
+}
+
 /* --- Insights & Legend --- */
 
 .insights-grid {

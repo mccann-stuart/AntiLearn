@@ -9,3 +9,7 @@
 ## 2026-02-18 - Skip Link Focus Management
 **Learning:** When implementing skip links, the target element (e.g., a heading or container) must have `tabindex="-1"` to receive programmatic focus. Without this, the browser scrolls to the element but focus remains on the link itself, disrupting the keyboard navigation flow.
 **Action:** Always ensure skip link targets have `tabindex="-1"` and appropriate focus styles (e.g., `outline: none` if visual focus is undesired).
+
+## 2026-02-18 - Inline Destructive Confirmation
+**Learning:** For destructive actions like "Reset", a two-step inline confirmation (changing button text and color) provides a smoother experience than a modal dialog while still preventing accidental clicks.
+**Action:** Use the `dataset.confirm` state pattern and `.btn-danger` modifier to implement inline confirmations for simple destructive actions.
