@@ -1858,9 +1858,29 @@ function init() {
 
     const resetBtn = document.getElementById('reset-btn');
     if (resetBtn) {
+        let resetTimeout;
         resetBtn.addEventListener('click', () => {
-            resetToOptimal();
-            saveState();
+            if (resetBtn.dataset.state === 'confirm') {
+                // Confirmed
+                clearTimeout(resetTimeout);
+                resetBtn.dataset.state = '';
+                resetBtn.textContent = 'Reset Plan';
+                resetBtn.classList.remove('btn-danger');
+
+                resetToOptimal();
+                saveState();
+            } else {
+                // First click
+                resetBtn.dataset.state = 'confirm';
+                resetBtn.textContent = 'Are you sure?';
+                resetBtn.classList.add('btn-danger');
+
+                resetTimeout = setTimeout(() => {
+                    resetBtn.dataset.state = '';
+                    resetBtn.textContent = 'Reset Plan';
+                    resetBtn.classList.remove('btn-danger');
+                }, 3000);
+            }
         });
     }
 
