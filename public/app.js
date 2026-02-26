@@ -2078,52 +2078,75 @@ function updateUI() {
 
 /**
  * Analyzes the currently selected `bookedDates` to identify continuous blocks of time off.
+ * Bolt Optimization: Uses integer-based indices (0-365) instead of Date objects for O(N) performance.
  */
 function analyzeCurrentPlan() {
-    const dates = Array.from(bookedDates).sort();
-    if (dates.length === 0) return [];
+    if (bookedDates.size === 0) return [];
 
+    // Ensure caches are ready for the current year
+    ensureBookedDaysIndices(currentYear);
+    const cache = dayTypeCache.get(currentYear);
+    // Safety check in case cache failed to populate
+    if (!cache) return [];
+
+    const types = cache.types;
+    const daysCount = types.length;
     const blocks = [];
-    const startOfYear = new Date(currentYear, 0, 1);
-    const endOfYear = new Date(currentYear, 11, 31);
-
     let currentBlock = null;
-    let current = new Date(startOfYear);
 
-    while (current <= endOfYear) {
-        const dateStr = toLocalISOString(current);
-        const type = getDayType(current, dateStr);
-        const isBooked = bookedDates.has(dateStr);
-        const isOff = isBooked || type === 'weekend' || type === 'holiday';
+    for (let i = 0; i < daysCount; i++) {
+        // Check if day is OFF (weekend, holiday, or booked)
+        // Accessing typed array (bookedDaysIndices) and string array (types) is much faster
+        // than Date object creation and Map lookups in the original loop.
+        const isBooked = bookedDaysIndices[i] === 1;
+        const isOff = isBooked || types[i] !== 'workday';
 
         if (isOff) {
             if (!currentBlock) {
                 currentBlock = {
-                    startDate: new Date(current),
-                    endDate: new Date(current),
+                    startIdx: i,
+                    endIdx: i,
                     leaveDays: 0,
                     totalDays: 0
                 };
             }
-            currentBlock.endDate = new Date(current);
+            currentBlock.endIdx = i;
             currentBlock.totalDays++;
             if (isBooked) currentBlock.leaveDays++;
         } else {
             if (currentBlock) {
                 if (currentBlock.leaveDays > 0) {
-                    blocks.push(currentBlock);
+                    blocks.push(hydrateBlock(currentBlock, currentYear));
                 }
                 currentBlock = null;
             }
         }
-        current = addDays(current, 1);
     }
+    // Handle block at end of year
     if (currentBlock && currentBlock.leaveDays > 0) {
-        blocks.push(currentBlock);
+        blocks.push(hydrateBlock(currentBlock, currentYear));
     }
 
     blocks.sort((a, b) => b.totalDays - a.totalDays);
     return blocks;
+}
+
+/**
+ * Helper to convert integer-based block indices back to Date objects.
+ */
+function hydrateBlock(blockIndices, year) {
+    const startDate = new Date(year, 0, 1);
+    startDate.setDate(startDate.getDate() + blockIndices.startIdx);
+
+    const endDate = new Date(year, 0, 1);
+    endDate.setDate(endDate.getDate() + blockIndices.endIdx);
+
+    return {
+        startDate,
+        endDate,
+        leaveDays: blockIndices.leaveDays,
+        totalDays: blockIndices.totalDays
+    };
 }
 
 /**
@@ -2514,6 +2537,7 @@ if (typeof module !== 'undefined' && module.exports) {
             invalidateInsightCaches();
         },
         showToast,
-        renderCalendar
+        renderCalendar,
+        analyzeCurrentPlan
     };
 }
