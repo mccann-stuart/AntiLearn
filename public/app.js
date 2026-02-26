@@ -142,6 +142,9 @@ function sanitizeHolidayMap(map) {
     const result = {};
     Object.entries(map).forEach(([key, value]) => {
         if (typeof key === 'string') {
+            if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+                return;
+            }
             const safeList = sanitizeHolidayList(value);
             if (safeList.length > 0) {
                 result[key] = safeList;
