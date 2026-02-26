@@ -434,6 +434,9 @@ async function loadHolidayDataset(force = false) {
             holidaysCache.clear();
             invalidateInsightCaches();
             renderHolidayDataStatus();
+            if (isDatasetLocation(currentRegion) && typeof document !== 'undefined') {
+                updateUI();
+            }
         }
 
         return holidayDataset;
