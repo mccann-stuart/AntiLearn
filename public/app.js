@@ -2002,14 +2002,27 @@ function renderCustomHolidays() {
 /**
  * Sets up a scroll listener to handle the sticky header's appearance.
  */
+let smartBreaksThreshold = 100;
+
+function getSmartBreaksThreshold() {
+    const section = document.querySelector('.recommendations-section');
+    if (!section) return 100;
+    const rect = section.getBoundingClientRect();
+    return rect.bottom + window.scrollY;
+}
+
+function refreshScrollThreshold() {
+    smartBreaksThreshold = getSmartBreaksThreshold();
+}
+
 function initScrollHandler() {
-    const threshold = 100; // Scroll threshold
+    refreshScrollThreshold();
     let ticking = false;
 
     function handleScroll() {
-        if (window.scrollY > threshold && !document.body.classList.contains('scrolled')) {
+        if (window.scrollY > smartBreaksThreshold && !document.body.classList.contains('scrolled')) {
             document.body.classList.add('scrolled');
-        } else if (window.scrollY <= threshold && document.body.classList.contains('scrolled')) {
+        } else if (window.scrollY <= smartBreaksThreshold && document.body.classList.contains('scrolled')) {
             document.body.classList.remove('scrolled');
         }
         ticking = false;
@@ -2020,6 +2033,11 @@ function initScrollHandler() {
             window.requestAnimationFrame(handleScroll);
             ticking = true;
         }
+    });
+
+    window.addEventListener('resize', () => {
+        refreshScrollThreshold();
+        handleScroll();
     });
 }
 
@@ -2238,6 +2256,7 @@ function renderRecommendations() {
 
     if (top3.length === 0) {
         container.innerHTML = '<p class="empty-rec-message">Select days on the calendar to plan your leave.</p>';
+        refreshScrollThreshold();
         return;
     }
 
@@ -2269,6 +2288,8 @@ function renderRecommendations() {
         `;
         container.appendChild(card);
     });
+
+    refreshScrollThreshold();
 }
 
 const ariaLabelFormatter = new Intl.DateTimeFormat('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
