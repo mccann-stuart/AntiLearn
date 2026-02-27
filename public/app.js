@@ -4,6 +4,10 @@
  */
 
 // --- STATE MANAGEMENT ---
+
+const MAX_CUSTOM_HOLIDAYS = 50;
+const MAX_BOOKED_DATES = 1000;
+
 /** @type {Object} Supported locations. */
 const REGIONS = {
     ENGLAND_WALES: 'england-wales',
@@ -133,7 +137,7 @@ function getCustomHolidaysForLocation(location) {
  */
 function sanitizeHolidayList(list) {
     return Array.isArray(list)
-        ? list.filter(h =>
+        ? list.slice(0, MAX_CUSTOM_HOLIDAYS).filter(h =>
             h && typeof h === 'object' &&
             typeof h.date === 'string' && DATE_REGEX.test(h.date) &&
             typeof h.name === 'string' && h.name.length < 100
@@ -147,11 +151,9 @@ function sanitizeHolidayList(list) {
 function sanitizeHolidayMap(map) {
     if (!map || typeof map !== 'object') return {};
     const result = {};
+    const allowedRegions = Object.values(REGIONS);
     Object.entries(map).forEach(([key, value]) => {
-        if (typeof key === 'string') {
-            if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
-                return;
-            }
+        if (typeof key === 'string' && allowedRegions.includes(key)) {
             const safeList = sanitizeHolidayList(value);
             if (safeList.length > 0) {
                 result[key] = safeList;
@@ -221,7 +223,7 @@ function decodePlanString(encoded) {
             currentRegion: typeof obj.currentRegion === 'string' ? obj.currentRegion : currentRegion,
             currentWeekendPattern: weekendPattern,
             bookedDates: Array.isArray(obj.bookedDates)
-                ? obj.bookedDates.filter(d => typeof d === 'string' && DATE_REGEX.test(d))
+                ? obj.bookedDates.slice(0, MAX_BOOKED_DATES).filter(d => typeof d === 'string' && DATE_REGEX.test(d))
                 : [],
             customHolidays: sanitizeHolidayList(obj.customHolidays),
             customHolidaysByLocation: sanitizeHolidayMap(obj.customHolidaysByLocation)
