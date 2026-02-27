@@ -14,7 +14,8 @@ const CALENDARIFIC_ENV_KEYS = [
 ];
 const HOLIDAY_COUNTRIES = [
     { code: 'QA', name: 'Qatar' },
-    { code: 'AE', name: 'United Arab Emirates' }
+    { code: 'AE', name: 'United Arab Emirates' },
+    { code: 'SA', name: 'Saudi Arabia' }
 ];
 
 const YEARS_AHEAD = 5;

@@ -10,7 +10,8 @@ const REGIONS = {
     SCOTLAND: 'scotland',
     NORTHERN_IRELAND: 'northern-ireland',
     QATAR: 'qatar',
-    UAE: 'uae'
+    UAE: 'uae',
+    SAUDI_ARABIA: 'saudi-arabia'
 };
 const WEEKEND_PRESETS = {
     'sat-sun': { label: 'Sat/Sun', days: [6, 0] },
@@ -46,6 +47,12 @@ const LOCATION_CONFIG = {
         countryCode: 'AE',
         holidaySource: 'dataset',
         defaultWeekend: 'sat-sun'
+    },
+    [REGIONS.SAUDI_ARABIA]: {
+        label: 'Saudi Arabia',
+        countryCode: 'SA',
+        holidaySource: 'dataset',
+        defaultWeekend: 'fri-sat'
     }
 };
 /** @type {number} Current number of annual leave days available. */

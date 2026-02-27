@@ -20,7 +20,8 @@ const CALENDARIFIC_ENV_KEYS = [
 ];
 const COUNTRIES = [
     { code: 'QA', name: 'Qatar' },
-    { code: 'AE', name: 'United Arab Emirates' }
+    { code: 'AE', name: 'United Arab Emirates' },
+    { code: 'SA', name: 'Saudi Arabia' }
 ];
 const YEARS_AHEAD = 5;
 const OUTPUT_PATH = path.join(__dirname, '..', '.wrangler', 'holidays.json');

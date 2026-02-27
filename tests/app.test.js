@@ -250,6 +250,14 @@ describe('Holiday Calculations', () => {
                             { date: '2026-12-02', name: 'National Day', type: 'national', source: 'tallyfy' }
                         ]
                     }
+                },
+                SA: {
+                    name: 'Saudi Arabia',
+                    years: {
+                        '2026': [
+                            { date: '2026-09-23', name: 'National Day', type: 'national', source: 'calendarific' }
+                        ]
+                    }
                 }
             }
         };
@@ -261,6 +269,9 @@ describe('Holiday Calculations', () => {
 
         setTestState(2026, REGIONS.UAE, []);
         expect(getHolidayName(new Date(2026, 11, 2))).toBe('National Day');
+
+        setTestState(2026, REGIONS.SAUDI_ARABIA, []);
+        expect(getHolidayName(new Date(2026, 8, 23))).toBe('National Day');
 
         setHolidayDatasetForTests(null);
     });
