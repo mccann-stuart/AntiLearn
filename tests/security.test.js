@@ -19,10 +19,8 @@ describe('Security Vulnerability: decodePlanString Input Validation', () => {
         const encoded = encodePlanString(maliciousPayload);
         const decoded = decodePlanString(encoded);
 
-        // BEFORE FIX: The non-string items would be present
-        // AFTER FIX: We expect only valid strings (maybe even valid date strings) or an empty array if invalid
-
-        // We want to enforce that bookedDates contains ONLY valid date strings
+        // Verify that invalid items (non-strings, bad formats, potential XSS) are filtered out.
+        // We want to enforce that bookedDates contains ONLY valid date strings.
         const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
         const allValidDates = decoded.bookedDates.every(d => typeof d === 'string' && DATE_REGEX.test(d));
         expect(allValidDates).toBe(true);
