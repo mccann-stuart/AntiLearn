@@ -484,6 +484,12 @@ button:hover {
     transition: height 0.45s ease;
 }
 
+#sticky-header,
+#sticky-header *,
+#sticky-placeholder {
+    transition: none !important;
+}
+
 /* Restored Inline Styles */
 #year-select {
     padding: 0.25rem 0.5rem;
