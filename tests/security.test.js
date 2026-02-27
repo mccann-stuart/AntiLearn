@@ -60,4 +60,65 @@ describe('Security Vulnerability: decodePlanString Input Validation', () => {
         const allValid = decoded.customHolidays.every(isValidHoliday);
         expect(allValid).toBe(true);
     });
+
+    test('should truncate customHolidays list to 50 items', () => {
+        const manyHolidays = Array.from({ length: 100 }, (_, i) => ({
+            date: "2023-01-01",
+            name: `Holiday ${i}`
+        }));
+
+        const payload = {
+            currentAllowance: 25,
+            currentYear: 2023,
+            currentRegion: REGIONS.ENGLAND_WALES,
+            bookedDates: [],
+            customHolidays: manyHolidays
+        };
+
+        const encoded = encodePlanString(payload);
+        const decoded = decodePlanString(encoded);
+
+        expect(decoded.customHolidays.length).toBe(50);
+        expect(decoded.customHolidays[0].name).toBe("Holiday 0");
+        expect(decoded.customHolidays[49].name).toBe("Holiday 49");
+    });
+
+    test('should truncate bookedDates list to 1000 items', () => {
+        const manyDates = Array.from({ length: 1500 }, () => "2023-01-01");
+
+        const payload = {
+            currentAllowance: 25,
+            currentYear: 2023,
+            currentRegion: REGIONS.ENGLAND_WALES,
+            bookedDates: manyDates,
+            customHolidays: []
+        };
+
+        const encoded = encodePlanString(payload);
+        const decoded = decodePlanString(encoded);
+
+        expect(decoded.bookedDates.length).toBe(1000);
+    });
+
+    test('should ignore invalid keys in customHolidaysByLocation', () => {
+        const payload = {
+            currentAllowance: 25,
+            currentYear: 2023,
+            currentRegion: REGIONS.ENGLAND_WALES,
+            bookedDates: [],
+            customHolidaysByLocation: {
+                [REGIONS.ENGLAND_WALES]: [{ date: "2023-01-01", name: "Valid" }],
+                "invalid-region": [{ date: "2023-01-01", name: "Invalid" }],
+                "__proto__": [{ date: "2023-01-01", name: "Proto" }]
+            }
+        };
+
+        const encoded = encodePlanString(payload);
+        const decoded = decodePlanString(encoded);
+
+        const keys = Object.keys(decoded.customHolidaysByLocation);
+        expect(keys).toContain(REGIONS.ENGLAND_WALES);
+        expect(keys).not.toContain("invalid-region");
+        expect(keys).not.toContain("__proto__");
+    });
 });
