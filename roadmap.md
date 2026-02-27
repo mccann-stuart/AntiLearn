@@ -4,7 +4,7 @@ This document outlines the strategic plan for the next major development epics t
 
 ## Status Summary (as of 2026-02-18)
 
-*   Implemented: regional holidays (England & Wales, Scotland, Northern Ireland), custom holidays, localStorage persistence, iCal export, heatmap/bridge-day insights, year-over-year comparison, and shareable plan links.
+*   Implemented: regional holidays (England & Wales, Scotland, Northern Ireland), International holidays (Qatar, UAE, Saudi Arabia), custom holidays, localStorage persistence, iCal export, heatmap/bridge-day insights, year-over-year comparison, and shareable plan links.
 *   Tests: Jest suite (45 tests) covering application logic, worker configuration, security headers, and XSS prevention.
 *   Pending: half-day leave, custom work schedules, and school holidays overlay.
 
@@ -12,8 +12,11 @@ This document outlines the strategic plan for the next major development epics t
 **Goal:** Expand the user base by supporting specific holidays for different UK regions and international locations, and allowing user-specific customization.
 
 *   **Feature: Multi-Region Support (Completed)**
-    *   Add a dropdown to select regions: England/Wales (current), Scotland, and Northern Ireland.
-    *   Update holiday logic to account for regional differences (e.g., St Andrew's Day in Scotland, St Patrick's Day in NI).
+    *   Add a dropdown to select regions: England/Wales, Scotland, and Northern Ireland.
+    *   Update holiday logic to account for regional differences.
+*   **Feature: International Support (Completed)**
+    *   Add support for Qatar, UAE, and Saudi Arabia.
+    *   Implement automated data fetching for international holidays.
 *   **Feature: Custom Holiday Input (Completed)**
     *   Allow users to manually add dates as "holidays" (e.g., company-specific shutdowns, local observances).
     *   These dates should be treated as non-working days by the optimizer.
@@ -70,3 +73,31 @@ This document outlines the strategic plan for the next major development epics t
     *   Allow users to share their optimized plan with colleagues/friends.
 *   **Feature: School Holidays Overlay**
     *   Overlay school term dates (potentially via an API or static data for major UK regions) to help parents plan around (or avoid) school holidays.
+
+## Epic 7: Progressive Web App (PWA) (Planned)
+**Goal:** Make the application installable and capable of working offline.
+
+*   **Feature: Offline Support**
+    *   Implement a service worker to cache the application shell and critical assets.
+    *   Allow the app to load and function (view/edit plan) without an internet connection.
+*   **Feature: Installability**
+    *   Create a Web App Manifest.
+    *   Allow users to install the app on their home screen (mobile and desktop).
+
+## Epic 8: Team Collaboration (Planned)
+**Goal:** Enable groups of people to coordinate their time off.
+
+*   **Feature: Plan Overlay**
+    *   Allow users to import a shared plan link from another user.
+    *   Visualize multiple plans on the same calendar to identify overlapping free time or conflicts.
+*   **Feature: "Best Time for Group"**
+    *   Algorithmically suggest the best dates for a group trip based on everyone's allowances and constraints.
+
+## Epic 9: UI Personalization (Planned)
+**Goal:** Allow users to customize the look and feel of the application.
+
+*   **Feature: Dark Mode**
+    *   Implement a system-aware dark theme.
+    *   Add a manual toggle to switch between light and dark modes.
+*   **Feature: Theme Customization**
+    *   Allow users to choose accent colors for the calendar and UI elements.

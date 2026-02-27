@@ -5,7 +5,7 @@ A simple web application to help you find the most efficient way to use your ann
 ## Features
 
 *   **Optimal Vacation Planning**: Automatically calculates the best combination of leave blocks to maximize your time off.
-*   **Location Holidays**: Supports England & Wales, Scotland, Northern Ireland, Qatar, and the UAE.
+*   **Location Holidays**: Supports England & Wales, Scotland, Northern Ireland, Qatar, the UAE, and Saudi Arabia.
 *   **Custom Holidays**: Add your own non-working days (company shutdowns, birthdays, local events) per location.
 *   **Weekend Selection**: Choose weekend patterns (Sat/Sun or Fri/Sat) per location.
 *   **Interactive Calendar**: A full-year calendar view that highlights weekends, bank holidays, and your booked leave days.
@@ -20,7 +20,8 @@ A simple web application to help you find the most efficient way to use your ann
 
 *   Core optimizer, multi-location holiday logic, custom holidays, export, heatmap, year-over-year insights, and shareable plans are implemented in `public/app.js`.
 *   Frontend is static in `public/` and runs without a backend.
-*   Tests: `npm test` runs unit tests across application logic, worker configuration, security headers, and XSS prevention.
+*   International Support: Active for Qatar, UAE, and Saudi Arabia using automated data refreshes.
+*   Tests: `pnpm test` runs unit tests across application logic, worker configuration, security headers, and XSS prevention.
 *   Deployment uses `worker.mjs` to add security headers and caching on Cloudflare, and to refresh holiday data weekly.
 
 ## Getting Started
@@ -38,8 +39,8 @@ open public/index.html
 ### Tests
 
 ```bash
-npm install
-npm test
+pnpm install
+pnpm test
 ```
 
 ### Production Deployment
@@ -48,10 +49,10 @@ This application is configured for deployment on Cloudflare Pages/Workers:
 
 ```bash
 # Install Wrangler CLI (if not already installed)
-npm install -g wrangler
+pnpm add -g wrangler
 
 # Deploy to Cloudflare
-npx wrangler pages deploy public
+pnpm exec wrangler pages deploy public
 ```
 
 ## Usage
@@ -68,24 +69,34 @@ npx wrangler pages deploy public
 
 The application uses a simple but effective algorithm to find the best leave combinations:
 
-1.  **Holiday Data**: It starts with a list of UK bank holidays, plus a holiday dataset for Qatar and the UAE.
+1.  **Holiday Data**: It starts with a list of UK bank holidays, plus a holiday dataset for Qatar, the UAE, and Saudi Arabia.
 2.  **Candidate Generation**: It iterates through every workday of the year and calculates the potential time off for various leave durations (e.g., taking 3, 4, 5 days off).
 3.  **Efficiency Scoring**: Each potential leave block is scored based on its efficiency (total days off / leave days used).
 4.  **Combination Finding**: The algorithm then searches for the best combination of up to three non-overlapping leave blocks that fit within your allowance, prioritizing the combination that uses the most of your allowance while maximizing your total time off.
 
 ## Holiday Data Refresh
 
-The Cloudflare Worker schedules a weekly refresh (Wednesday 03:00 UTC) to rebuild the Qatar/UAE holiday dataset from Calendarific and Tallyfy, preferring Calendarific on overlapping dates. The latest dataset is stored in KV and served directly from KV (no local fallback).
+The Cloudflare Worker schedules a weekly refresh (Wednesday 03:00 UTC) to rebuild the Qatar/UAE/Saudi Arabia holiday dataset from Calendarific and Tallyfy, preferring Calendarific on overlapping dates. The latest dataset is stored in KV and served directly from KV (no local fallback).
 
 For local development or manual refreshes, run:
 
 ```bash
-calendarific=your_key npm run populate-kv
+calendarific=your_key pnpm run populate-kv
 ```
 
 In Cloudflare, store the Calendarific key in a Secrets Store secret named `calendarific` and ensure it is bound in `wrangler.toml` via `secrets_store_secrets`.
 
 For local dev, prefer adding `calendarific=...` to `.dev.vars` (and keep it out of git).
+
+## Future Roadmap
+
+We are constantly working to improve the Vacation Maximiser. Here are some of the key features we are planning to implement:
+
+*   **Progressive Web App (PWA)**: Support for offline capability, installability, and service workers.
+*   **Team Collaboration**: Functionality to overlay multiple shared plans for group coordination and finding common free time.
+*   **UI Personalization**: Dark mode support and further theme customization.
+
+For a detailed breakdown of our development plan, please see [roadmap.md](roadmap.md).
 
 ## License
 
