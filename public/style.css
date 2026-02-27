@@ -245,7 +245,10 @@ h1 {
 }
 
 .day {
-    padding: 0.5rem 0;
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     border-radius: 4px;
     outline: none;
 }
@@ -872,10 +875,6 @@ body.scrolled .rec-details {
     .days-grid {
         font-size: 0.7rem;
         gap: 1px;
-    }
-
-    .day {
-        padding: 0.3rem 0;
     }
 }
 
