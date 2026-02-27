@@ -215,6 +215,11 @@ body.scrolled .calendar-section {
     padding-top: calc(1.5rem + var(--sticky-compact-height));
 }
 
+
+body.scrolled .calendar-section {
+    padding-top: calc(1.5rem + var(--sticky-compact-height));
+}
+
 .calendar-title {
     margin: 0 0 1.25rem;
     text-align: center;
@@ -1150,6 +1155,7 @@ body.scrolled .weekend-group {
         max-width: 400px;
         align-items: center;
     }
+
     .toast {
         width: 100%;
         justify-content: center;
@@ -1242,6 +1248,7 @@ body.scrolled .weekend-group {
 
 /* --- Mobile Polish --- */
 @media (max-width: 768px) {
+
     /* Prevent iOS zoom on focus by ensuring font size is at least 16px */
     #year-select,
     .location-group select,
