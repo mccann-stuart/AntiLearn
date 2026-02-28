@@ -1736,8 +1736,11 @@ function init() {
             currentRegion = savedState.currentRegion;
         }
         if (Array.isArray(savedState.bookedDates)) {
-            bookedDates = new Set(savedState.bookedDates);
-            shouldRestoreFromSaved = savedState.bookedDates.length > 0;
+            const sanitizedDates = savedState.bookedDates
+                .slice(0, MAX_BOOKED_DATES)
+                .filter(d => typeof d === 'string' && DATE_REGEX.test(d));
+            bookedDates = new Set(sanitizedDates);
+            shouldRestoreFromSaved = sanitizedDates.length > 0;
         }
         if (savedState.customHolidaysByLocation) {
             customHolidaysByLocation = sanitizeHolidayMap(savedState.customHolidaysByLocation);
