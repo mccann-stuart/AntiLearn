@@ -9,3 +9,7 @@
 ## 2026-02-18 - Skip Link Focus Management
 **Learning:** When implementing skip links, the target element (e.g., a heading or container) must have `tabindex="-1"` to receive programmatic focus. Without this, the browser scrolls to the element but focus remains on the link itself, disrupting the keyboard navigation flow.
 **Action:** Always ensure skip link targets have `tabindex="-1"` and appropriate focus styles (e.g., `outline: none` if visual focus is undesired).
+
+## 2024-05-20 - Semantic Form Elements for Mobile Touch Targets
+**Learning:** In this application's custom UI, elements like `.stat-label` were built with generic `<div>` tags instead of semantic `<label>` tags, and inputs like `#custom-name-input` lacked mobile-specific optimizations like `autocapitalize="words"`. This creates unnecessarily small touch targets and sub-optimal mobile typing experiences (especially for iPhone users).
+**Action:** Always wrap or associate form inputs with semantic `<label for="...">` tags to expand the clickable area automatically, and explicitly apply `autocapitalize="words"` for inputs expecting proper nouns (like holiday names).
