@@ -1413,8 +1413,9 @@ function generateAllCandidates(year, allowance) {
     const uniqueCandidates = [];
     const seen = new Set();
     candidates.forEach(c => {
-        // Use indices for key generation (much faster than toISOString)
-        const key = `${c.startIdx}-${c.endIdx}`;
+        // Bolt Optimization: Bitwise integer keys avoid string allocation overhead
+        // Since startIdx and endIdx are < 366, they easily fit in 16 bits.
+        const key = (c.startIdx << 16) | c.endIdx;
         if (!seen.has(key)) {
             seen.add(key);
             uniqueCandidates.push(c);
@@ -1430,10 +1431,11 @@ function generateAllCandidates(year, allowance) {
  * @returns {Array<Object>} Filtered list of top candidates.
  */
 function selectTopCandidates(candidates) {
-    const sortedByEfficiency = [...candidates].sort((a, b) => b.efficiency - a.efficiency);
+    // Bolt Optimization: Use .slice() instead of spread operator [...arr] for better performance
+    const sortedByEfficiency = candidates.slice().sort((a, b) => b.efficiency - a.efficiency);
     const efficientCandidates = sortedByEfficiency.slice(0, 100);
 
-    const sortedByDuration = [...candidates].sort((a, b) => b.totalDaysOff - a.totalDaysOff);
+    const sortedByDuration = candidates.slice().sort((a, b) => b.totalDaysOff - a.totalDaysOff);
     const longCandidates = sortedByDuration.slice(0, 50);
 
     const combinedCandidates = [...efficientCandidates, ...longCandidates];
@@ -1441,8 +1443,8 @@ function selectTopCandidates(candidates) {
     const finalSeen = new Set();
 
     combinedCandidates.forEach(c => {
-        // Updated to use indices for key (startIdx/endIdx are numbers)
-        const key = `${c.startIdx}-${c.endIdx}`;
+        // Bolt Optimization: Bitwise integer keys avoid string allocation overhead
+        const key = (c.startIdx << 16) | c.endIdx;
         if (!finalSeen.has(key)) {
             finalSeen.add(key);
             finalCandidates.push(c);
@@ -1466,7 +1468,8 @@ function findBestCombination(candidates, allowance) {
     }
 
     // Sort candidates by start date for DP
-    const sortedCandidates = [...candidates].sort((a, b) => a.startDate - b.startDate);
+    // Bolt Optimization: Use .slice() instead of spread operator
+    const sortedCandidates = candidates.slice().sort((a, b) => a.startDate - b.startDate);
     const N = sortedCandidates.length;
 
     // Precompute next compatible candidate index for each candidate
