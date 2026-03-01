@@ -1381,9 +1381,14 @@ function generateAllCandidates(year, allowance) {
         }
     }
 
-    // 4. Generate candidates using pre-calculated data
+    // 4. Generate and deduplicate candidates using pre-calculated data
     const candidates = [];
     const numWorkdays = workdayIndices.length;
+
+    // Bolt Optimization: Deduplicate candidates directly during generation.
+    // Use a single 32-bit integer key ((startIdx << 16) | endIdx) for Set lookup
+    // instead of allocating thousands of string keys like `${startIdx}-${endIdx}`.
+    const seen = new Set();
 
     for (let k = 0; k < numWorkdays; k++) {
         const firstBookedIdx = workdayIndices[k];
@@ -1395,33 +1400,27 @@ function generateAllCandidates(year, allowance) {
         for (let len = 1; len <= maxL; len++) {
             const lastBookedIdx = workdayIndices[k + len - 1];
             const realEnd = expansionEnd[lastBookedIdx];
-            const totalDaysOff = realEnd - realStart + 1;
 
-            candidates.push({
-                startIdx: realStart,
-                endIdx: realEnd,
-                startDate: realStart, // for findBestCombination sorting (index)
-                endDate: realEnd,     // for findBestCombination overlap check (index)
-                leaveDaysUsed: len,
-                totalDaysOff: totalDaysOff,
-                efficiency: totalDaysOff / len
-            });
+            // Convert to positive integers assuming bounds are safely > -32768
+            const key = ((realStart + 1000) << 16) | (realEnd + 1000);
+
+            if (!seen.has(key)) {
+                seen.add(key);
+                const totalDaysOff = realEnd - realStart + 1;
+                candidates.push({
+                    startIdx: realStart,
+                    endIdx: realEnd,
+                    startDate: realStart, // for findBestCombination sorting (index)
+                    endDate: realEnd,     // for findBestCombination overlap check (index)
+                    leaveDaysUsed: len,
+                    totalDaysOff: totalDaysOff,
+                    efficiency: totalDaysOff / len
+                });
+            }
         }
     }
 
-    // Deduplicate candidates
-    const uniqueCandidates = [];
-    const seen = new Set();
-    candidates.forEach(c => {
-        // Use indices for key generation (much faster than toISOString)
-        const key = `${c.startIdx}-${c.endIdx}`;
-        if (!seen.has(key)) {
-            seen.add(key);
-            uniqueCandidates.push(c);
-        }
-    });
-
-    return uniqueCandidates;
+    return candidates;
 }
 
 /**
@@ -1430,27 +1429,43 @@ function generateAllCandidates(year, allowance) {
  * @returns {Array<Object>} Filtered list of top candidates.
  */
 function selectTopCandidates(candidates) {
-    const sortedByEfficiency = [...candidates].sort((a, b) => b.efficiency - a.efficiency);
+    // Bolt Optimization: Sort and pick without allocating large intermediate arrays via spread operators.
+    // shallow copy is faster than spread.
+    const sortedByEfficiency = candidates.slice().sort((a, b) => b.efficiency - a.efficiency);
     const efficientCandidates = sortedByEfficiency.slice(0, 100);
 
-    const sortedByDuration = [...candidates].sort((a, b) => b.totalDaysOff - a.totalDaysOff);
+    const sortedByDuration = candidates.slice().sort((a, b) => b.totalDaysOff - a.totalDaysOff);
     const longCandidates = sortedByDuration.slice(0, 50);
 
-    const combinedCandidates = [...efficientCandidates, ...longCandidates];
     const finalCandidates = [];
-    const finalSeen = new Set();
 
-    combinedCandidates.forEach(c => {
-        // Updated to use indices for key (startIdx/endIdx are numbers)
-        const key = `${c.startIdx}-${c.endIdx}`;
-        if (!finalSeen.has(key)) {
-            finalSeen.add(key);
+    // Bolt Optimization: Fast integer-based Set key for merging candidate lists
+    const seen = new Set();
+
+    // Merge efficient candidates
+    for (let i = 0; i < efficientCandidates.length; i++) {
+        const c = efficientCandidates[i];
+        const key = ((c.startIdx + 1000) << 16) | (c.endIdx + 1000);
+
+        if (!seen.has(key)) {
+            seen.add(key);
             finalCandidates.push(c);
         }
-    });
+    }
 
-    finalCandidates.sort((a, b) => b.efficiency - a.efficiency);
-    return finalCandidates;
+    // Merge long candidates
+    for (let i = 0; i < longCandidates.length; i++) {
+        const c = longCandidates[i];
+        const key = ((c.startIdx + 1000) << 16) | (c.endIdx + 1000);
+
+        if (!seen.has(key)) {
+            seen.add(key);
+            finalCandidates.push(c);
+        }
+    }
+
+    // Return the final deduplicated candidates sorted by efficiency
+    return finalCandidates.sort((a, b) => b.efficiency - a.efficiency);
 }
 
 /**
