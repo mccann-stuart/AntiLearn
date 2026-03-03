@@ -2033,12 +2033,19 @@ function showLoading() {
     if (!loader) {
         loader = document.createElement('div');
         loader.id = 'loading-overlay';
-        loader.innerHTML = `
-            <div class="spinner-container">
-                <div class="spinner"></div>
-                <p>Optimizing your vacation plan...</p>
-            </div>
-        `;
+        const spinnerContainer = document.createElement('div');
+        spinnerContainer.className = 'spinner-container';
+
+        const spinner = document.createElement('div');
+        spinner.className = 'spinner';
+
+        const text = document.createElement('p');
+        text.textContent = 'Optimizing your vacation plan...';
+
+        spinnerContainer.appendChild(spinner);
+        spinnerContainer.appendChild(text);
+        loader.appendChild(spinnerContainer);
+
         document.body.appendChild(loader);
     }
     loader.style.display = 'flex';
@@ -2239,7 +2246,10 @@ function renderRecommendations() {
     const top3 = blocks.slice(0, 3);
 
     if (top3.length === 0) {
-        container.innerHTML = '<p class="empty-rec-message">Select days on the calendar to plan your leave.</p>';
+        const emptyMsg = document.createElement('p');
+        emptyMsg.className = 'empty-rec-message';
+        emptyMsg.textContent = 'Select days on the calendar to plan your leave.';
+        container.appendChild(emptyMsg);
         return;
     }
 
@@ -2249,26 +2259,58 @@ function renderRecommendations() {
 
         const efficiency = block.leaveDays > 0 ? (block.totalDays / block.leaveDays).toFixed(1) : '∞';
 
-        card.innerHTML = `
-            <div class="rec-badge">Break ${index + 1}</div>
-            <div class="rec-dates">
-                ${formatDate(block.startDate)} - ${formatDate(block.endDate)}
-            </div>
-            <div class="rec-details">
-                <div class="detail-item">
-                    <span class="detail-num">${block.leaveDays}</span>
-                    <span class="detail-text">Leave Days</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-num">${block.totalDays}</span>
-                    <span class="detail-text">Days Off</span>
-                </div>
-                <div class="detail-item">
-                    <span class="detail-num">${efficiency}x</span>
-                    <span class="detail-text">Multiplier</span>
-                </div>
-            </div>
-        `;
+        const badge = document.createElement('div');
+        badge.className = 'rec-badge';
+        badge.textContent = `Break ${index + 1}`;
+
+        const dates = document.createElement('div');
+        dates.className = 'rec-dates';
+        dates.textContent = `${formatDate(block.startDate)} - ${formatDate(block.endDate)}`;
+
+        const details = document.createElement('div');
+        details.className = 'rec-details';
+
+        const leaveDaysItem = document.createElement('div');
+        leaveDaysItem.className = 'detail-item';
+        const leaveDaysNum = document.createElement('span');
+        leaveDaysNum.className = 'detail-num';
+        leaveDaysNum.textContent = block.leaveDays;
+        const leaveDaysText = document.createElement('span');
+        leaveDaysText.className = 'detail-text';
+        leaveDaysText.textContent = 'Leave Days';
+        leaveDaysItem.appendChild(leaveDaysNum);
+        leaveDaysItem.appendChild(leaveDaysText);
+
+        const totalDaysItem = document.createElement('div');
+        totalDaysItem.className = 'detail-item';
+        const totalDaysNum = document.createElement('span');
+        totalDaysNum.className = 'detail-num';
+        totalDaysNum.textContent = block.totalDays;
+        const totalDaysText = document.createElement('span');
+        totalDaysText.className = 'detail-text';
+        totalDaysText.textContent = 'Days Off';
+        totalDaysItem.appendChild(totalDaysNum);
+        totalDaysItem.appendChild(totalDaysText);
+
+        const efficiencyItem = document.createElement('div');
+        efficiencyItem.className = 'detail-item';
+        const efficiencyNum = document.createElement('span');
+        efficiencyNum.className = 'detail-num';
+        efficiencyNum.textContent = `${efficiency}x`;
+        const efficiencyText = document.createElement('span');
+        efficiencyText.className = 'detail-text';
+        efficiencyText.textContent = 'Multiplier';
+        efficiencyItem.appendChild(efficiencyNum);
+        efficiencyItem.appendChild(efficiencyText);
+
+        details.appendChild(leaveDaysItem);
+        details.appendChild(totalDaysItem);
+        details.appendChild(efficiencyItem);
+
+        card.appendChild(badge);
+        card.appendChild(dates);
+        card.appendChild(details);
+
         container.appendChild(card);
     });
 }
@@ -2487,19 +2529,30 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
         console.error('Failed to initialize application:', error);
         const container = document.querySelector('.container');
         if (container) {
-            container.innerHTML = `
-                <div class="error-container">
-                    <h1 class="error-title">Unable to Load Application</h1>
-                    <p class="error-message">
-                        We're sorry, but something went wrong. Please try refreshing the page.
-                    </p>
-                    <button id="refresh-btn" class="refresh-btn">Refresh Page</button>
-                </div>
-            `;
-            const refreshBtn = document.getElementById('refresh-btn');
-            if (refreshBtn) {
-                refreshBtn.addEventListener('click', () => location.reload());
-            }
+            container.innerHTML = ''; // safely clear contents
+
+            const errorContainer = document.createElement('div');
+            errorContainer.className = 'error-container';
+
+            const errorTitle = document.createElement('h1');
+            errorTitle.className = 'error-title';
+            errorTitle.textContent = 'Unable to Load Application';
+
+            const errorMessage = document.createElement('p');
+            errorMessage.className = 'error-message';
+            errorMessage.textContent = "We're sorry, but something went wrong. Please try refreshing the page.";
+
+            const refreshBtn = document.createElement('button');
+            refreshBtn.id = 'refresh-btn';
+            refreshBtn.className = 'refresh-btn';
+            refreshBtn.textContent = 'Refresh Page';
+            refreshBtn.addEventListener('click', () => location.reload());
+
+            errorContainer.appendChild(errorTitle);
+            errorContainer.appendChild(errorMessage);
+            errorContainer.appendChild(refreshBtn);
+
+            container.appendChild(errorContainer);
         }
     }
 }
