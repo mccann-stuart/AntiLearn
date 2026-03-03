@@ -793,6 +793,17 @@ function invalidateInsightCaches() {
 }
 
 /**
+ * Bolt Optimization: Targeted cache invalidation.
+ * Only clears caches that depend on `bookedDates`.
+ * This prevents expensive recalculations (like O(N) optimal plan DP and day type logic)
+ * when simply toggling a day on the calendar.
+ */
+function invalidateBookedDaysCaches() {
+    dayInsightCache.clear();
+    bookedDaysIndices = null;
+}
+
+/**
  * Ensures the day type cache is populated for the specified year.
  * Defaults to currentYear if not provided.
  */
@@ -2453,7 +2464,9 @@ function renderCalendar() {
                         showToast(`Note: You've exceeded your allowance (${newCount}/${currentAllowance}).`, 'info');
                     }
 
-                    invalidateInsightCaches();
+                    // Bolt Optimization: Only invalidate caches affected by bookedDates
+                    // instead of triggering a full recalculation of year over year comparisons
+                    invalidateBookedDaysCaches();
                     updateUI();
                     saveState();
                  };
