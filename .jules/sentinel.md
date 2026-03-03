@@ -12,3 +12,8 @@
 **Vulnerability:** The Cloudflare Worker allowed `POST`, `PUT`, `DELETE` requests to static endpoints and API routes, even though they were only intended for `GET` retrieval.
 **Learning:** Cloudflare Workers (and many serverless functions) handle all HTTP methods by default unless explicitly checked. This increases the attack surface for potential future vulnerabilities or abuse.
 **Prevention:** Explicitly check `request.method` at the entry point and return `405 Method Not Allowed` for unexpected methods.
+
+## 2026-02-18 - [DOM-based XSS via innerHTML]
+**Vulnerability:** Application logic in `public/app.js` used `innerHTML` to dynamically render user-facing elements like recommendation cards and error messages, creating a DOM-based Cross-Site Scripting (XSS) risk if those strings contained unsanitized user input or unvalidated data.
+**Learning:** Even internal formatting strings can be manipulated to introduce XSS. `innerHTML` should strictly be avoided for generating dynamic HTML structures.
+**Prevention:** Use native DOM operations (`document.createElement`, `textContent`, `appendChild`) to construct elements safely. `innerHTML` should only be used to clear existing content (e.g., `element.innerHTML = ''`).
