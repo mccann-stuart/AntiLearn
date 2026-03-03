@@ -1,0 +1,3 @@
+## 2025-02-18 - iOS Number Input UX Optimization
+**Learning:** Using `type="number"` alone on an `<input>` element often triggers a standard keyboard with numbers at the top row on iOS devices, resulting in suboptimal UX for entering purely numeric data like an allowance. Adding `inputmode="numeric"` and `pattern="[0-9]*"` explicitly instructs iOS to display the large, touch-friendly 10-key numeric keypad.
+**Action:** When creating inputs strictly for integer numbers (like days/allowances) on mobile-first applications, combine `type="number"` with `inputmode="numeric"` and `pattern="[0-9]*"` to ensure the best possible mobile keypad experience.
