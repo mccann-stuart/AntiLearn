@@ -17,3 +17,8 @@
 **Vulnerability:** Application logic in `public/app.js` used `innerHTML` to dynamically render user-facing elements like recommendation cards and error messages, creating a DOM-based Cross-Site Scripting (XSS) risk if those strings contained unsanitized user input or unvalidated data.
 **Learning:** Even internal formatting strings can be manipulated to introduce XSS. `innerHTML` should strictly be avoided for generating dynamic HTML structures.
 **Prevention:** Use native DOM operations (`document.createElement`, `textContent`, `appendChild`) to construct elements safely. `innerHTML` should only be used to clear existing content (e.g., `element.innerHTML = ''`).
+
+## 2026-02-18 - [Missing Security Headers on Error Responses]
+**Vulnerability:** In `worker.mjs`, the global `catch` block returned a plain 500 error response without routing it through `applySecurityHeaders`.
+**Learning:** Even static error responses (like a 500 Internal Server Error) must include security headers (CSP, HSTS, X-Content-Type-Options) to fulfill defense in depth and ensure that attackers cannot bypass browser policies by forcing the application into an error state.
+**Prevention:** Always ensure that error-handling code paths construct a secure response and route through the same header-application logic as successful responses, while explicitly setting `Cache-Control: no-store` to prevent CDN/browser caching of error states.
