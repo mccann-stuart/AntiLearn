@@ -288,7 +288,19 @@ export default {
             return applySecurityHeaders(response, pathname);
         } catch (error) {
             console.error('Worker error:', error);
-            return new Response('Internal Server Error', { status: 500 });
+            const errorResponse = new Response('Internal Server Error', {
+                status: 500,
+                headers: {
+                    'Content-Type': 'text/plain; charset=utf-8',
+                    'Cache-Control': 'no-store'
+                }
+            });
+            try {
+                const pathname = new URL(request.url).pathname;
+                return applySecurityHeaders(errorResponse, pathname);
+            } catch (e) {
+                return applySecurityHeaders(errorResponse, '/');
+            }
         }
     },
     async scheduled(event, env, ctx) {
