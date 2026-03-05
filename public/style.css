@@ -274,6 +274,18 @@ body.scrolled .calendar-section {
     position: relative;
 }
 
+@media (hover: hover) and (pointer: fine) {
+    .day[role="button"] {
+        transition: transform 0.2s ease, box-shadow 0.2s ease, z-index 0s;
+    }
+    .day[role="button"]:hover {
+        transform: scale(1.15);
+        z-index: 5;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        position: relative;
+    }
+}
+
 .day.weekend {
     background: rgba(255, 255, 255, 0.05);
     color: rgba(255, 255, 255, 0.5);
