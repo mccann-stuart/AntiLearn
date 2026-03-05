@@ -1423,14 +1423,16 @@ function generateAllCandidates(year, allowance) {
     // Deduplicate candidates
     const uniqueCandidates = [];
     const seen = new Set();
-    candidates.forEach(c => {
+    // Bolt Optimization: Replace slow forEach with a native for-loop
+    for (let i = 0; i < candidates.length; i++) {
+        const c = candidates[i];
         // Use indices for key generation (much faster than toISOString)
-        const key = `${c.startIdx}-${c.endIdx}`;
+        const key = (c.startIdx << 16) | c.endIdx;
         if (!seen.has(key)) {
             seen.add(key);
             uniqueCandidates.push(c);
         }
-    });
+    }
 
     return uniqueCandidates;
 }
@@ -1441,24 +1443,33 @@ function generateAllCandidates(year, allowance) {
  * @returns {Array<Object>} Filtered list of top candidates.
  */
 function selectTopCandidates(candidates) {
-    const sortedByEfficiency = [...candidates].sort((a, b) => b.efficiency - a.efficiency);
+    const sortedByEfficiency = candidates.slice().sort((a, b) => b.efficiency - a.efficiency);
     const efficientCandidates = sortedByEfficiency.slice(0, 100);
 
-    const sortedByDuration = [...candidates].sort((a, b) => b.totalDaysOff - a.totalDaysOff);
+    const sortedByDuration = candidates.slice().sort((a, b) => b.totalDaysOff - a.totalDaysOff);
     const longCandidates = sortedByDuration.slice(0, 50);
 
-    const combinedCandidates = [...efficientCandidates, ...longCandidates];
     const finalCandidates = [];
     const finalSeen = new Set();
 
-    combinedCandidates.forEach(c => {
-        // Updated to use indices for key (startIdx/endIdx are numbers)
-        const key = `${c.startIdx}-${c.endIdx}`;
+    // Bolt Optimization: Replace slow array spreads and forEach with native for-loops
+    for (let i = 0; i < efficientCandidates.length; i++) {
+        const c = efficientCandidates[i];
+        const key = (c.startIdx << 16) | c.endIdx;
         if (!finalSeen.has(key)) {
             finalSeen.add(key);
             finalCandidates.push(c);
         }
-    });
+    }
+
+    for (let i = 0; i < longCandidates.length; i++) {
+        const c = longCandidates[i];
+        const key = (c.startIdx << 16) | c.endIdx;
+        if (!finalSeen.has(key)) {
+            finalSeen.add(key);
+            finalCandidates.push(c);
+        }
+    }
 
     finalCandidates.sort((a, b) => b.efficiency - a.efficiency);
     return finalCandidates;
@@ -1503,6 +1514,7 @@ function findBestCombination(candidates, allowance) {
     const SIZE_K = K_MAX + 1;
     const ROW_SIZE = SIZE_K * SIZE_W;
 
+    // Bolt Optimization: Fill is very fast natively in V8
     // Initialize with -1 (representing invalid/unreachable)
     const memo = new Int32Array((N + 1) * ROW_SIZE).fill(-1);
 
