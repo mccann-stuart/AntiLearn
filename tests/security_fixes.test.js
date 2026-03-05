@@ -50,4 +50,23 @@ describe('Security Fixes', () => {
         // Expect prototype to be filtered out
         expect(Object.prototype.hasOwnProperty.call(result, 'prototype')).toBe(false);
     });
+
+    test('decodePlanString should prevent prototype pollution via currentWeekendPattern', () => {
+        // Construct a payload where currentWeekendPattern is __proto__
+        const jsonStr = '{"currentWeekendPattern": "__proto__"}';
+        const encoded = encodeManual(jsonStr);
+
+        const decoded = decodePlanString(encoded);
+
+        // It should reject '__proto__' and fall back to null
+        expect(decoded.currentWeekendPattern).toBe(null);
+    });
+
+    test('isDatasetLocation should prevent prototype pollution via location', () => {
+        const app = require('../public/app.js');
+        expect(() => {
+            app.setTestState(2023, '__proto__', [], [], '__proto__', 25);
+            app.isWeekend(new Date('2023-01-01'));
+        }).not.toThrow();
+    });
 });

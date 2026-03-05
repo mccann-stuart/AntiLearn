@@ -167,18 +167,18 @@ function sanitizeHolidayMap(map) {
  * Determines whether a location relies on the holiday dataset.
  */
 function isDatasetLocation(location) {
-    return LOCATION_CONFIG[location] && LOCATION_CONFIG[location].holidaySource === 'dataset';
+    return Object.prototype.hasOwnProperty.call(LOCATION_CONFIG, location) && LOCATION_CONFIG[location].holidaySource === 'dataset';
 }
 
 /**
  * Retrieves the weekend preset for a given key with safe fallback.
  */
 function getWeekendPreset(key) {
-    if (WEEKEND_PRESETS[key]) return WEEKEND_PRESETS[key];
-    const fallbackKey = LOCATION_CONFIG[currentRegion]
+    if (Object.prototype.hasOwnProperty.call(WEEKEND_PRESETS, key)) return WEEKEND_PRESETS[key];
+    const fallbackKey = Object.prototype.hasOwnProperty.call(LOCATION_CONFIG, currentRegion)
         ? LOCATION_CONFIG[currentRegion].defaultWeekend
         : 'sat-sun';
-    return WEEKEND_PRESETS[fallbackKey] || WEEKEND_PRESETS['sat-sun'];
+    return Object.prototype.hasOwnProperty.call(WEEKEND_PRESETS, fallbackKey) ? WEEKEND_PRESETS[fallbackKey] : WEEKEND_PRESETS['sat-sun'];
 }
 
 /**
@@ -214,7 +214,7 @@ function decodePlanString(encoded) {
         const allowance = typeof obj.currentAllowance === 'number' && obj.currentAllowance > 0 && obj.currentAllowance <= 365
             ? obj.currentAllowance
             : currentAllowance;
-        const weekendPattern = typeof obj.currentWeekendPattern === 'string' && WEEKEND_PRESETS[obj.currentWeekendPattern]
+        const weekendPattern = typeof obj.currentWeekendPattern === 'string' && Object.prototype.hasOwnProperty.call(WEEKEND_PRESETS, obj.currentWeekendPattern)
             ? obj.currentWeekendPattern
             : null;
         return {
@@ -259,8 +259,8 @@ function applySharedPlanFromUrl() {
         currentYear = decoded.currentYear;
         currentRegion = decoded.currentRegion;
 
-        const defaultWeekend = LOCATION_CONFIG[currentRegion].defaultWeekend;
-        currentWeekendPattern = decoded.currentWeekendPattern && WEEKEND_PRESETS[decoded.currentWeekendPattern]
+        const defaultWeekend = Object.prototype.hasOwnProperty.call(LOCATION_CONFIG, currentRegion) ? LOCATION_CONFIG[currentRegion].defaultWeekend : 'sat-sun';
+        currentWeekendPattern = decoded.currentWeekendPattern && Object.prototype.hasOwnProperty.call(WEEKEND_PRESETS, decoded.currentWeekendPattern)
             ? decoded.currentWeekendPattern
             : defaultWeekend;
         weekendByLocation = {};
@@ -458,7 +458,7 @@ async function loadHolidayDataset(force = false) {
  * Retrieves dataset holidays for a specific location/year.
  */
 function getDatasetHolidays(year, location) {
-    const config = LOCATION_CONFIG[location];
+    const config = Object.prototype.hasOwnProperty.call(LOCATION_CONFIG, location) ? LOCATION_CONFIG[location] : null;
     if (!config || !holidayDataset) return [];
 
     const countries = holidayDataset.countries || holidayDataset.locations || holidayDataset.data || {};
@@ -484,7 +484,7 @@ function getDatasetHolidays(year, location) {
 }
 
 function hasHolidayDataForYear(location, year) {
-    const config = LOCATION_CONFIG[location];
+    const config = Object.prototype.hasOwnProperty.call(LOCATION_CONFIG, location) ? LOCATION_CONFIG[location] : null;
     if (!config || !holidayDataset) return false;
     const countries = holidayDataset.countries || holidayDataset.locations || holidayDataset.data || {};
     const countryData = countries[config.countryCode];
@@ -1762,17 +1762,17 @@ function init() {
         if (savedState.weekendByLocation && typeof savedState.weekendByLocation === 'object') {
             weekendByLocation = {};
             Object.entries(savedState.weekendByLocation).forEach(([location, pattern]) => {
-                if (allowedRegions.includes(location) && WEEKEND_PRESETS[pattern]) {
+                if (allowedRegions.includes(location) && Object.prototype.hasOwnProperty.call(WEEKEND_PRESETS, pattern)) {
                     weekendByLocation[location] = pattern;
                 }
             });
         }
-        if (typeof savedState.currentWeekendPattern === 'string' && WEEKEND_PRESETS[savedState.currentWeekendPattern]) {
+        if (typeof savedState.currentWeekendPattern === 'string' && Object.prototype.hasOwnProperty.call(WEEKEND_PRESETS, savedState.currentWeekendPattern)) {
             currentWeekendPattern = savedState.currentWeekendPattern;
         } else if (weekendByLocation[currentRegion]) {
             currentWeekendPattern = weekendByLocation[currentRegion];
         } else {
-            currentWeekendPattern = LOCATION_CONFIG[currentRegion].defaultWeekend;
+            currentWeekendPattern = Object.prototype.hasOwnProperty.call(LOCATION_CONFIG, currentRegion) ? LOCATION_CONFIG[currentRegion].defaultWeekend : 'sat-sun';
         }
         weekendByLocation[currentRegion] = currentWeekendPattern;
     } else if (appliedSharedPlan) {
@@ -1783,7 +1783,7 @@ function init() {
 
     if (!allowedRegions.includes(currentRegion)) {
         currentRegion = REGIONS.ENGLAND_WALES;
-        currentWeekendPattern = LOCATION_CONFIG[currentRegion].defaultWeekend;
+        currentWeekendPattern = Object.prototype.hasOwnProperty.call(LOCATION_CONFIG, currentRegion) ? LOCATION_CONFIG[currentRegion].defaultWeekend : 'sat-sun';
         weekendByLocation[currentRegion] = currentWeekendPattern;
     }
 
@@ -1825,12 +1825,12 @@ function init() {
         locationSelect.value = currentRegion;
         locationSelect.addEventListener('change', (e) => {
             currentRegion = e.target.value;
-            if (!LOCATION_CONFIG[currentRegion]) {
+            if (!Object.prototype.hasOwnProperty.call(LOCATION_CONFIG, currentRegion)) {
                 currentRegion = REGIONS.ENGLAND_WALES;
             }
             ensureCustomHolidays(currentRegion);
 
-            const defaultWeekend = LOCATION_CONFIG[currentRegion].defaultWeekend;
+            const defaultWeekend = Object.prototype.hasOwnProperty.call(LOCATION_CONFIG, currentRegion) ? LOCATION_CONFIG[currentRegion].defaultWeekend : 'sat-sun';
             currentWeekendPattern = weekendByLocation[currentRegion] || defaultWeekend;
             weekendByLocation[currentRegion] = currentWeekendPattern;
 
@@ -1858,7 +1858,7 @@ function init() {
         weekendSelect.value = currentWeekendPattern;
         weekendSelect.addEventListener('change', (e) => {
             const value = e.target.value;
-            if (WEEKEND_PRESETS[value]) {
+            if (Object.prototype.hasOwnProperty.call(WEEKEND_PRESETS, value)) {
                 currentWeekendPattern = value;
                 weekendByLocation[currentRegion] = currentWeekendPattern;
                 invalidateInsightCaches();
@@ -2607,9 +2607,9 @@ if (typeof module !== 'undefined' && module.exports) {
             if (holidays) {
                 customHolidaysByLocation[region] = holidays;
             }
-            currentWeekendPattern = WEEKEND_PRESETS[weekendPattern]
+            currentWeekendPattern = Object.prototype.hasOwnProperty.call(WEEKEND_PRESETS, weekendPattern)
                 ? weekendPattern
-                : (LOCATION_CONFIG[region] ? LOCATION_CONFIG[region].defaultWeekend : 'sat-sun');
+                : (Object.prototype.hasOwnProperty.call(LOCATION_CONFIG, region) ? LOCATION_CONFIG[region].defaultWeekend : 'sat-sun');
             weekendByLocation = { [region]: currentWeekendPattern };
             if (booked) {
                 bookedDates = new Set(booked);
