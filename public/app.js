@@ -2343,6 +2343,53 @@ const ariaLabelFormatter = new Intl.DateTimeFormat('en-GB', { weekday: 'long', d
 const shortDateFormatter = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' });
 
 /**
+ * Toggles the booking state for a specific date.
+ */
+function toggleDateBooking(dateStr) {
+    const prevCount = bookedDates.size;
+    if (bookedDates.has(dateStr)) {
+        bookedDates.delete(dateStr);
+    } else {
+        bookedDates.add(dateStr);
+    }
+    const newCount = bookedDates.size;
+
+    const reachedAllowance = prevCount < currentAllowance && newCount === currentAllowance;
+    const exceededAllowance = prevCount <= currentAllowance && newCount > currentAllowance;
+
+    if (reachedAllowance) {
+        showToast(`Perfect! You've used all ${currentAllowance} days of your allowance.`, 'success');
+    } else if (exceededAllowance) {
+        showToast(`Note: You've exceeded your allowance (${newCount}/${currentAllowance}).`, 'info');
+    }
+
+    // Bolt Optimization: Only invalidate caches affected by bookedDates
+    // instead of triggering a full recalculation of year over year comparisons
+    invalidateBookedDaysCaches();
+    updateUI();
+    saveState();
+}
+
+/**
+ * Event handler for day clicks.
+ */
+function handleDayClick(e) {
+    const dateStr = e.currentTarget.dataset.date;
+    if (dateStr) toggleDateBooking(dateStr);
+}
+
+/**
+ * Event handler for keydown on day elements.
+ */
+function handleDayKeyDown(e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault(); // Prevent scrolling on Space
+        const dateStr = e.currentTarget.dataset.date;
+        if (dateStr) toggleDateBooking(dateStr);
+    }
+}
+
+/**
  * Updates the visual state of a day element.
  * Shared logic for both initial render and updates.
  */
@@ -2503,35 +2550,9 @@ function renderCalendar() {
 
             // Attach event listeners (only needed on creation)
             if (getDayType(date, dateStr) === 'workday') {
-                 const toggleDate = () => {
-                    const prevCount = bookedDates.size;
-                    if (bookedDates.has(dateStr)) {
-                        bookedDates.delete(dateStr);
-                    } else {
-                        bookedDates.add(dateStr);
-                    }
-                    const newCount = bookedDates.size;
-
-                    if (prevCount < currentAllowance && newCount === currentAllowance) {
-                        showToast(`Perfect! You've used all ${currentAllowance} days of your allowance.`, 'success');
-                    } else if (prevCount <= currentAllowance && newCount > currentAllowance) {
-                        showToast(`Note: You've exceeded your allowance (${newCount}/${currentAllowance}).`, 'info');
-                    }
-
-                    // Bolt Optimization: Only invalidate caches affected by bookedDates
-                    // instead of triggering a full recalculation of year over year comparisons
-                    invalidateBookedDaysCaches();
-                    updateUI();
-                    saveState();
-                 };
-
-                 el.addEventListener('click', toggleDate);
-                 el.addEventListener('keydown', (e) => {
-                     if (e.key === 'Enter' || e.key === ' ') {
-                         e.preventDefault(); // Prevent scrolling on Space
-                         toggleDate();
-                     }
-                 });
+                 // Bolt Optimization: Attach shared event handlers instead of creating new closures
+                 el.addEventListener('click', handleDayClick);
+                 el.addEventListener('keydown', handleDayKeyDown);
             }
 
             updateDayNode(el, date, dateStr);
@@ -2639,6 +2660,12 @@ if (typeof module !== 'undefined' && module.exports) {
         },
         showToast,
         renderCalendar,
-        analyzeCurrentPlan
+        analyzeCurrentPlan,
+        toggleDateBooking,
+        handleDayClick,
+        handleDayKeyDown,
+        saveState,
+        loadState,
+        clearState
     };
 }
