@@ -406,6 +406,21 @@ button:hover {
     color: white;
 }
 
+.btn-danger {
+    background: rgba(255, 107, 107, 0.1);
+    color: var(--error-color);
+    border: 1px solid var(--error-color);
+}
+
+@media (hover: hover) {
+    .btn-danger:hover {
+        background: var(--error-color);
+        color: white;
+        transform: translateY(-2px) scale(1.03);
+        box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+    }
+}
+
 /* --- Insights & Legend --- */
 
 .insights-grid {
