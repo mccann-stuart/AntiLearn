@@ -2423,6 +2423,62 @@ function updateDayNode(el, date, dateStr = null) {
 }
 
 /**
+ * Toggles the booking status of a date and shows toast notifications.
+ * @param {string} dateStr The date string (YYYY-MM-DD).
+ */
+function toggleDateBooking(dateStr) {
+    const prevCount = bookedDates.size;
+    let wasAdded = false;
+
+    if (bookedDates.has(dateStr)) {
+        bookedDates.delete(dateStr);
+    } else {
+        bookedDates.add(dateStr);
+        wasAdded = true;
+    }
+    const newCount = bookedDates.size;
+
+    if (wasAdded) {
+        if (prevCount < currentAllowance && newCount === currentAllowance) {
+            showToast(`Perfect! You've used all ${currentAllowance} days of your allowance.`, 'success');
+        } else if (prevCount <= currentAllowance && newCount > currentAllowance) {
+            showToast(`Note: You've exceeded your allowance (${newCount}/${currentAllowance}).`, 'info');
+        }
+    }
+
+    // Bolt Optimization: Only invalidate caches affected by bookedDates
+    // instead of triggering a full recalculation of year over year comparisons
+    invalidateBookedDaysCaches();
+    updateUI();
+    saveState();
+}
+
+/**
+ * Shared click handler for day elements.
+ * @param {Event} e The click event.
+ */
+function handleDayClick(e) {
+    const dateStr = e.currentTarget.dataset.date;
+    if (dateStr) {
+        toggleDateBooking(dateStr);
+    }
+}
+
+/**
+ * Shared keydown handler for day elements.
+ * @param {KeyboardEvent} e The keydown event.
+ */
+function handleDayKeyDown(e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault(); // Prevent scrolling on Space
+        const dateStr = e.currentTarget.dataset.date;
+        if (dateStr) {
+            toggleDateBooking(dateStr);
+        }
+    }
+}
+
+/**
  * Renders the full calendar view.
  */
 function renderCalendar() {
@@ -2503,35 +2559,8 @@ function renderCalendar() {
 
             // Attach event listeners (only needed on creation)
             if (getDayType(date, dateStr) === 'workday') {
-                 const toggleDate = () => {
-                    const prevCount = bookedDates.size;
-                    if (bookedDates.has(dateStr)) {
-                        bookedDates.delete(dateStr);
-                    } else {
-                        bookedDates.add(dateStr);
-                    }
-                    const newCount = bookedDates.size;
-
-                    if (prevCount < currentAllowance && newCount === currentAllowance) {
-                        showToast(`Perfect! You've used all ${currentAllowance} days of your allowance.`, 'success');
-                    } else if (prevCount <= currentAllowance && newCount > currentAllowance) {
-                        showToast(`Note: You've exceeded your allowance (${newCount}/${currentAllowance}).`, 'info');
-                    }
-
-                    // Bolt Optimization: Only invalidate caches affected by bookedDates
-                    // instead of triggering a full recalculation of year over year comparisons
-                    invalidateBookedDaysCaches();
-                    updateUI();
-                    saveState();
-                 };
-
-                 el.addEventListener('click', toggleDate);
-                 el.addEventListener('keydown', (e) => {
-                     if (e.key === 'Enter' || e.key === ' ') {
-                         e.preventDefault(); // Prevent scrolling on Space
-                         toggleDate();
-                     }
-                 });
+                 el.addEventListener('click', handleDayClick);
+                 el.addEventListener('keydown', handleDayKeyDown);
             }
 
             updateDayNode(el, date, dateStr);
@@ -2639,6 +2668,12 @@ if (typeof module !== 'undefined' && module.exports) {
         },
         showToast,
         renderCalendar,
-        analyzeCurrentPlan
+        analyzeCurrentPlan,
+        toggleDateBooking,
+        handleDayClick,
+        handleDayKeyDown,
+        saveState,
+        loadState,
+        clearState
     };
 }
