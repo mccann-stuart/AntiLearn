@@ -247,7 +247,11 @@ async function buildHolidayDataset(env) {
                     try {
                         calendarificList = await fetchCalendarificHolidays(apiKey, country.code, year);
                     } catch (e) {
-                        console.error(`Failed to fetch Calendarific holidays for ${country.code} ${year}:`, e);
+                        let errorMessage = e.message || String(e);
+                        if (apiKey) {
+                            errorMessage = errorMessage.replaceAll(apiKey, 'REDACTED');
+                        }
+                        console.error(`Failed to fetch Calendarific holidays for ${country.code} ${year}: ${errorMessage}`);
                         calendarificList = [];
                     }
                 })(),
@@ -287,7 +291,7 @@ export default {
             const pathname = new URL(request.url).pathname;
             return applySecurityHeaders(response, pathname);
         } catch (error) {
-            console.error('Worker error:', error);
+            console.error(`Worker error: ${error.message || String(error)}`);
             const errorResponse = new Response('Internal Server Error', {
                 status: 500,
                 headers: {
@@ -308,7 +312,7 @@ export default {
         ctx.waitUntil(refreshHolidayDataset(env).then(() => {
             console.log('Cron trigger finished successfully.');
         }).catch(err => {
-            console.error('Cron trigger failed:', err);
+            console.error(`Cron trigger failed: ${err.message || String(err)}`);
         }));
     }
 };
