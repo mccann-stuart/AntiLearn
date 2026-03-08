@@ -140,7 +140,7 @@
         <div class="controls">
             <button id="export-btn">📅 Export to Calendar</button>
             <button id="share-btn">🔗 Copy Share Link</button>
-            <button id="reset-btn">Reset Plan</button>
+            <button id="reset-btn">✨ Reset to Optimal</button>
         </div>
     </div>
     <div class="custom-holidays-section">
@@ -148,7 +148,7 @@
         <form id="custom-holiday-form" class="custom-holiday-inputs">
             <input type="date" id="custom-date-input" aria-label="Custom holiday date" required>
             <input type="text" id="custom-name-input" placeholder="Holiday Name (e.g. My Birthday)"
-                aria-label="Custom holiday name" autocapitalize="words" required>
+                aria-label="Custom holiday name" autocapitalize="words" maxlength="50" required>
             <button type="submit" id="add-custom-btn" aria-label="Add custom holiday">Add</button>
         </form>
         <div id="custom-holidays-list" class="custom-list">
