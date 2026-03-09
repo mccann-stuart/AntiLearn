@@ -5,3 +5,7 @@
 ## 2026-02-18 - Hover State Transitions
 **Learning:** When adding CSS transitions to hover states (like `transform` on `:hover`), putting the `transition` property only on the `:hover` pseudo-class makes the animation snap back instantly when the cursor leaves the element.
 **Action:** Always place the base `transition` property on the normal element selector (e.g. `.day[role="button"]`) rather than the `:hover` pseudo-class to ensure smooth animations in both directions (hover in, hover out).
+
+## 2026-02-18 - Actionable Empty States
+**Learning:** Users might hesitate to click a destructive-looking button like 'Reset Plan' to auto-generate a schedule. Adding a positive, action-oriented call-to-action directly within an empty state significantly improves the discoverability of core features for new users.
+**Action:** Whenever a view requires user action to populate (like a recommendation list), include a clear, descriptive CTA button directly in the empty state instead of just providing helper text.
