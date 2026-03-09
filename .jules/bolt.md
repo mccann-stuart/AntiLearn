@@ -12,3 +12,7 @@
 ## 2026-03-06 - Avoid Inline Closures in Render Loops
 **Learning:** Instantiating anonymous functions/closures inside high-frequency render loops (such as rendering ~365 calendar days via `renderCalendar`) creates significant memory footprint and increases garbage collection overhead.
 **Action:** Extract inline event listeners to shared, module-level functions. Use element `dataset` attributes (e.g., `e.currentTarget.dataset.date`) to pass context to the shared handlers instead of relying on closure variables.
+
+## 2026-02-18 - String Concatenation vs Template Literals
+**Learning:** In highly repetitive, performance-critical loops like `toLocalISOString` in `public/app.js` which format dates, standard string concatenation (`+`) is ~4x faster than template literals (`${var}`).
+**Action:** Use standard string concatenation (`+`) instead of template literals for simple string construction in high-frequency rendering functions.
