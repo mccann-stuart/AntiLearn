@@ -2269,10 +2269,25 @@ function renderRecommendations() {
     const top3 = blocks.slice(0, 3);
 
     if (top3.length === 0) {
+        const emptyContainer = document.createElement('div');
+        emptyContainer.style.textAlign = 'center';
+        emptyContainer.style.width = '100%';
+
         const emptyMsg = document.createElement('p');
         emptyMsg.className = 'empty-rec-message';
-        emptyMsg.textContent = 'Select days on the calendar to plan your leave.';
-        container.appendChild(emptyMsg);
+        emptyMsg.textContent = 'Select days on the calendar, or let us find the best plan for you.';
+        emptyMsg.style.marginBottom = '1.5rem';
+
+        const optimizeBtn = document.createElement('button');
+        optimizeBtn.textContent = '✨ Auto-Plan Optimal Breaks';
+        optimizeBtn.addEventListener('click', () => {
+            const resetBtn = document.getElementById('reset-btn');
+            if (resetBtn) resetBtn.click();
+        });
+
+        emptyContainer.appendChild(emptyMsg);
+        emptyContainer.appendChild(optimizeBtn);
+        container.appendChild(emptyContainer);
         return;
     }
 
@@ -2408,6 +2423,7 @@ function updateDayNode(el, date, dateStr = null) {
         if (currentLabel) {
             el.setAttribute('aria-label', `Today, ${currentLabel}`);
         }
+        el.setAttribute('aria-current', 'date');
         tooltipParts.unshift('Today');
     }
 
