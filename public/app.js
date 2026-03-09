@@ -1891,6 +1891,9 @@ function init() {
                 invalidateInsightCaches();
                 resetToOptimal();
                 saveState();
+            } else {
+                e.target.value = currentAllowance;
+                showToast('Allowance must be between 1 and 365 days.', 'error');
             }
         });
     }
