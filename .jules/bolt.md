@@ -16,3 +16,7 @@
 ## 2026-02-18 - String Concatenation vs Template Literals
 **Learning:** In highly repetitive, performance-critical loops like `toLocalISOString` in `public/app.js` which format dates, standard string concatenation (`+`) is ~4x faster than template literals (`${var}`).
 **Action:** Use standard string concatenation (`+`) instead of template literals for simple string construction in high-frequency rendering functions.
+
+## 2026-04-18 - Inline Array Deduplication
+**Learning:** In candidate generation loops (`generateAllCandidates`), pushing all possible items to an intermediate array and deduplicating it afterwards is ~17% slower than performing deduplication inline before pushing to the array. This is due to the large number of intermediate objects created that must then be garbage collected.
+**Action:** When generating large sets of potentially duplicate data, deduplicate inline (e.g., using a `Set` with primitive keys) before instantiating objects and adding them to an array, to reduce memory allocations and avoid redundant iteration.
