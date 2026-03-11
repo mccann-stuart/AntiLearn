@@ -17,6 +17,9 @@
 **Learning:** In highly repetitive, performance-critical loops like `toLocalISOString` in `public/app.js` which format dates, standard string concatenation (`+`) is ~4x faster than template literals (`${var}`).
 **Action:** Use standard string concatenation (`+`) instead of template literals for simple string construction in high-frequency rendering functions.
 
+## 2026-04-18 - Inline Array Deduplication
+**Learning:** In candidate generation loops (`generateAllCandidates`), pushing all possible items to an intermediate array and deduplicating it afterwards is ~17% slower than performing deduplication inline before pushing to the array. This is due to the large number of intermediate objects created that must then be garbage collected.
+**Action:** When generating large sets of potentially duplicate data, deduplicate inline (e.g., using a `Set` with primitive keys) before instantiating objects and adding them to an array, to reduce memory allocations and avoid redundant iteration.
 ## 2026-04-18 - Integer Comparison vs String Formatting for Date Checks
 **Learning:** Checking if a specific date is "today" inside a high-frequency render loop (like `renderCalendar` for 365 days) by doing `date.toDateString() === new Date().toDateString()` is severely unoptimized. It forces memory allocation for a new `Date` object and string formatting for every iteration. Extracting "today" into cached module-level integer variables (`year`, `month`, `date`) and comparing them against the target date via `getDate()`, `getMonth()`, `getFullYear()` is roughly 140x faster.
 **Action:** Never instantiate `new Date()` or use string formatting methods (`toDateString()`, `toISOString()`) inside hot loops for simple equality checks. Pre-calculate the current day's year, month, and date integers outside the loop (or cache them at the module level) and perform numeric equality checks.
