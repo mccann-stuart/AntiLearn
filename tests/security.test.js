@@ -100,6 +100,14 @@ describe('Security Vulnerability: decodePlanString Input Validation', () => {
         expect(decoded.bookedDates.length).toBe(1000);
     });
 
+    test('should prevent DoS by rejecting encoded strings larger than 30000 characters', () => {
+        const overlyLargeString = 'a'.repeat(30001);
+        const decoded = decodePlanString(overlyLargeString);
+
+        // We want to enforce a hard length limit to prevent memory/CPU exhaustion
+        expect(decoded).toBeNull();
+    });
+
     test('should ignore invalid keys in customHolidaysByLocation', () => {
         const payload = {
             currentAllowance: 25,

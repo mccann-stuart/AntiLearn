@@ -203,6 +203,10 @@ function encodePlanString(payload) {
  */
 function decodePlanString(encoded) {
     if (!encoded || typeof encoded !== 'string') return null;
+
+    // Sentinel Optimization: Prevent DoS from overly large payloads
+    if (encoded.length > 30000) return null;
+
     try {
         const normalized = encoded.replace(/-/g, '+').replace(/_/g, '/');
         const padded = normalized + '==='.slice((normalized.length + 3) % 4);
