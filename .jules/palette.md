@@ -9,3 +9,7 @@
 ## 2026-02-18 - Actionable Empty States
 **Learning:** Users might hesitate to click a destructive-looking button like 'Reset Plan' to auto-generate a schedule. Adding a positive, action-oriented call-to-action directly within an empty state significantly improves the discoverability of core features for new users.
 **Action:** Whenever a view requires user action to populate (like a recommendation list), include a clear, descriptive CTA button directly in the empty state instead of just providing helper text.
+
+## 2026-02-19 - Destructive Inline Actions Feedback
+**Learning:** Destructive inline actions (like removing custom holidays) that lack distinct hover and focus states make it difficult for users to confirm they are interacting with the correct element, increasing the risk of accidental deletions.
+**Action:** Always provide clear visual feedback (e.g., scale, opacity change, outline) for destructive actions on hover and focus. Remember to wrap hover states in `@media (hover: hover)` for mobile safety, and add a clear `focus-visible` outline for keyboard navigation accessibility.

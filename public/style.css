@@ -286,6 +286,19 @@ body.scrolled .calendar-section {
     }
 }
 
+.day[role="button"] {
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    transition: transform 0.1s ease;
+}
+
+.day[role="button"]:active {
+    transform: scale(0.95);
+    z-index: 5;
+}
+
 .day.weekend {
     background: rgba(255, 255, 255, 0.05);
     color: rgba(255, 255, 255, 0.5);
@@ -1113,6 +1126,22 @@ body.scrolled .weekend-group {
     align-items: center;
     box-shadow: none;
     backdrop-filter: none;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+    opacity: 0.8;
+}
+
+@media (hover: hover) {
+    .custom-tag button:hover {
+        transform: scale(1.2);
+        opacity: 1;
+    }
+}
+
+.custom-tag button:focus-visible {
+    opacity: 1;
+    outline: 2px solid var(--error-color);
+    outline-offset: 2px;
+    border-radius: 4px;
 }
 
 .empty-message {
