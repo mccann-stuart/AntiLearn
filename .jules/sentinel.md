@@ -21,4 +21,7 @@
 ## 2026-02-18 - [Missing Security Headers on Error Responses]
 **Vulnerability:** In `worker.mjs`, the global `catch` block returned a plain 500 error response without routing it through `applySecurityHeaders`.
 **Learning:** Even static error responses (like a 500 Internal Server Error) must include security headers (CSP, HSTS, X-Content-Type-Options) to fulfill defense in depth and ensure that attackers cannot bypass browser policies by forcing the application into an error state.
-**Prevention:** Always ensure that error-handling code paths construct a secure response and route through the same header-application logic as successful responses, while explicitly setting `Cache-Control: no-store` to prevent CDN/browser caching of error states.
+**Prevention:** Always ensure that error-handling code paths construct a secure response and route through the same header-application logic as successful responses, while explicitly setting `Cache-Control: no-store` to prevent CDN/browser caching of error states.## 2026-03-11 - [DoS via Large Encoded Payloads]
+**Vulnerability:** The `decodePlanString` function accepted base64url encoded payloads of arbitrary length. A very large string could cause memory exhaustion and CPU spikes during string replacement, base64 decoding, and JSON parsing.
+**Learning:** Even with downstream array truncation (like limiting to 1000 booked dates), the initial parsing of an overly large payload can be used for a Denial of Service attack.
+**Prevention:** Always enforce a hard length limit on incoming encoded strings before attempting to parse or decode them, aligned with the maximum expected legitimate payload size.
