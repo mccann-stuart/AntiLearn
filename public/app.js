@@ -2361,6 +2361,13 @@ const ariaLabelFormatter = new Intl.DateTimeFormat('en-GB', { weekday: 'long', d
 // Bolt Optimization: Shared formatter for recommendation cards prevents re-instantiation (~40x faster)
 const shortDateFormatter = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' });
 
+// Cache "today" values at the module level to avoid creating thousands of Date objects
+// and slow string formatting during calendar rendering.
+let todayCache = new Date();
+let todayYear = todayCache.getFullYear();
+let todayMonth = todayCache.getMonth();
+let todayDate = todayCache.getDate();
+
 /**
  * Updates the visual state of a day element.
  * Shared logic for both initial render and updates.
@@ -2420,7 +2427,9 @@ function updateDayNode(el, date, dateStr = null) {
         el.setAttribute('role', 'button');
     }
 
-    const isToday = date.toDateString() === new Date().toDateString();
+    // Bolt Optimization: Compare Year/Month/Date integers instead of creating new Date objects
+    // and stringifying. This is significantly faster for high-frequency loops.
+    const isToday = date.getDate() === todayDate && date.getMonth() === todayMonth && date.getFullYear() === todayYear;
     if (isToday) {
         el.classList.add('today');
         const currentLabel = el.getAttribute('aria-label');
@@ -2496,6 +2505,12 @@ function handleDayKeyDown(e) {
 
 function renderCalendar() {
     const container = document.getElementById('calendar');
+
+    // Update today cache before rendering to ensure accurate current date across sessions
+    todayCache = new Date();
+    todayYear = todayCache.getFullYear();
+    todayMonth = todayCache.getMonth();
+    todayDate = todayCache.getDate();
 
     // Bolt Optimization: Prevent DOM trashing.
     // Check if we are re-rendering the same year/region/holiday-state.
