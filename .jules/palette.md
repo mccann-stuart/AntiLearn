@@ -13,3 +13,7 @@
 ## 2026-02-19 - Destructive Inline Actions Feedback
 **Learning:** Destructive inline actions (like removing custom holidays) that lack distinct hover and focus states make it difficult for users to confirm they are interacting with the correct element, increasing the risk of accidental deletions.
 **Action:** Always provide clear visual feedback (e.g., scale, opacity change, outline) for destructive actions on hover and focus. Remember to wrap hover states in `@media (hover: hover)` for mobile safety, and add a clear `focus-visible` outline for keyboard navigation accessibility.
+
+## 2026-02-18 - Mobile Tactile Polish and Sticky Hovers
+**Learning:** Found that many interactive elements (buttons, cards) had `:hover` transitions but lacked `@media (hover: hover)` constraints, causing standard "sticky hover" issues on iOS where the hover state gets stuck after tapping. Additionally, these elements lacked `:active` states, leading to a "dead" feeling upon tapping on touch devices.
+**Action:** Always wrap all pseudo-class `:hover` states for interactive elements (like buttons and cards) in `@media (hover: hover)` queries, and proactively define global `:active` transformations (e.g., `transform: scale(0.96)`) so every primary interaction gives satisfying tactile feedback.
