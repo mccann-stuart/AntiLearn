@@ -25,3 +25,8 @@
 **Vulnerability:** The `decodePlanString` function accepted base64url encoded payloads of arbitrary length. A very large string could cause memory exhaustion and CPU spikes during string replacement, base64 decoding, and JSON parsing.
 **Learning:** Even with downstream array truncation (like limiting to 1000 booked dates), the initial parsing of an overly large payload can be used for a Denial of Service attack.
 **Prevention:** Always enforce a hard length limit on incoming encoded strings before attempting to parse or decode them, aligned with the maximum expected legitimate payload size.
+
+## 2026-03-11 - [Persistent DoS via Unsanitized Local Storage]
+**Vulnerability:** The application loaded `bookedDates` from `localStorage` without validating the format or truncating the length of the array, meaning an overly large or malformed array could crash the application on initialization and persist the error across reloads.
+**Learning:** Data from `localStorage` should be treated as untrusted input, just like URL parameters, because it can be manipulated via other vulnerable scripts on the same origin or via browser extensions.
+**Prevention:** Explicitly sanitize and truncate all state data loaded from `localStorage` (e.g., enforcing `MAX_BOOKED_DATES` and `DATE_REGEX`) before applying it to the application state.
