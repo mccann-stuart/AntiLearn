@@ -94,4 +94,39 @@ describe('Security Input Validation', () => {
         expect(toast).not.toBeNull();
         expect(toast.textContent).toContain('Invalid date format');
     });
+
+    test('sanitizes bookedDates from localStorage to prevent DoS', () => {
+        // Mock large and invalid data in localStorage
+        const maliciousDates = Array.from({ length: 1500 }, () => '2025-01-01');
+        maliciousDates.push('invalid-date', 12345, null, '<script>alert(1)</script>');
+
+        const maliciousState = {
+            currentAllowance: 25,
+            currentYear: 2025,
+            currentRegion: 'england-wales',
+            bookedDates: maliciousDates
+        };
+
+        Storage.prototype.getItem.mockReturnValue(JSON.stringify(maliciousState));
+
+        // Re-require the app to trigger init() with malicious localStorage
+        jest.isolateModules(() => {
+            const app = require('../public/app.js');
+            const state = app.getCurrentState();
+
+            // Should be truncated to MAX_BOOKED_DATES (1000)
+            expect(state.bookedDates.length).toBeLessThanOrEqual(1000);
+
+            // Should filter out invalid dates
+            expect(state.bookedDates).not.toContain('invalid-date');
+            expect(state.bookedDates).not.toContain(12345);
+            expect(state.bookedDates).not.toContain(null);
+            expect(state.bookedDates).not.toContain('<script>alert(1)</script>');
+
+            // Ensure all dates strictly conform to the date regex
+            const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+            const allValid = state.bookedDates.every(d => typeof d === 'string' && DATE_REGEX.test(d));
+            expect(allValid).toBe(true);
+        });
+    });
 });
