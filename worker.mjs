@@ -123,7 +123,8 @@ async function handleRequest(request, env) {
             status: 405,
             headers: {
                 'Allow': 'GET, HEAD',
-                'Content-Type': 'text/plain'
+                'Content-Type': 'text/plain',
+                'Cache-Control': 'no-store'
             }
         });
     }
