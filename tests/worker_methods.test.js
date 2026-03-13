@@ -109,4 +109,15 @@ describe('Cloudflare Worker Method Restriction', () => {
         const response = await worker.fetch(request, env);
         expect(response.status).toBe(405);
     });
+
+    test('should set Cache-Control: no-store on 405 responses', async () => {
+        // We use a CSS file here because in the old code, applySecurityHeaders would
+        // apply the static CSS Cache-Control headers to a 405 response.
+        const request = createRequest('https://example.com/style.css', 'POST');
+        mockFetch.mockResolvedValue(createResponse());
+
+        const response = await worker.fetch(request, env);
+        expect(response.status).toBe(405);
+        expect(response.headers.get('Cache-Control')).toBe('no-store');
+    });
 });
