@@ -27,3 +27,7 @@
 ## 2025-02-17 - [Optimized array sorting with secondary stable tie-breaker]
  **Learning:** [Calling Array.slice() to make multiple independent clones for subsequent sorting is highly inefficient. However, sorting the SAME mutated array multiple times loses V8's native array implicit stability if not explicitly defined.]
  **Action:** [When needing multiple sorted arrays of the same base object, create a single clone and sort it inplace repeatedly with a strict, explicit secondary tie-breaker parameter (such as a unique index integer like 'startIdx') to guarantee deterministic stable sort results cross-browser while reducing memory allocation calls and garbage collection time.]
+
+## 2026-04-19 - Redundant deduplication tracking in candidate expansion
+**Learning:** In `public/app.js`, generating candidate leave blocks by expanding from contiguous workday ranges *inherently* prevents duplicate blocks. Attempting to track and deduplicate these blocks using a `Set` added unnecessary memory allocations and iteration checks without providing any actual filtering value.
+**Action:** Remove the redundant `Set` tracking when generating blocks using this contiguous expansion approach. This reduces overhead and speeds up the optimal plan calculation pipeline.
