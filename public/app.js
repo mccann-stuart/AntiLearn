@@ -1397,10 +1397,7 @@ function generateAllCandidates(year, allowance) {
         }
     }
 
-    // 4. Generate candidates using pre-calculated data
-    // Bolt Optimization: Deduplicate candidates inline to avoid creating and iterating over large intermediate arrays (~17% faster)
     const uniqueCandidates = [];
-    const seen = new Set();
     const numWorkdays = workdayIndices.length;
 
     for (let k = 0; k < numWorkdays; k++) {
@@ -1413,22 +1410,17 @@ function generateAllCandidates(year, allowance) {
         for (let len = 1; len <= maxL; len++) {
             const lastBookedIdx = workdayIndices[k + len - 1];
             const realEnd = expansionEnd[lastBookedIdx];
-            // Use indices for key generation (much faster than toISOString)
-            const key = (realStart << 16) | realEnd;
 
-            if (!seen.has(key)) {
-                seen.add(key);
-                const totalDaysOff = realEnd - realStart + 1;
-                uniqueCandidates.push({
-                    startIdx: realStart,
-                    endIdx: realEnd,
-                    startDate: realStart, // for findBestCombination sorting (index)
-                    endDate: realEnd,     // for findBestCombination overlap check (index)
-                    leaveDaysUsed: len,
-                    totalDaysOff: totalDaysOff,
-                    efficiency: totalDaysOff / len
-                });
-            }
+            const totalDaysOff = realEnd - realStart + 1;
+            uniqueCandidates.push({
+                startIdx: realStart,
+                endIdx: realEnd,
+                startDate: realStart, // for findBestCombination sorting (index)
+                endDate: realEnd,     // for findBestCombination overlap check (index)
+                leaveDaysUsed: len,
+                totalDaysOff: totalDaysOff,
+                efficiency: totalDaysOff / len
+            });
         }
     }
 
@@ -2565,10 +2557,22 @@ function renderCalendar() {
         const grid = document.createElement('div');
         grid.className = 'days-grid';
 
-        ['S', 'M', 'T', 'W', 'T', 'F', 'S'].forEach(d => {
+        const weekDays = [
+            { short: 'S', full: 'Sunday' },
+            { short: 'M', full: 'Monday' },
+            { short: 'T', full: 'Tuesday' },
+            { short: 'W', full: 'Wednesday' },
+            { short: 'T', full: 'Thursday' },
+            { short: 'F', full: 'Friday' },
+            { short: 'S', full: 'Saturday' }
+        ];
+
+        weekDays.forEach(d => {
             const h = document.createElement('div');
             h.className = 'day-header';
-            h.textContent = d;
+            h.setAttribute('aria-label', d.full);
+            h.title = d.full;
+            h.textContent = d.short;
             grid.appendChild(h);
         });
 
@@ -2579,6 +2583,9 @@ function renderCalendar() {
             const emptyDiv = document.createElement('div');
             emptyDiv.setAttribute('aria-hidden', 'true');
             grid.appendChild(emptyDiv);
+            const emptyDay = document.createElement('div');
+            emptyDay.setAttribute('aria-hidden', 'true');
+            grid.appendChild(emptyDay);
         }
 
         for (let d = 1; d <= daysInMonth; d++) {
