@@ -30,3 +30,8 @@
 **Vulnerability:** The application loaded `bookedDates` from `localStorage` without validating the format or truncating the length of the array, meaning an overly large or malformed array could crash the application on initialization and persist the error across reloads.
 **Learning:** Data from `localStorage` should be treated as untrusted input, just like URL parameters, because it can be manipulated via other vulnerable scripts on the same origin or via browser extensions.
 **Prevention:** Explicitly sanitize and truncate all state data loaded from `localStorage` (e.g., enforcing `MAX_BOOKED_DATES` and `DATE_REGEX`) before applying it to the application state.
+
+## 2026-03-11 - [Missing Client-Side Input Validation on Custom Holidays]
+**Vulnerability:** The application handled custom holiday name lengths via JavaScript validation inside the `addCustomHoliday` function, but it lacked the native HTML `maxlength` attribute on the input element (`#custom-name-input`). This meant users could paste or type extremely long strings into the input field, which would only be caught upon form submission. While not an immediate critical exploit, it allowed unnecessary processing of large inputs and degraded user experience.
+**Learning:** Defense in depth dictates that input validation should occur as early as possible. Client-side HTML attributes (`maxlength`, `pattern`, `type`) provide the first and most efficient line of defense against oversized or malformed inputs, complementing JavaScript and server-side validation.
+**Prevention:** Always pair logical JavaScript length checks with native HTML `maxlength` attributes on form inputs to prevent oversized data from even being entered by the user.
