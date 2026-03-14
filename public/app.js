@@ -2580,6 +2580,9 @@ function renderCalendar() {
         const firstDay = new Date(currentYear, monthIndex, 1).getDay();
 
         for (let i = 0; i < firstDay; i++) {
+            const emptyDiv = document.createElement('div');
+            emptyDiv.setAttribute('aria-hidden', 'true');
+            grid.appendChild(emptyDiv);
             const emptyDay = document.createElement('div');
             emptyDay.setAttribute('aria-hidden', 'true');
             grid.appendChild(emptyDay);
