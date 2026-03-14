@@ -2576,7 +2576,9 @@ function renderCalendar() {
         const firstDay = new Date(currentYear, monthIndex, 1).getDay();
 
         for (let i = 0; i < firstDay; i++) {
-            grid.appendChild(document.createElement('div'));
+            const emptyDiv = document.createElement('div');
+            emptyDiv.setAttribute('aria-hidden', 'true');
+            grid.appendChild(emptyDiv);
         }
 
         for (let d = 1; d <= daysInMonth; d++) {
