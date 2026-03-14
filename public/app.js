@@ -2561,10 +2561,22 @@ function renderCalendar() {
         const grid = document.createElement('div');
         grid.className = 'days-grid';
 
-        ['S', 'M', 'T', 'W', 'T', 'F', 'S'].forEach(d => {
+        const weekDays = [
+            { short: 'S', full: 'Sunday' },
+            { short: 'M', full: 'Monday' },
+            { short: 'T', full: 'Tuesday' },
+            { short: 'W', full: 'Wednesday' },
+            { short: 'T', full: 'Thursday' },
+            { short: 'F', full: 'Friday' },
+            { short: 'S', full: 'Saturday' }
+        ];
+
+        weekDays.forEach(d => {
             const h = document.createElement('div');
             h.className = 'day-header';
-            h.textContent = d;
+            h.setAttribute('aria-label', d.full);
+            h.title = d.full;
+            h.textContent = d.short;
             grid.appendChild(h);
         });
 
@@ -2572,7 +2584,9 @@ function renderCalendar() {
         const firstDay = new Date(currentYear, monthIndex, 1).getDay();
 
         for (let i = 0; i < firstDay; i++) {
-            grid.appendChild(document.createElement('div'));
+            const emptyDay = document.createElement('div');
+            emptyDay.setAttribute('aria-hidden', 'true');
+            grid.appendChild(emptyDay);
         }
 
         for (let d = 1; d <= daysInMonth; d++) {
