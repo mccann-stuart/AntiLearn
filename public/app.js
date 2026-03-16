@@ -1745,7 +1745,7 @@ function init() {
 
     if (!appliedSharedPlan && savedState) {
         // Restore state variables from local storage if no shared plan
-        if (typeof savedState.currentAllowance === 'number') {
+        if (typeof savedState.currentAllowance === 'number' && savedState.currentAllowance > 0 && savedState.currentAllowance <= 365) {
             currentAllowance = savedState.currentAllowance;
         }
         if (typeof savedState.currentYear === 'number') {

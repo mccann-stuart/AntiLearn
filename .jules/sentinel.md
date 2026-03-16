@@ -21,7 +21,9 @@
 ## 2026-02-18 - [Missing Security Headers on Error Responses]
 **Vulnerability:** In `worker.mjs`, the global `catch` block returned a plain 500 error response without routing it through `applySecurityHeaders`.
 **Learning:** Even static error responses (like a 500 Internal Server Error) must include security headers (CSP, HSTS, X-Content-Type-Options) to fulfill defense in depth and ensure that attackers cannot bypass browser policies by forcing the application into an error state.
-**Prevention:** Always ensure that error-handling code paths construct a secure response and route through the same header-application logic as successful responses, while explicitly setting `Cache-Control: no-store` to prevent CDN/browser caching of error states.## 2026-03-11 - [DoS via Large Encoded Payloads]
+**Prevention:** Always ensure that error-handling code paths construct a secure response and route through the same header-application logic as successful responses, while explicitly setting `Cache-Control: no-store` to prevent CDN/browser caching of error states.
+
+## 2026-03-11 - [DoS via Large Encoded Payloads]
 **Vulnerability:** The `decodePlanString` function accepted base64url encoded payloads of arbitrary length. A very large string could cause memory exhaustion and CPU spikes during string replacement, base64 decoding, and JSON parsing.
 **Learning:** Even with downstream array truncation (like limiting to 1000 booked dates), the initial parsing of an overly large payload can be used for a Denial of Service attack.
 **Prevention:** Always enforce a hard length limit on incoming encoded strings before attempting to parse or decode them, aligned with the maximum expected legitimate payload size.
@@ -35,3 +37,8 @@
 **Vulnerability:** The application handled custom holiday name lengths via JavaScript validation inside the `addCustomHoliday` function, but it lacked the native HTML `maxlength` attribute on the input element (`#custom-name-input`). This meant users could paste or type extremely long strings into the input field, which would only be caught upon form submission. While not an immediate critical exploit, it allowed unnecessary processing of large inputs and degraded user experience.
 **Learning:** Defense in depth dictates that input validation should occur as early as possible. Client-side HTML attributes (`maxlength`, `pattern`, `type`) provide the first and most efficient line of defense against oversized or malformed inputs, complementing JavaScript and server-side validation.
 **Prevention:** Always pair logical JavaScript length checks with native HTML `maxlength` attributes on form inputs to prevent oversized data from even being entered by the user.
+
+## 2026-03-12 - [Persistent Memory DoS via Unvalidated localStorage Numbers]
+**Vulnerability:** The application read `currentAllowance` directly from `localStorage` without enforcing its numerical bounds (`> 0` and `<= 365`). An attacker or malicious extension could inject a massive value (e.g., `1000000`), which was then used to instantiate a multi-gigabyte `Int32Array` in the DP combination algorithm, causing an immediate out-of-memory crash (Denial of Service).
+**Learning:** All numbers originating from untrusted client-side storage MUST be checked against logical maximums before being used in memory allocation operations or large loops.
+**Prevention:** Always strictly validate and clamp numeric inputs loaded from `localStorage` (`typeof value === 'number' && value > 0 && value <= 365`) before assigning them to application state variables.
