@@ -2583,9 +2583,6 @@ function renderCalendar() {
             const emptyDiv = document.createElement('div');
             emptyDiv.setAttribute('aria-hidden', 'true');
             grid.appendChild(emptyDiv);
-            const emptyDay = document.createElement('div');
-            emptyDay.setAttribute('aria-hidden', 'true');
-            grid.appendChild(emptyDay);
         }
 
         for (let d = 1; d <= daysInMonth; d++) {
