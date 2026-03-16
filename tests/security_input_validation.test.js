@@ -129,4 +129,42 @@ describe('Security Input Validation', () => {
             expect(allValid).toBe(true);
         });
     });
+
+    test('ignores out-of-bounds currentAllowance from localStorage to prevent memory DoS', () => {
+        const maliciousState = {
+            currentAllowance: 1000000,
+            currentYear: 2025,
+            currentRegion: 'england-wales',
+            bookedDates: []
+        };
+
+        Storage.prototype.getItem.mockReturnValue(JSON.stringify(maliciousState));
+
+        jest.isolateModules(() => {
+            const app = require('../public/app.js');
+            const state = app.getCurrentState();
+
+            // Default allowance should be 25 because 1000000 is invalid
+            expect(state.currentAllowance).toBe(25);
+        });
+    });
+
+    test('ignores negative currentAllowance from localStorage to prevent memory DoS', () => {
+        const maliciousState = {
+            currentAllowance: -5,
+            currentYear: 2025,
+            currentRegion: 'england-wales',
+            bookedDates: []
+        };
+
+        Storage.prototype.getItem.mockReturnValue(JSON.stringify(maliciousState));
+
+        jest.isolateModules(() => {
+            const app = require('../public/app.js');
+            const state = app.getCurrentState();
+
+            // Default allowance should be 25 because -5 is invalid
+            expect(state.currentAllowance).toBe(25);
+        });
+    });
 });
