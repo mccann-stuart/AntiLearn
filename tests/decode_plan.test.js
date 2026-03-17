@@ -75,6 +75,19 @@ describe('decodePlanString Defaults and Recovery', () => {
         expect(decoded.currentWeekendPattern).toBeNull();
     });
 
+    test('New location ids round-trip for Canada and U.S. states', () => {
+        const encoded = encode({
+            currentRegion: REGIONS.US_NY,
+            currentYear: 2027,
+            currentAllowance: 18
+        });
+        const decoded = decodePlanString(encoded);
+
+        expect(decoded.currentRegion).toBe(REGIONS.US_NY);
+        expect(decoded.currentYear).toBe(2027);
+        expect(decoded.currentAllowance).toBe(18);
+    });
+
     test('Sanitization: Booked Dates filters invalid entries', () => {
         const payload = {
             bookedDates: [

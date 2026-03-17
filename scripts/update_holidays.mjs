@@ -4,26 +4,26 @@ import fs from 'fs';
 import path from 'path';
 import https from 'https';
 import { fileURLToPath } from 'url';
+import {
+    buildHolidayDataset as buildSharedHolidayDataset,
+    fetchCalendarificHolidays as fetchCalendarificHolidaysFromBuilder,
+    fetchTallyfyHolidays as fetchTallyfyHolidaysFromBuilder
+} from '../lib/holiday_dataset_builder.mjs';
 import { normalizeCalendarific, normalizeTallyfy, mergeHolidayLists } from '../lib/holiday_utils.mjs';
+import {
+    COUNTRY_LEVEL_DATASET_LOCATIONS,
+    DATASET_LOCATIONS
+} from '../lib/dataset_locations.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const CALENDARIFIC_URL = 'https://calendarific.com/api/v2/holidays';
-const TALLYFY_URL = 'https://tallyfy.com/national-holidays/api';
-const CALENDARIFIC_TYPES = 'national,religious';
 const CALENDARIFIC_ENV_KEYS = [
     'calendarific',
     'CALENDARIFIC_API_KEY',
     'CALENDARIFIC_KEY',
     'CALENDARIFIC'
 ];
-const COUNTRIES = [
-    { code: 'QA', name: 'Qatar' },
-    { code: 'AE', name: 'United Arab Emirates' },
-    { code: 'SA', name: 'Saudi Arabia' }
-];
-const YEARS_AHEAD = 5;
 const OUTPUT_PATH = path.join(__dirname, '..', '.wrangler', 'holidays.json');
 const DEV_VARS_PATH = path.join(__dirname, '..', '.dev.vars');
 const DOTENV_PATH = path.join(__dirname, '..', '.env');
@@ -104,85 +104,40 @@ async function fetchJson(url) {
     return fetchJsonWithHttps(url);
 }
 
-function getYearsToFetch() {
-    const currentYear = new Date().getUTCFullYear();
-    return Array.from({ length: YEARS_AHEAD + 1 }, (_, i) => currentYear + i);
+async function buildHolidayDataset(options = {}) {
+    return buildSharedHolidayDataset({
+        fetchJson: options.fetchJson || fetchJson,
+        apiKey: Object.prototype.hasOwnProperty.call(options, 'apiKey')
+            ? options.apiKey
+            : getCalendarificApiKey(),
+        logger: options.logger || console,
+        years: options.years
+    });
 }
 
-async function fetchCalendarificHolidays(apiKey, countryCode, year) {
-    if (!apiKey) return [];
-    const url = new URL(CALENDARIFIC_URL);
-    url.searchParams.set('api_key', apiKey);
-    url.searchParams.set('country', countryCode);
-    url.searchParams.set('year', String(year));
-    url.searchParams.set('type', CALENDARIFIC_TYPES);
-
-    const data = await fetchJson(url.toString());
-    return normalizeCalendarific(data && data.response ? data.response.holidays : null);
-}
-
-async function fetchTallyfyHolidays(countryCode, year) {
-    const url = `${TALLYFY_URL}/${countryCode}/${year}.json`;
-    const data = await fetchJson(url);
-    return normalizeTallyfy(data ? data.holidays : null);
-}
-
-async function buildHolidayDataset() {
-    const years = getYearsToFetch();
-    const apiKey = getCalendarificApiKey();
-    if (!apiKey) {
-        console.warn('Warning: Calendarific API key not found. Skipping Calendarific holidays.');
-    }
-    const dataset = {
-        generatedAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString().slice(0, 10),
-        sources: {
-            calendarific: {
-                enabled: true
-            },
-            tallyfy: {
-                enabled: true
-            }
+async function fetchCalendarificHolidays(apiKey, countryCode, year, options = {}) {
+    return fetchCalendarificHolidaysFromBuilder(
+        options.fetchJson || fetchJson,
+        apiKey,
+        {
+            countryCode,
+            year,
+            location: options.location || '',
+            types: options.types
         },
-        countries: {}
-    };
+        options.logger || console
+    );
+}
 
-    for (const country of COUNTRIES) {
-        const yearsData = {};
-        for (const year of years) {
-            let calendarificList = [];
-            let tallyfyList = [];
-            try {
-                calendarificList = await fetchCalendarificHolidays(apiKey, country.code, year);
-            } catch (e) {
-                let errorMessage = e.message || String(e);
-                if (apiKey) {
-                    errorMessage = errorMessage.replaceAll(apiKey, 'REDACTED');
-                }
-                console.error(`Failed to fetch Calendarific holidays for ${country.code} ${year}: ${errorMessage}`);
-                calendarificList = [];
-            }
-            try {
-                tallyfyList = await fetchTallyfyHolidays(country.code, year);
-            } catch (e) {
-                tallyfyList = [];
-            }
-            yearsData[String(year)] = mergeHolidayLists(calendarificList, tallyfyList);
-        }
-        console.log(`Finished processing ${country.name} (${country.code})`);
-
-        dataset.countries[country.code] = {
-            name: country.name,
-            years: yearsData
-        };
-    }
-
-    return dataset;
+async function fetchTallyfyHolidays(countryCode, year, options = {}) {
+    return fetchTallyfyHolidaysFromBuilder(options.fetchJson || fetchJson, countryCode, year);
 }
 
 async function main() {
     console.log('Starting holiday dataset update...');
-    const dataset = await buildHolidayDataset();
+    const dataset = await buildHolidayDataset({
+        apiKey: getCalendarificApiKey()
+    });
     fs.mkdirSync(path.dirname(OUTPUT_PATH), { recursive: true });
     fs.writeFileSync(OUTPUT_PATH, JSON.stringify(dataset, null, 2));
     console.log(`Holiday dataset written to ${OUTPUT_PATH}`);
@@ -198,13 +153,17 @@ if (isDirectRun) {
     });
 }
 
+const COUNTRIES = COUNTRY_LEVEL_DATASET_LOCATIONS;
+
 export {
-    loadEnvFile,
-    getCalendarificApiKey,
+    COUNTRIES,
+    DATASET_LOCATIONS,
     fetchJson,
     fetchCalendarificHolidays,
+    fetchTallyfyHolidays,
+    getCalendarificApiKey,
+    loadEnvFile,
     buildHolidayDataset,
-    COUNTRIES,
     normalizeCalendarific,
     normalizeTallyfy,
     mergeHolidayLists

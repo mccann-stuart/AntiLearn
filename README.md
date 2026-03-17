@@ -5,7 +5,7 @@ A simple web application to help you find the most efficient way to use your ann
 ## Features
 
 *   **Optimal Vacation Planning**: Automatically calculates the best combination of leave blocks to maximize your time off.
-*   **Location Holidays**: Supports England & Wales, Scotland, Northern Ireland, Qatar, the UAE, and Saudi Arabia.
+*   **Location Holidays**: Supports England & Wales, Scotland, Northern Ireland, Qatar, the UAE, Saudi Arabia, Canada, and all 50 U.S. states individually.
 *   **Custom Holidays**: Add your own non-working days (company shutdowns, birthdays, local events) per location.
 *   **Weekend Selection**: Choose weekend patterns (Sat/Sun or Fri/Sat) per location.
 *   **Interactive Calendar**: A full-year calendar view that highlights weekends, bank holidays, and your booked leave days.
@@ -16,12 +16,12 @@ A simple web application to help you find the most efficient way to use your ann
 *   **Persistent Plans**: Saves your plan to `localStorage` and restores it on return visits.
 *   **Share Your Plan**: Generate a unique link to share your optimized leave schedule with others.
 
-## Status (as of 2026-02-18)
+## Status (as of 2026-03-17)
 
 *   Core optimizer, multi-location holiday logic, custom holidays, export, heatmap, year-over-year insights, and shareable plans are implemented in `public/app.js`.
 *   Frontend is static in `public/` and runs without a backend.
-*   International Support: Active for Qatar, UAE, and Saudi Arabia using automated data refreshes.
-*   Tests: `pnpm test` runs unit tests across application logic, worker configuration, security headers, and XSS prevention.
+*   International Support: Active for Qatar, UAE, Saudi Arabia, Canada, and all 50 U.S. states using automated data refreshes.
+*   Tests: `pnpm test` runs unit tests across application logic, worker configuration, dataset building, security headers, and XSS prevention.
 *   Deployment uses `worker.mjs` to add security headers and caching on Cloudflare, and to refresh holiday data weekly.
 
 ## Getting Started
@@ -69,14 +69,14 @@ pnpm exec wrangler pages deploy public
 
 The application uses a simple but effective algorithm to find the best leave combinations:
 
-1.  **Holiday Data**: It starts with a list of UK bank holidays, plus a holiday dataset for Qatar, the UAE, and Saudi Arabia.
+1.  **Holiday Data**: It starts with a list of UK bank holidays, plus a dataset-backed holiday catalog for Qatar, the UAE, Saudi Arabia, Canada, and all 50 U.S. states.
 2.  **Candidate Generation**: It iterates through every workday of the year and calculates the potential time off for various leave durations (e.g., taking 3, 4, 5 days off).
 3.  **Efficiency Scoring**: Each potential leave block is scored based on its efficiency (total days off / leave days used).
 4.  **Combination Finding**: The algorithm then searches for the best combination of up to three non-overlapping leave blocks that fit within your allowance, prioritizing the combination that uses the most of your allowance while maximizing your total time off.
 
 ## Holiday Data Refresh
 
-The Cloudflare Worker schedules a weekly refresh (Wednesday 03:00 UTC) to rebuild the Qatar/UAE/Saudi Arabia holiday dataset from Calendarific and Tallyfy, preferring Calendarific on overlapping dates. The latest dataset is stored in KV and served directly from KV (no local fallback).
+The Cloudflare Worker schedules a weekly refresh to rebuild the dataset-backed holiday catalog from Calendarific and Tallyfy. Canada and the Gulf countries use country-level data, while each U.S. state combines a shared U.S. national baseline with a state-specific Calendarific overlay. The latest dataset is stored in KV and served directly from KV, and the browser keeps a cached copy as a fallback if the network request fails.
 
 For local development or manual refreshes, run:
 

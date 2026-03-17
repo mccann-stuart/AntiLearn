@@ -45,6 +45,23 @@ describe('Security Input Validation', () => {
         jest.restoreAllMocks();
     });
 
+    test('renders Canada and all 50 U.S. states in the location selector', () => {
+        const locationSelect = document.getElementById('location-select');
+        const options = Array.from(locationSelect.querySelectorAll('option'));
+        const northAmericaGroup = Array.from(locationSelect.querySelectorAll('optgroup'))
+            .find((optgroup) => optgroup.label === 'North America');
+        const northAmericaLabels = northAmericaGroup
+            ? Array.from(northAmericaGroup.querySelectorAll('option')).map((option) => option.textContent)
+            : [];
+
+        expect(options).toHaveLength(57);
+        expect(options.map((option) => option.value)).toEqual(
+            expect.arrayContaining(['canada', 'us-california', 'us-new-york', 'us-wyoming'])
+        );
+        expect(northAmericaLabels[0]).toBe('Canada');
+        expect(northAmericaLabels[northAmericaLabels.length - 1]).toBe('Wyoming');
+    });
+
     test('rejects custom holiday names longer than 50 characters', () => {
         const longName = 'A'.repeat(51);
         const dateInput = document.getElementById('custom-date-input');
