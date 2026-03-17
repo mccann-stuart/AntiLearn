@@ -148,9 +148,11 @@ h1 {
     overflow: hidden;
 }
 
-.rec-card:hover {
+@media (hover: hover) {
+    .rec-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.45);
+}
 }
 
 .rec-badge {
@@ -286,6 +288,19 @@ body.scrolled .calendar-section {
     }
 }
 
+.day[role="button"] {
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    transition: transform 0.1s ease;
+}
+
+.day[role="button"]:active {
+    transform: scale(0.95);
+    z-index: 5;
+}
+
 .day.weekend {
     background: rgba(255, 255, 255, 0.05);
     color: rgba(255, 255, 255, 0.5);
@@ -363,9 +378,11 @@ body.scrolled .calendar-section {
     box-shadow: 0 4px 15px rgba(0, 113, 227, 0.3);
 }
 
-#export-btn:hover {
+@media (hover: hover) {
+    #export-btn:hover {
     transform: translateY(-2px) scale(1.03);
     box-shadow: 0 6px 25px rgba(0, 113, 227, 0.4);
+}
 }
 
 button {
@@ -382,10 +399,13 @@ button {
     backdrop-filter: blur(10px);
 }
 
+@media (hover: hover) {
+
 button:hover {
     background: rgba(255, 255, 255, 0.15);
     transform: scale(1.05);
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
 }
 
 .sr-only {
@@ -533,8 +553,10 @@ button:hover {
     backdrop-filter: blur(10px);
 }
 
-#year-select:hover {
+@media (hover: hover) {
+    #year-select:hover {
     background: rgba(255, 255, 255, 0.15);
+}
 }
 
 .year-group label {
@@ -730,10 +752,12 @@ body.scrolled .rec-card {
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-body.scrolled .rec-card:hover {
-    transform: none;
-    box-shadow: none;
-    background: rgba(255, 255, 255, 0.2);
+@media (hover: hover) {
+    body.scrolled .rec-card:hover {
+        transform: none;
+        box-shadow: none;
+        background: rgba(255, 255, 255, 0.2);
+    }
 }
 
 body.scrolled .rec-badge {
@@ -1080,8 +1104,10 @@ body.scrolled .weekend-group {
     transition: transform 0.2s;
 }
 
-.custom-holiday-inputs button:hover {
+@media (hover: hover) {
+    .custom-holiday-inputs button:hover {
     transform: scale(1.05);
+}
 }
 
 .custom-list {
@@ -1113,6 +1139,22 @@ body.scrolled .weekend-group {
     align-items: center;
     box-shadow: none;
     backdrop-filter: none;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+    opacity: 0.8;
+}
+
+@media (hover: hover) {
+    .custom-tag button:hover {
+        transform: scale(1.2);
+        opacity: 1;
+    }
+}
+
+.custom-tag button:focus-visible {
+    opacity: 1;
+    outline: 2px solid var(--error-color);
+    outline-offset: 2px;
+    border-radius: 4px;
 }
 
 .empty-message {
@@ -1283,4 +1325,13 @@ body.scrolled .weekend-group {
     .custom-holiday-inputs input {
         font-size: 16px;
     }
+}
+/* Global active state for tactile feedback */
+button:active,
+#export-btn:active,
+.custom-holiday-inputs button:active,
+.custom-tag button:active,
+.rec-card:active {
+    transform: scale(0.96) !important;
+    transition: transform 0.1s ease;
 }
