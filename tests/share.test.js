@@ -130,4 +130,26 @@ describe('applySharedPlanFromUrl', () => {
         expect(state.customHolidaysByLocation[REGIONS.SCOTLAND]).toHaveLength(1);
         expect(state.customHolidaysByLocation[REGIONS.SCOTLAND][0].name).toBe('Scotland Hol');
     });
+
+    test('applies shared plans for new North America regions', () => {
+        const payload = {
+            currentRegion: REGIONS.US_CA,
+            currentWeekendPattern: 'sat-sun',
+            customHolidays: [{ date: '2026-03-31', name: 'Cesar Chavez Day' }]
+        };
+        const encoded = encodePlanString(payload);
+
+        const url = new URL('http://localhost/');
+        url.searchParams.set('plan', encoded);
+        setUrl(url.toString());
+
+        expect(applySharedPlanFromUrl()).toBe(true);
+
+        const state = getCurrentState();
+        expect(state.currentRegion).toBe(REGIONS.US_CA);
+        expect(state.currentWeekendPattern).toBe('sat-sun');
+        expect(state.customHolidaysByLocation[REGIONS.US_CA]).toEqual(
+            expect.arrayContaining([expect.objectContaining({ name: 'Cesar Chavez Day' })])
+        );
+    });
 });

@@ -123,8 +123,10 @@ describe('Holiday Data Normalization', () => {
 
 describe('update_holidays.mjs', () => {
     let originalConsoleError;
+    let originalConsoleLog;
     let originalFetch;
     let consoleErrorMock;
+    let consoleLogMock;
     let originalEnvValues;
     const apiKeyEnvKeys = [
         'calendarific',
@@ -135,8 +137,11 @@ describe('update_holidays.mjs', () => {
 
     beforeEach(() => {
         consoleErrorMock = jest.fn();
+        consoleLogMock = jest.fn();
         originalConsoleError = console.error;
+        originalConsoleLog = console.log;
         console.error = consoleErrorMock;
+        console.log = consoleLogMock;
 
         originalFetch = global.fetch;
         global.fetch = jest.fn();
@@ -150,6 +155,7 @@ describe('update_holidays.mjs', () => {
 
     afterEach(() => {
         console.error = originalConsoleError;
+        console.log = originalConsoleLog;
         global.fetch = originalFetch;
         apiKeyEnvKeys.forEach((key) => {
             if (typeof originalEnvValues[key] === 'undefined') {
@@ -197,5 +203,150 @@ describe('update_holidays.mjs', () => {
 
         expect(combinedErrors).toContain('REDACTED');
         expect(combinedErrors).not.toContain(apiKey);
+    });
+
+    test('buildHolidayDataset merges U.S. national baseline with state overlays once per year', async () => {
+        const year = 2026;
+        let usNationalRequestCount = 0;
+
+        const fetchJsonMock = jest.fn(async (urlString) => {
+            const url = new URL(urlString);
+
+            if (url.hostname === 'calendarific.com') {
+                const countryCode = url.searchParams.get('country');
+                const location = url.searchParams.get('location');
+
+                if (countryCode === 'US' && !location) {
+                    usNationalRequestCount += 1;
+                    return {
+                        response: {
+                            holidays: [
+                                { date: { iso: `${year}-01-01` }, name: 'New Year', type: ['national'] },
+                                { date: { iso: `${year}-07-04` }, name: 'Independence Day', type: ['national'] }
+                            ]
+                        }
+                    };
+                }
+
+                if (countryCode === 'US' && location === 'us-ca') {
+                    return {
+                        response: {
+                            holidays: [
+                                { date: { iso: `${year}-01-01` }, name: 'New Year Override', type: ['local'] },
+                                { date: { iso: `${year}-03-31` }, name: 'Cesar Chavez Day', type: ['local'] }
+                            ]
+                        }
+                    };
+                }
+
+                if (countryCode === 'CA') {
+                    return {
+                        response: {
+                            holidays: [
+                                { date: { iso: `${year}-07-01` }, name: 'Canada Day', type: ['national'] }
+                            ]
+                        }
+                    };
+                }
+
+                return { response: { holidays: [] } };
+            }
+
+            if (url.hostname === 'tallyfy.com') {
+                if (url.pathname.endsWith(`/US/${year}.json`)) {
+                    return {
+                        holidays: [
+                            { date: `${year}-11-26`, name: 'Thanksgiving', type: 'national' }
+                        ]
+                    };
+                }
+                return { holidays: [] };
+            }
+
+            throw new Error(`Unexpected URL: ${urlString}`);
+        });
+
+        const dataset = await buildHolidayDataset({
+            fetchJson: fetchJsonMock,
+            apiKey: 'secret-api-key-123',
+            logger: console,
+            years: [year]
+        });
+
+        expect(usNationalRequestCount).toBe(1);
+        expect(dataset.locations.CA.years[String(year)]).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({ date: `${year}-07-01`, name: 'Canada Day' })
+            ])
+        );
+
+        const californiaHolidays = dataset.locations['US-CA'].years[String(year)];
+        const californiaNewYear = californiaHolidays.find((holiday) => holiday.date === `${year}-01-01`);
+
+        expect(californiaNewYear.name).toBe('New Year Override');
+        expect(californiaHolidays.filter((holiday) => holiday.date === `${year}-01-01`)).toHaveLength(1);
+        expect(californiaHolidays).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({ date: `${year}-03-31`, name: 'Cesar Chavez Day' }),
+                expect.objectContaining({ date: `${year}-11-26`, name: 'Thanksgiving' })
+            ])
+        );
+    });
+
+    test('buildHolidayDataset keeps U.S. national holidays when a state overlay fetch fails', async () => {
+        const year = 2026;
+
+        const fetchJsonMock = jest.fn(async (urlString) => {
+            const url = new URL(urlString);
+
+            if (url.hostname === 'calendarific.com') {
+                const countryCode = url.searchParams.get('country');
+                const location = url.searchParams.get('location');
+
+                if (countryCode === 'US' && !location) {
+                    return {
+                        response: {
+                            holidays: [
+                                { date: { iso: `${year}-01-01` }, name: 'New Year', type: ['national'] }
+                            ]
+                        }
+                    };
+                }
+
+                if (countryCode === 'US' && location === 'us-tx') {
+                    throw new Error('Texas overlay failed');
+                }
+
+                return { response: { holidays: [] } };
+            }
+
+            if (url.hostname === 'tallyfy.com') {
+                if (url.pathname.endsWith(`/US/${year}.json`)) {
+                    return {
+                        holidays: [
+                            { date: `${year}-11-26`, name: 'Thanksgiving', type: 'national' }
+                        ]
+                    };
+                }
+                return { holidays: [] };
+            }
+
+            throw new Error(`Unexpected URL: ${urlString}`);
+        });
+
+        const dataset = await buildHolidayDataset({
+            fetchJson: fetchJsonMock,
+            apiKey: 'secret-api-key-123',
+            logger: console,
+            years: [year]
+        });
+
+        const texasHolidays = dataset.locations['US-TX'].years[String(year)];
+        expect(texasHolidays).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({ date: `${year}-01-01`, name: 'New Year' }),
+                expect.objectContaining({ date: `${year}-11-26`, name: 'Thanksgiving' })
+            ])
+        );
     });
 });

@@ -231,7 +231,43 @@ describe('Holiday Calculations', () => {
         expect(holidayDates).toContain('2024-04-01'); // Easter Monday
     });
 
-    test('Dataset holidays are used for Qatar and UAE', () => {
+    test('Dataset holidays are used for Canada and U.S. states', () => {
+        const dataset = {
+            updatedAt: '2026-02-17',
+            locations: {
+                CA: {
+                    name: 'Canada',
+                    years: {
+                        '2026': [
+                            { date: '2026-07-01', name: 'Canada Day', type: 'national', source: 'calendarific' }
+                        ]
+                    }
+                },
+                'US-CA': {
+                    name: 'California',
+                    years: {
+                        '2026': [
+                            { date: '2026-01-01', name: 'New Year Override', type: 'local', source: 'calendarific' },
+                            { date: '2026-03-31', name: 'Cesar Chavez Day', type: 'local', source: 'calendarific' }
+                        ]
+                    }
+                }
+            }
+        };
+
+        setHolidayDatasetForTests(dataset);
+
+        setTestState(2026, REGIONS.CANADA, []);
+        expect(getHolidayName(new Date(2026, 6, 1))).toBe('Canada Day');
+
+        setTestState(2026, REGIONS.US_CA, []);
+        expect(getHolidayName(new Date(2026, 0, 1))).toBe('New Year Override');
+        expect(getHolidayName(new Date(2026, 2, 31))).toBe('Cesar Chavez Day');
+
+        setHolidayDatasetForTests(null);
+    });
+
+    test('Legacy country-keyed datasets still work for existing locations', () => {
         const dataset = {
             updatedAt: '2026-02-17',
             countries: {
@@ -242,22 +278,6 @@ describe('Holiday Calculations', () => {
                             { date: '2026-01-01', name: 'New Year', type: 'national', source: 'calendarific' }
                         ]
                     }
-                },
-                AE: {
-                    name: 'United Arab Emirates',
-                    years: {
-                        '2026': [
-                            { date: '2026-12-02', name: 'National Day', type: 'national', source: 'tallyfy' }
-                        ]
-                    }
-                },
-                SA: {
-                    name: 'Saudi Arabia',
-                    years: {
-                        '2026': [
-                            { date: '2026-09-23', name: 'National Day', type: 'national', source: 'calendarific' }
-                        ]
-                    }
                 }
             }
         };
@@ -266,12 +286,6 @@ describe('Holiday Calculations', () => {
 
         setTestState(2026, REGIONS.QATAR, []);
         expect(getHolidayName(new Date(2026, 0, 1))).toBe('New Year');
-
-        setTestState(2026, REGIONS.UAE, []);
-        expect(getHolidayName(new Date(2026, 11, 2))).toBe('National Day');
-
-        setTestState(2026, REGIONS.SAUDI_ARABIA, []);
-        expect(getHolidayName(new Date(2026, 8, 23))).toBe('National Day');
 
         setHolidayDatasetForTests(null);
     });
