@@ -45,6 +45,23 @@ describe('Security Input Validation', () => {
         jest.restoreAllMocks();
     });
 
+    test('renders Canada and all 50 U.S. states in the location selector', () => {
+        const locationSelect = document.getElementById('location-select');
+        const options = Array.from(locationSelect.querySelectorAll('option'));
+        const northAmericaGroup = Array.from(locationSelect.querySelectorAll('optgroup'))
+            .find((optgroup) => optgroup.label === 'North America');
+        const northAmericaLabels = northAmericaGroup
+            ? Array.from(northAmericaGroup.querySelectorAll('option')).map((option) => option.textContent)
+            : [];
+
+        expect(options).toHaveLength(57);
+        expect(options.map((option) => option.value)).toEqual(
+            expect.arrayContaining(['canada', 'us-california', 'us-new-york', 'us-wyoming'])
+        );
+        expect(northAmericaLabels[0]).toBe('Canada');
+        expect(northAmericaLabels[northAmericaLabels.length - 1]).toBe('Wyoming');
+    });
+
     test('rejects custom holiday names longer than 50 characters', () => {
         const longName = 'A'.repeat(51);
         const dateInput = document.getElementById('custom-date-input');
@@ -127,6 +144,44 @@ describe('Security Input Validation', () => {
             const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
             const allValid = state.bookedDates.every(d => typeof d === 'string' && DATE_REGEX.test(d));
             expect(allValid).toBe(true);
+        });
+    });
+
+    test('ignores out-of-bounds currentAllowance from localStorage to prevent memory DoS', () => {
+        const maliciousState = {
+            currentAllowance: 1000000,
+            currentYear: 2025,
+            currentRegion: 'england-wales',
+            bookedDates: []
+        };
+
+        Storage.prototype.getItem.mockReturnValue(JSON.stringify(maliciousState));
+
+        jest.isolateModules(() => {
+            const app = require('../public/app.js');
+            const state = app.getCurrentState();
+
+            // Default allowance should be 25 because 1000000 is invalid
+            expect(state.currentAllowance).toBe(25);
+        });
+    });
+
+    test('ignores negative currentAllowance from localStorage to prevent memory DoS', () => {
+        const maliciousState = {
+            currentAllowance: -5,
+            currentYear: 2025,
+            currentRegion: 'england-wales',
+            bookedDates: []
+        };
+
+        Storage.prototype.getItem.mockReturnValue(JSON.stringify(maliciousState));
+
+        jest.isolateModules(() => {
+            const app = require('../public/app.js');
+            const state = app.getCurrentState();
+
+            // Default allowance should be 25 because -5 is invalid
+            expect(state.currentAllowance).toBe(25);
         });
     });
 });

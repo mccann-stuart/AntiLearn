@@ -1,11 +1,11 @@
-# Product Roadmap: UK Vacation Maximiser
+# Product Roadmap: Vacation Maximiser
 
 This document outlines the strategic plan for the next major development epics to enhance the UK Vacation Maximiser application.
 
-## Status Summary (as of 2026-02-18)
+## Status Summary (as of 2026-03-17)
 
-*   Implemented: regional holidays (England & Wales, Scotland, Northern Ireland), International holidays (Qatar, UAE, Saudi Arabia), custom holidays, localStorage persistence, iCal export, heatmap/bridge-day insights, year-over-year comparison, and shareable plan links.
-*   Tests: Jest suite (45 tests) covering application logic, worker configuration, security headers, and XSS prevention.
+*   Implemented: regional holidays (England & Wales, Scotland, Northern Ireland), dataset-backed holidays for Qatar/UAE/Saudi Arabia/Canada and all 50 U.S. states, custom holidays, localStorage persistence, iCal export, heatmap/bridge-day insights, year-over-year comparison, and shareable plan links.
+*   Tests: Jest suite (114 tests) covering application logic, dataset building, worker configuration, security headers, and XSS prevention.
 *   Pending: half-day leave, custom work schedules, and school holidays overlay.
 
 ## Epic 1: Regional Support & Customization (Completed)
@@ -15,7 +15,7 @@ This document outlines the strategic plan for the next major development epics t
     *   Add a dropdown to select regions: England/Wales, Scotland, and Northern Ireland.
     *   Update holiday logic to account for regional differences.
 *   **Feature: International Support (Completed)**
-    *   Add support for Qatar, UAE, and Saudi Arabia.
+    *   Add support for Qatar, UAE, Saudi Arabia, Canada, and all 50 U.S. states.
     *   Implement automated data fetching for international holidays.
 *   **Feature: Custom Holiday Input (Completed)**
     *   Allow users to manually add dates as "holidays" (e.g., company-specific shutdowns, local observances).

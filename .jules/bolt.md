@@ -1,6 +1,3 @@
-## 2025-02-18 - [Optimizing Date Formatting]
-**Learning:** `Date.prototype.toLocaleDateString` with an options object is significantly slower (~50x) than `Intl.DateTimeFormat.prototype.format` when called repeatedly, because it instantiates a new formatter on every call.
-**Action:** For date formatting in loops or high-frequency render functions (like recommendation lists), always create a shared `Intl.DateTimeFormat` instance at the module level and reuse it.
 
 ## 2026-02-18 - Overly broad cache invalidation triggering full recalculation
 **Learning:** In `public/app.js`, toggling a date on the calendar called `invalidateInsightCaches()`, which cleared ALL caches (including the expensive `yearComparisonCache` and `dayTypeCache`). This caused a full O(N) DP recalculation of optimal plans (~60-150ms per click), despite date selections not changing the static properties that optimal plans depend on (year, region, weekends, custom holidays).
@@ -42,3 +39,6 @@
 ## 2026-05-15 - Unrolling Conditional DP Inner Loops
 **Learning:** In the dynamic programming solver (`findBestCombination`), the innermost `w` loop executed a check `if (k > 0)` and `if (w >= cost)` on every iteration (over 13,000 times per plan generation). Since these variables remain constant within the inner loop scope or can form definitive bounds (like `w < cost` vs `w >= cost`), hoisting the `if (k > 0)` check outwards and splitting the inner loop into two sequential unrolled blocks saves significant branching and execution overhead, resulting in an immediate ~30-40% reduction in `findBestCombination` execution time.
 **Action:** When working with 1D/2D nested array algorithms, identify logic expressions in the innermost loop that are constant relative to one of the loop counters, and lift them out by splitting the iteration bounds where those checks switch states.
+## 2024-03-17 - Minimize DOM manipulations in high-frequency rendering functions
+**Learning:** Calling `classList.add()` multiple times and blindly setting attributes/datasets on a high-frequency function like `updateDayNode` causes significant browser reflows and style recalculations. In vanilla JS rendering, string concatenating the full `className` and only writing to the DOM if the value has actually changed is significantly faster.
+**Action:** When optimizing tight rendering loops that touch many elements (like a 365-day calendar grid), batch class additions via string concatenation (`el.className = 'day' + ...`) rather than multiple `el.classList.add()` calls, and strictly guard `setAttribute` or `dataset` writes behind equality checks against the current DOM state to avoid layout thrashing.
