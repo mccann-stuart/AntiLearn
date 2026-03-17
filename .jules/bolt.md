@@ -1,0 +1,4 @@
+
+## 2024-03-17 - Minimize DOM manipulations in high-frequency rendering functions
+**Learning:** Calling `classList.add()` multiple times and blindly setting attributes/datasets on a high-frequency function like `updateDayNode` causes significant browser reflows and style recalculations. In vanilla JS rendering, string concatenating the full `className` and only writing to the DOM if the value has actually changed is significantly faster.
+**Action:** When optimizing tight rendering loops that touch many elements (like a 365-day calendar grid), batch class additions via string concatenation (`el.className = 'day' + ...`) rather than multiple `el.classList.add()` calls, and strictly guard `setAttribute` or `dataset` writes behind equality checks against the current DOM state to avoid layout thrashing.
