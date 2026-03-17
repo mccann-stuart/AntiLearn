@@ -2002,7 +2002,10 @@ function renderCustomHolidays() {
     const customHolidays = getCustomHolidaysForLocation(currentRegion);
 
     if (customHolidays.length === 0) {
-        list.innerHTML = '<div class="empty-message">No custom holidays added.</div>';
+        const emptyMsg = document.createElement('div');
+        emptyMsg.className = 'empty-message';
+        emptyMsg.textContent = 'No custom holidays added.';
+        list.appendChild(emptyMsg);
         return;
     }
 
@@ -2012,7 +2015,7 @@ function renderCustomHolidays() {
         tag.textContent = `${h.name} (${h.date}) `;
 
         const btn = document.createElement('button');
-        btn.innerHTML = '&times;';
+        btn.textContent = '\u00D7'; // Multiply symbol for 'times'
         // Strip HTML tags for safety and cleaner accessibility label
         const safeName = h.name.replace(/<[^>]*>?/gm, '');
         btn.setAttribute('aria-label', `Remove ${safeName || 'holiday'}`);
