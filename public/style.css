@@ -65,6 +65,9 @@ a:focus-visible {
     max-width: 1200px;
     margin: 0 auto;
     padding: 1.5rem;
+    padding-left: max(1.5rem, env(safe-area-inset-left));
+    padding-right: max(1.5rem, env(safe-area-inset-right));
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
 }
 
 header {
@@ -613,6 +616,9 @@ body.scrolled #sticky-header {
     justify-content: space-between;
     gap: 1rem;
     padding: 0.5rem 2rem;
+    padding-top: max(0.5rem, env(safe-area-inset-top));
+    padding-left: max(2rem, env(safe-area-inset-left));
+    padding-right: max(2rem, env(safe-area-inset-right));
     box-sizing: border-box;
 }
 
@@ -832,6 +838,9 @@ body.scrolled .rec-details {
     /* Sticky header mobile adjustments */
     body.scrolled #sticky-header {
         padding: 0.5rem 1rem;
+        padding-top: max(0.5rem, env(safe-area-inset-top));
+        padding-left: max(1rem, env(safe-area-inset-left));
+        padding-right: max(1rem, env(safe-area-inset-right));
         height: auto;
         min-height: auto;
         max-height: none;
