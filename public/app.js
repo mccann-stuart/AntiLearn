@@ -475,6 +475,8 @@ async function handleShareLink() {
         if (navigator.clipboard && navigator.clipboard.writeText) {
             await navigator.clipboard.writeText(shareUrl);
 
+            showToast('Link copied to clipboard!', 'success');
+
             const btn = document.getElementById('share-btn');
             if (btn && !btn.classList.contains('btn-success')) {
                 const originalText = btn.textContent;

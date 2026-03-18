@@ -1,3 +1,7 @@
 ## 2024-03-20 - iOS Safe Area Padding & Fullscreen Meta Tags
 **Learning:** iOS devices with notches and bottom home indicators can easily obscure sticky headers and absolutely positioned content. Applying `viewport-fit=cover` isn't enough; CSS `env(safe-area-inset-*)` combined with `max()` functions must be explicitly used to ensure that padding remains consistent whether the device is in portrait, landscape, or on an older screen without a notch. Additionally, adding mobile app tags like `apple-mobile-web-app-capable` prevents the top status bar from clashing with custom themes.
 **Action:** When creating fixed position headers or fullscreen layouts, explicitly include iOS specific meta tags for theme styling and systematically use `padding: max(DEFAULT_PAD, env(safe-area-inset-*))` rather than just a fixed unit, particularly for `.container` and `#sticky-header` type classes.
+
+## 2024-05-15 - Missing Screen Reader Feedback for Clipboard Actions
+**Learning:** Changing button text visually (e.g., to "Copied!") after a clipboard action provides no feedback to screen reader users if `aria-live` is not used. Sighted users see the confirmation, but screen readers only announce the initial button click.
+**Action:** Always provide explicit audible feedback for non-navigational async actions. Triggering an existing toast notification system (which already uses `aria-live="polite"`) is a simple and effective way to ensure accessible feedback for clipboard copies or state saves.
