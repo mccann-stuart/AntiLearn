@@ -55,9 +55,13 @@ function applySecurityHeaders(response, pathname) {
         "upgrade-insecure-requests;"
     );
 
-    const cacheControl = getCacheControl(pathname);
-    if (cacheControl && !newHeaders.has('Cache-Control')) {
-        newHeaders.set('Cache-Control', cacheControl);
+    if (response.status >= 400) {
+        newHeaders.set('Cache-Control', 'no-store');
+    } else {
+        const cacheControl = getCacheControl(pathname);
+        if (cacheControl && !newHeaders.has('Cache-Control')) {
+            newHeaders.set('Cache-Control', cacheControl);
+        }
     }
 
     return new Response(response.body, {
