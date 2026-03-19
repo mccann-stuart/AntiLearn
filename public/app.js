@@ -446,7 +446,14 @@ function showToast(message, type = 'info') {
     toast.className = `toast ${type}`;
 
     const icon = type === 'success' ? '✅' : type === 'error' ? '⚠️' : 'ℹ️';
-    toast.textContent = `${icon} ${message}`;
+    const iconSpan = document.createElement('span');
+    iconSpan.setAttribute('aria-hidden', 'true');
+    iconSpan.textContent = icon + ' ';
+
+    const messageNode = document.createTextNode(message);
+
+    toast.appendChild(iconSpan);
+    toast.appendChild(messageNode);
 
     container.appendChild(toast);
 
@@ -2476,6 +2483,7 @@ function renderRecommendations() {
 
         const optimizeBtn = document.createElement('button');
         optimizeBtn.textContent = '✨ Auto-Plan Optimal Breaks';
+        optimizeBtn.setAttribute('aria-label', 'Auto-Plan Optimal Breaks');
         optimizeBtn.addEventListener('click', () => {
             const resetBtn = document.getElementById('reset-btn');
             if (resetBtn) resetBtn.click();
@@ -2631,6 +2639,18 @@ function updateDayNode(el, date, dateStr = null) {
         if (el.style.cursor !== 'pointer') el.style.cursor = 'pointer';
         if (el.tabIndex !== 0) el.tabIndex = 0;
         if (el.getAttribute('role') !== 'button') el.setAttribute('role', 'button');
+    } else {
+        const type = getDayType(date, dStr);
+        const holidayName = getHolidayName(date, dStr);
+        const dateLabel = ariaLabelFormatter.format(date);
+        let statusLabel = type === 'weekend' ? 'Weekend' : 'Holiday';
+        if (holidayName) {
+             statusLabel = `Holiday: ${holidayName}`;
+        }
+        const fullLabel = `${dateLabel}, ${statusLabel}`;
+        if (el.getAttribute('aria-label') !== fullLabel) {
+            el.setAttribute('aria-label', fullLabel);
+        }
     }
 
     // Bolt Optimization: Compare Year/Month/Date integers instead of creating new Date objects
