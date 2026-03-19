@@ -42,3 +42,7 @@
 ## 2024-03-17 - Minimize DOM manipulations in high-frequency rendering functions
 **Learning:** Calling `classList.add()` multiple times and blindly setting attributes/datasets on a high-frequency function like `updateDayNode` causes significant browser reflows and style recalculations. In vanilla JS rendering, string concatenating the full `className` and only writing to the DOM if the value has actually changed is significantly faster.
 **Action:** When optimizing tight rendering loops that touch many elements (like a 365-day calendar grid), batch class additions via string concatenation (`el.className = 'day' + ...`) rather than multiple `el.classList.add()` calls, and strictly guard `setAttribute` or `dataset` writes behind equality checks against the current DOM state to avoid layout thrashing.
+
+## 2024-05-20 - Set-based lookup for holiday merging
+**Learning:** Merging two arrays of holidays by checking for existence via `array.some()` in a loop results in O(N*M) complexity. For a typical year with ~10 bank holidays and up to 50 custom holidays, this resulted in redundant iterations. Replacing the search with a `Set` of existing holiday dates reduces the complexity to O(N+M).
+**Action:** When merging data based on unique keys (like dates), prefer using a `Set` for O(1) membership checks instead of `array.some()` or `array.includes()`, especially when one or both arrays can grow beyond a trivial size.

@@ -904,12 +904,15 @@ function getUKHolidays(year, region) {
 
     // Merge Custom Holidays
     const customHolidays = getCustomHolidaysForLocation(region);
-    customHolidays.forEach(h => {
-        // Only if it doesn't already exist (simple check)
-        if (!holidays.some(eh => eh.date === h.date)) {
-            holidays.push(h);
-        }
-    });
+    if (customHolidays.length > 0) {
+        const existingDates = new Set(holidays.map(h => h.date));
+        customHolidays.forEach(h => {
+            if (!existingDates.has(h.date)) {
+                holidays.push(h);
+                existingDates.add(h.date);
+            }
+        });
+    }
 
     return holidays;
 }
@@ -1054,11 +1057,15 @@ function getHolidaysForYear(year, region) {
         if (isDatasetLocation(region)) {
             holidays = getDatasetHolidays(year, region);
             const customHolidays = getCustomHolidaysForLocation(region);
-            customHolidays.forEach(h => {
-                if (!holidays.some(eh => eh.date === h.date)) {
-                    holidays.push(h);
-                }
-            });
+            if (customHolidays.length > 0) {
+                const existingDates = new Set(holidays.map(h => h.date));
+                customHolidays.forEach(h => {
+                    if (!existingDates.has(h.date)) {
+                        holidays.push(h);
+                        existingDates.add(h.date);
+                    }
+                });
+            }
         } else {
             holidays = getUKHolidays(year, region);
         }
