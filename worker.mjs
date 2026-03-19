@@ -146,12 +146,13 @@ async function resolveSecretBinding(binding, secretName) {
             const value = await binding.get();
             if (typeof value === 'string') return value;
         } catch (e) {
-            // Ignore and try alternate access patterns
+            console.warn(`Failed to access secret via direct get(): ${e.message || String(e)}`);
         }
         try {
             const value = await binding.get(secretName);
             if (typeof value === 'string') return value;
         } catch (e) {
+            console.warn(`Failed to access secret via get(name) for ${secretName}: ${e.message || String(e)}`);
             return '';
         }
     }
