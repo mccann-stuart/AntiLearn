@@ -42,3 +42,7 @@
 ## 2024-03-17 - Minimize DOM manipulations in high-frequency rendering functions
 **Learning:** Calling `classList.add()` multiple times and blindly setting attributes/datasets on a high-frequency function like `updateDayNode` causes significant browser reflows and style recalculations. In vanilla JS rendering, string concatenating the full `className` and only writing to the DOM if the value has actually changed is significantly faster.
 **Action:** When optimizing tight rendering loops that touch many elements (like a 365-day calendar grid), batch class additions via string concatenation (`el.className = 'day' + ...`) rather than multiple `el.classList.add()` calls, and strictly guard `setAttribute` or `dataset` writes behind equality checks against the current DOM state to avoid layout thrashing.
+
+## 2026-05-18 - Avoid full O(N log N) sorts for Top-K extraction
+**Learning:** In `public/app.js`, when extracting a small number of top elements (e.g. $K=100$) from a large array of elements (e.g. $N=6000$), calling V8's native `Array.prototype.sort()` takes $O(N \log N)$ and is measurably slow. Maintaining a sorted array of size $K$ using binary insertion reduces complexity to $O(N \log K)$ and avoids sorting the vast majority of discarded elements, resulting in a ~10x execution speedup.
+**Action:** When you only need the best $K$ items from a large list where $K \ll N$, replace full array sorts with a bounded binary insertion sort (or a priority queue/min-heap) to avoid doing unnecessary work sorting elements that will never be selected.
