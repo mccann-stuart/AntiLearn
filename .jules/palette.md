@@ -5,3 +5,7 @@
 ## 2024-05-15 - Missing Screen Reader Feedback for Clipboard Actions
 **Learning:** Changing button text visually (e.g., to "Copied!") after a clipboard action provides no feedback to screen reader users if `aria-live` is not used. Sighted users see the confirmation, but screen readers only announce the initial button click.
 **Action:** Always provide explicit audible feedback for non-navigational async actions. Triggering an existing toast notification system (which already uses `aria-live="polite"`) is a simple and effective way to ensure accessible feedback for clipboard copies or state saves.
+
+## 2025-03-05 - Missing Screen Reader Context for Grid Cells & Dynamic Elements
+**Learning:** For dynamic grids like calendars, omitting `aria-label` attributes on non-interactive cells (like weekends or holidays) leaves visually impaired users without necessary context, as screen readers will simply read the cell's raw content (e.g., the date number) without explaining its significance. Moreover, any dynamically created components containing emojis must hide those emojis with `aria-hidden` spans or utilize an explicit text-only `aria-label` to prevent screen readers from painfully announcing the literal emoji descriptions before reading the relevant information.
+**Action:** Ensure all grid elements (interactive and non-interactive) have full descriptive text via `aria-label`, and always provide text-only accessible names for components or toast notifications that feature emojis.
