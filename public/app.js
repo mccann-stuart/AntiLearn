@@ -487,11 +487,18 @@ async function handleShareLink() {
             const btn = document.getElementById('share-btn');
             if (btn && !btn.classList.contains('btn-success')) {
                 const originalText = btn.textContent;
+                const originalAriaLabel = btn.getAttribute('aria-label');
                 btn.textContent = '✅ Copied!';
+                btn.setAttribute('aria-label', 'Copied!');
                 btn.classList.add('btn-success');
 
                 setTimeout(() => {
                     btn.textContent = originalText;
+                    if (originalAriaLabel) {
+                        btn.setAttribute('aria-label', originalAriaLabel);
+                    } else {
+                        btn.removeAttribute('aria-label');
+                    }
                     btn.classList.remove('btn-success');
                 }, 2000);
             }
@@ -2265,6 +2272,7 @@ function renderCustomHolidays() {
         // Strip HTML tags for safety and cleaner accessibility label
         const safeName = h.name.replace(/<[^>]*>?/gm, '');
         btn.setAttribute('aria-label', `Remove ${safeName || 'holiday'}`);
+        btn.setAttribute('title', `Remove ${safeName || 'holiday'}`);
         btn.addEventListener('click', (e) => {
             e.stopPropagation(); // prevent other clicks
             removeCustomHoliday(h.date);
