@@ -2223,6 +2223,7 @@ function addCustomHoliday() {
             saveState();
             dateInput.value = '';
             nameInput.value = '';
+            showToast(`Added custom holiday: ${nameVal}`, 'success');
         } else {
             showToast('A custom holiday for this date already exists.', 'error');
         }
@@ -2236,12 +2237,16 @@ function addCustomHoliday() {
  */
 function removeCustomHoliday(dateStr) {
     const customHolidays = getCustomHolidaysForLocation(currentRegion);
+    const holidayToRemove = customHolidays.find(h => h.date === dateStr);
     customHolidaysByLocation[currentRegion] = customHolidays.filter(h => h.date !== dateStr);
     renderCustomHolidays();
     holidaysCache.clear();
     invalidateInsightCaches();
     resetToOptimal();
     saveState();
+    if (holidayToRemove) {
+        showToast(`Removed custom holiday: ${holidayToRemove.name}`, 'info');
+    }
 }
 
 /**
@@ -2317,9 +2322,12 @@ function showLoading() {
         loader.id = 'loading-overlay';
         const spinnerContainer = document.createElement('div');
         spinnerContainer.className = 'spinner-container';
+        spinnerContainer.setAttribute('role', 'status');
+        spinnerContainer.setAttribute('aria-live', 'polite');
 
         const spinner = document.createElement('div');
         spinner.className = 'spinner';
+        spinner.setAttribute('aria-hidden', 'true');
 
         const text = document.createElement('p');
         text.textContent = 'Optimizing your vacation plan...';
