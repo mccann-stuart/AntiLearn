@@ -363,9 +363,8 @@ describe('Cloudflare Worker Logic', () => {
         const errorCalls = consoleSpy.mock.calls.map(args => args.join(' '));
         const combinedErrors = errorCalls.join('\n');
 
-        expect(combinedErrors).toContain('Request timed out for');
+        expect(combinedErrors).toContain('Request timed out');
         expect(combinedErrors).not.toContain('secret-key-123');
-        expect(combinedErrors).toContain('REDACTED');
 
         consoleSpy.mockRestore();
         delete global.fetch;

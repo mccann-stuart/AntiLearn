@@ -1,4 +1,4 @@
-import { buildHolidayDataset as buildSharedHolidayDataset, redactUrl } from './lib/holiday_dataset_builder.mjs';
+import { buildHolidayDataset as buildSharedHolidayDataset } from './lib/holiday_dataset_builder.mjs';
 
 const IMAGE_EXTENSIONS_REGEX = /\.(ico|png|jpg|jpeg|svg|webp)$/;
 const JSON_EXTENSIONS_REGEX = /\.json$/;
@@ -130,7 +130,12 @@ async function fetchJson(url) {
         return await response.json();
     } catch (error) {
         if (error.name === 'AbortError') {
-            throw new Error(`Request timed out for ${redactUrl(url)}`);
+            try {
+                const parsedUrl = new URL(url);
+                throw new Error(`Request timed out for ${parsedUrl.hostname}${parsedUrl.pathname}`);
+            } catch (e) {
+                throw new Error('Request timed out');
+            }
         }
         throw error;
     } finally {
