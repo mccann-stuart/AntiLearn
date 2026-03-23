@@ -1969,7 +1969,7 @@ function renderLocationSelectOptions() {
     const locationSelect = document.getElementById('location-select');
     if (!locationSelect) return;
 
-    locationSelect.innerHTML = '';
+    locationSelect.textContent = '';
 
     LOCATION_GROUPS.forEach((group) => {
         const optgroup = document.createElement('optgroup');
@@ -2054,7 +2054,7 @@ function init() {
 
     const yearSelect = document.getElementById('year-select');
     if (yearSelect) {
-        yearSelect.innerHTML = '';
+        yearSelect.textContent = '';
         const currentYearNow = new Date().getFullYear();
         const minYear = currentYearNow;
         const maxYear = currentYearNow + 5;
@@ -2250,7 +2250,7 @@ function removeCustomHoliday(dateStr) {
 function renderCustomHolidays() {
     const list = document.getElementById('custom-holidays-list');
     if (!list) return;
-    list.innerHTML = '';
+    list.textContent = '';
 
     const customHolidays = getCustomHolidaysForLocation(currentRegion);
 
@@ -2521,7 +2521,7 @@ function formatDate(date) {
  */
 function renderRecommendations() {
     const container = document.getElementById('recommendations');
-    container.innerHTML = '';
+    container.textContent = '';
 
     const blocks = analyzeCurrentPlan();
     blocks.sort((a, b) => a.startDate - b.startDate);
@@ -2832,7 +2832,7 @@ function renderCalendar() {
     }
 
     // Full Rebuild
-    container.innerHTML = '';
+    container.textContent = '';
     container.setAttribute('data-render-key', renderKey);
 
     const fragment = document.createDocumentFragment();
@@ -2922,7 +2922,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
         console.error('Failed to initialize application:', error);
         const container = document.querySelector('.container');
         if (container) {
-            container.innerHTML = ''; // safely clear contents
+            container.textContent = ''; // safely clear contents
 
             const errorContainer = document.createElement('div');
             errorContainer.className = 'error-container';
