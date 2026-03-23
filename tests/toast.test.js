@@ -22,7 +22,9 @@ describe('showToast DOM Updates', () => {
         };
 
         // Mock global document
-        global.document = mockDocument;
+        jest.spyOn(document, "getElementById").mockImplementation(mockDocument.getElementById);
+        jest.spyOn(document, "createElement").mockImplementation(mockDocument.createElement);
+        if (document.createTextNode) jest.spyOn(document, "createTextNode").mockImplementation(text => ({ textContent: text }));
         mockDocument.getElementById.mockReturnValue(container);
 
         // Mock createElement to return a rich mock object
@@ -38,7 +40,15 @@ describe('showToast DOM Updates', () => {
                     contains: jest.fn((cls) => el.className.includes(cls))
                 },
                 addEventListener: jest.fn(),
-                removeEventListener: jest.fn()
+                removeEventListener: jest.fn(),
+                setAttribute: jest.fn(),
+                appendChild: jest.fn((child) => {
+                    if (child.textContent) {
+                        el.textContent += child.textContent;
+                    } else if (child.nodeType === 3) {
+                        el.textContent += child.nodeValue;
+                    }
+                })
             };
             return el;
         });
