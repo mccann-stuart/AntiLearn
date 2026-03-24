@@ -2317,9 +2317,12 @@ function showLoading() {
         loader.id = 'loading-overlay';
         const spinnerContainer = document.createElement('div');
         spinnerContainer.className = 'spinner-container';
+        spinnerContainer.setAttribute('role', 'status');
+        spinnerContainer.setAttribute('aria-live', 'polite');
 
         const spinner = document.createElement('div');
         spinner.className = 'spinner';
+        spinner.setAttribute('aria-hidden', 'true');
 
         const text = document.createElement('p');
         text.textContent = 'Optimizing your vacation plan...';
