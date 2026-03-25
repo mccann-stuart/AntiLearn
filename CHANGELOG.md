@@ -1,5 +1,23 @@
 # Changelog
 
+## Week ending 2026-03-22
+
+### Highlights
+
+- Hardened client-side rendering and caching by replacing `innerHTML` assignments with native DOM methods and fixing CDN cache poisoning on error responses.
+- Reduced calendar generation and rendering overhead by hoisting dynamic-programming loop conditions, minimizing DOM reflows, tightening candidate selection, and using a `Set` for holiday merging.
+- Improved mobile and accessibility polish with iOS safe-area and PWA metadata, better calendar alignment, broader ARIA labeling and tooltip coverage, clearer share and copy feedback, and added `showToast` DOM update tests.
+
+### Key PRs
+
+- [#138](https://github.com/mccann-stuart/AntiLearn/pull/138) `🛡️ Sentinel: Refactor innerHTML assignments to native DOM methods`
+- [#143](https://github.com/mccann-stuart/AntiLearn/pull/143) `🛡️ Sentinel: [HIGH] Fix CDN Cache Poisoning on Error Responses`
+- [#140](https://github.com/mccann-stuart/AntiLearn/pull/140) `feat(ux): add iOS safe area padding and PWA meta tags`
+- [#142](https://github.com/mccann-stuart/AntiLearn/pull/142) `perf(ui): minimize DOM reflows in calendar rendering`
+- [#146](https://github.com/mccann-stuart/AntiLearn/pull/146) `⚡ Bolt: Optimize selectTopCandidates with bounded binary insertion`
+- [#150](https://github.com/mccann-stuart/AntiLearn/pull/150) `⚡ Bolt: optimize holiday merging using Set-based lookup`
+- [#152](https://github.com/mccann-stuart/AntiLearn/pull/152) `🎨 Palette: [UX improvement] Add ARIA label to Copied state and tooltips to icon-only buttons`
+
 ## Week ending 2026-03-13
 
 ### Highlights
