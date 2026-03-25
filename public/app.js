@@ -426,7 +426,9 @@ function applySharedPlanFromUrl() {
  */
 function buildShareableUrl() {
     if (typeof window === 'undefined') return '';
-    const url = new URL(window.location.href);
+    // Sentinel Optimization: Prevent unintentional leakage of existing tracking tokens
+    // or extraneous query parameters by constructing a clean base URL.
+    const url = new URL(window.location.origin + window.location.pathname);
     const encoded = encodePlanString(getPlanPayload());
     if (!encoded) return '';
     url.searchParams.set(SHARE_PARAM, encoded);
@@ -2990,6 +2992,7 @@ if (typeof module !== 'undefined' && module.exports) {
         encodePlanString,
         decodePlanString,
         applySharedPlanFromUrl,
+        buildShareableUrl,
         renderCustomHolidays,
         getCurrentState,
         LOCATION_GROUPS,

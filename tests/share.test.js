@@ -1,5 +1,6 @@
 const {
     applySharedPlanFromUrl,
+    buildShareableUrl,
     encodePlanString,
     getCurrentState,
     setTestState,
@@ -151,5 +152,39 @@ describe('applySharedPlanFromUrl', () => {
         expect(state.customHolidaysByLocation[REGIONS.US_CA]).toEqual(
             expect.arrayContaining([expect.objectContaining({ name: 'Cesar Chavez Day' })])
         );
+    });
+});
+
+describe('buildShareableUrl', () => {
+    // Helper to update URL using pushState
+    const setUrl = (urlStr) => {
+        const url = new URL(urlStr);
+        window.history.pushState({}, 'Test', url.href);
+    };
+
+    beforeEach(() => {
+        setTestState(2023, REGIONS.ENGLAND_WALES, [], [], 'sat-sun', 25);
+    });
+
+    test('should construct a clean URL without extraneous query parameters', () => {
+        // Set a URL that has extraneous query parameters, like tracking tokens
+        setUrl('http://localhost/?utm_source=test&session_id=12345&foo=bar');
+
+        const shareableUrlStr = buildShareableUrl();
+        const shareableUrl = new URL(shareableUrlStr);
+
+        // Verify the resulting URL has exactly ONE query parameter (the 'plan' param)
+        const params = Array.from(shareableUrl.searchParams.keys());
+        expect(params).toHaveLength(1);
+        expect(params).toContain('plan');
+
+        // Verify tracking params leaked from window.location.href are removed
+        expect(shareableUrl.searchParams.has('utm_source')).toBe(false);
+        expect(shareableUrl.searchParams.has('session_id')).toBe(false);
+        expect(shareableUrl.searchParams.has('foo')).toBe(false);
+
+        // Verify base matches origin + pathname (no hash or extraneous query)
+        expect(shareableUrl.origin).toBe('http://localhost');
+        expect(shareableUrl.pathname).toBe('/');
     });
 });
