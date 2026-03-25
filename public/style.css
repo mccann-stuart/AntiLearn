@@ -1344,3 +1344,9 @@ button:active,
     transform: scale(0.96) !important;
     transition: transform 0.1s ease;
 }
+
+/* Disabled state for buttons */
+button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

@@ -2506,6 +2506,17 @@ function renderStats() {
     usedEl.style.color = '';
 
     document.getElementById('days-off').textContent = totalOff;
+
+    const exportBtn = document.getElementById('export-btn');
+    if (exportBtn) {
+        if (blocks.length === 0) {
+            exportBtn.disabled = true;
+            exportBtn.title = 'Please book some leave days first to export a plan.';
+        } else {
+            exportBtn.disabled = false;
+            exportBtn.removeAttribute('title');
+        }
+    }
 }
 
 /**

@@ -9,3 +9,7 @@
 ## 2025-03-05 - Missing Screen Reader Context for Grid Cells & Dynamic Elements
 **Learning:** For dynamic grids like calendars, omitting `aria-label` attributes on non-interactive cells (like weekends or holidays) leaves visually impaired users without necessary context, as screen readers will simply read the cell's raw content (e.g., the date number) without explaining its significance. Moreover, any dynamically created components containing emojis must hide those emojis with `aria-hidden` spans or utilize an explicit text-only `aria-label` to prevent screen readers from painfully announcing the literal emoji descriptions before reading the relevant information.
 **Action:** Ensure all grid elements (interactive and non-interactive) have full descriptive text via `aria-label`, and always provide text-only accessible names for components or toast notifications that feature emojis.
+
+## 2025-03-25 - Prevent Errors with Disabled States
+**Learning:** Allowing users to click buttons that inevitably trigger error states (e.g., trying to export a calendar when no days are selected) is a frustrating UX pattern. Instead, buttons that perform actions dependent on other data should be disabled until those prerequisites are met. However, simply disabling a button without explanation can leave users confused.
+**Action:** When adding a disabled state, always provide a `title` attribute (or `aria-description`) explaining *why* the button is disabled and what the user needs to do to enable it. This prevents the error and guides the user toward success.
