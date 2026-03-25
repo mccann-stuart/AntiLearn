@@ -2236,6 +2236,7 @@ function addCustomHoliday() {
             saveState();
             dateInput.value = '';
             nameInput.value = '';
+            showToast(`Added custom holiday: ${nameVal}`, 'success');
         } else {
             showToast('A custom holiday for this date already exists.', 'error');
         }
@@ -2249,12 +2250,16 @@ function addCustomHoliday() {
  */
 function removeCustomHoliday(dateStr) {
     const customHolidays = getCustomHolidaysForLocation(currentRegion);
+    const holidayToRemove = customHolidays.find(h => h.date === dateStr);
     customHolidaysByLocation[currentRegion] = customHolidays.filter(h => h.date !== dateStr);
     renderCustomHolidays();
     holidaysCache.clear();
     invalidateInsightCaches();
     resetToOptimal();
     saveState();
+    if (holidayToRemove) {
+        showToast(`Removed custom holiday: ${holidayToRemove.name}`, 'info');
+    }
 }
 
 /**
