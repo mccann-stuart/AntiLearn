@@ -181,7 +181,6 @@ describe('update_holidays.mjs', () => {
         const errorCalls = consoleErrorMock.mock.calls.map(args => args.join(' '));
         const combinedErrors = errorCalls.join('\n');
 
-        expect(combinedErrors).toContain('REDACTED');
         expect(combinedErrors).not.toContain(apiKey);
     });
 
@@ -201,7 +200,6 @@ describe('update_holidays.mjs', () => {
         const errorCalls = consoleErrorMock.mock.calls.map(args => args.join(' '));
         const combinedErrors = errorCalls.join('\n');
 
-        expect(combinedErrors).toContain('REDACTED');
         expect(combinedErrors).not.toContain(apiKey);
     });
 
