@@ -1211,9 +1211,11 @@ function isDayOff(date, bookedSet = null) {
  */
 function getDayInsight(date, dateStr = null) {
     if (getDayType(date, dateStr) !== 'workday') return null;
-    const customCount = getCustomHolidaysForLocation(currentRegion).length;
     const dStr = dateStr || toLocalISOString(date);
-    const key = `${dStr}-${currentRegion}-${currentWeekendPattern}-${customCount}`;
+    // Bolt Optimization: dayInsightCache is entirely cleared via invalidateInsightCaches()
+    // whenever region, weekend pattern, or custom holidays change.
+    // Thus, encoding global state into the individual cache key is redundant string allocation overhead.
+    const key = dStr;
     if (!dayInsightCache.has(key)) {
         let efficiency, totalDaysOff, bridge;
 
