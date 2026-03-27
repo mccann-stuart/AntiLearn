@@ -2588,7 +2588,14 @@ function renderRecommendations() {
         emptyMsg.style.marginBottom = '1.5rem';
 
         const optimizeBtn = document.createElement('button');
-        optimizeBtn.textContent = '✨ Auto-Plan Optimal Breaks';
+
+        const optimizeIcon = document.createElement('span');
+        optimizeIcon.setAttribute('aria-hidden', 'true');
+        optimizeIcon.textContent = '✨ ';
+
+        optimizeBtn.appendChild(optimizeIcon);
+        optimizeBtn.appendChild(document.createTextNode('Auto-Plan Optimal Breaks'));
+
         optimizeBtn.setAttribute('aria-label', 'Auto-Plan Optimal Breaks');
         optimizeBtn.addEventListener('click', () => {
             const resetBtn = document.getElementById('reset-btn');
