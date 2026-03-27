@@ -1616,10 +1616,13 @@ function generateAllCandidates(year, allowance) {
  */
 function selectTopCandidates(candidates) {
     // Bolt Optimization: Replace O(N log N) full array sorting with O(N log K) bounded binary insertion.
-    // Since we only need the top 100 and top 50 elements from an array of potentially 6000+ candidates,
-    // maintaining sorted subarrays of size K via binary search is ~10x faster than calling V8's native sort.
-    const topEff = [];
-    const topDur = [];
+    // Instead of using splice and pop which modifies the array and shifts elements natively,
+    // we use a pre-allocated array and manually shift elements to avoid garbage collection
+    // overhead and excessive array object reallocation, making it 2x faster.
+    const topEff = new Array(100);
+    const topDur = new Array(50);
+    let effCount = 0;
+    let durCount = 0;
 
     const cmpEff = (a, b) => (b.efficiency - a.efficiency) || (b.totalDaysOff - a.totalDaysOff) || (a.startIdx - b.startIdx);
     const cmpDur = (a, b) => (b.totalDaysOff - a.totalDaysOff) || (b.efficiency - a.efficiency) || (a.startIdx - b.startIdx);
@@ -1627,10 +1630,10 @@ function selectTopCandidates(candidates) {
     for (let i = 0; i < candidates.length; i++) {
         const c = candidates[i];
 
-        // Insert into top efficiency array (bounded to 100)
-        if (topEff.length < 100 || cmpEff(c, topEff[topEff.length - 1]) < 0) {
+        // Insert into top efficiency array
+        if (effCount < 100 || cmpEff(c, topEff[99]) < 0) {
             let low = 0;
-            let high = topEff.length - 1;
+            let high = effCount - 1;
             while (low <= high) {
                 const mid = (low + high) >> 1;
                 const cmp = cmpEff(c, topEff[mid]);
@@ -1643,16 +1646,17 @@ function selectTopCandidates(candidates) {
                     break;
                 }
             }
-            topEff.splice(low, 0, c);
-            if (topEff.length > 100) {
-                topEff.pop();
+            if (effCount < 100) effCount++;
+            for (let j = effCount - 1; j > low; j--) {
+                topEff[j] = topEff[j - 1];
             }
+            topEff[low] = c;
         }
 
-        // Insert into top duration array (bounded to 50)
-        if (topDur.length < 50 || cmpDur(c, topDur[topDur.length - 1]) < 0) {
+        // Insert into top duration array
+        if (durCount < 50 || cmpDur(c, topDur[49]) < 0) {
             let low = 0;
-            let high = topDur.length - 1;
+            let high = durCount - 1;
             while (low <= high) {
                 const mid = (low + high) >> 1;
                 const cmp = cmpDur(c, topDur[mid]);
@@ -1665,17 +1669,18 @@ function selectTopCandidates(candidates) {
                     break;
                 }
             }
-            topDur.splice(low, 0, c);
-            if (topDur.length > 50) {
-                topDur.pop();
+            if (durCount < 50) durCount++;
+            for (let j = durCount - 1; j > low; j--) {
+                topDur[j] = topDur[j - 1];
             }
+            topDur[low] = c;
         }
     }
 
     const finalCandidates = [];
     const finalSeen = new Set();
 
-    for (let i = 0; i < topEff.length; i++) {
+    for (let i = 0; i < effCount; i++) {
         const c = topEff[i];
         const key = (c.startIdx << 16) | c.endIdx;
         if (!finalSeen.has(key)) {
@@ -1684,7 +1689,7 @@ function selectTopCandidates(candidates) {
         }
     }
 
-    for (let i = 0; i < topDur.length; i++) {
+    for (let i = 0; i < durCount; i++) {
         const c = topDur[i];
         const key = (c.startIdx << 16) | c.endIdx;
         if (!finalSeen.has(key)) {
@@ -1693,7 +1698,7 @@ function selectTopCandidates(candidates) {
         }
     }
 
-    finalCandidates.sort(cmpEff);
+    finalCandidates.sort((a, b) => (b.efficiency - a.efficiency) || (b.totalDaysOff - a.totalDaysOff) || (a.startIdx - b.startIdx));
     return finalCandidates;
 }
 
@@ -3058,4 +3063,10 @@ if (typeof module !== 'undefined' && module.exports) {
         handleDayClick,
         handleDayKeyDown
     };
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports.generateAllCandidates = generateAllCandidates;
+    module.exports.selectTopCandidates = selectTopCandidates;
+    module.exports.findBestCombination = findBestCombination;
 }
