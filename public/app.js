@@ -426,7 +426,8 @@ function applySharedPlanFromUrl() {
  */
 function buildShareableUrl() {
     if (typeof window === 'undefined') return '';
-    const url = new URL(window.location.href);
+    // Use origin + pathname to strip out any existing query parameters (like UTM tags or session IDs)
+    const url = new URL(window.location.origin + window.location.pathname);
     const encoded = encodePlanString(getPlanPayload());
     if (!encoded) return '';
     url.searchParams.set(SHARE_PARAM, encoded);
