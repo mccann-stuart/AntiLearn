@@ -2522,6 +2522,17 @@ function renderStats() {
             exportBtn.removeAttribute('title');
         }
     }
+
+    const shareBtn = document.getElementById('share-btn');
+    if (shareBtn) {
+        if (blocks.length === 0) {
+            shareBtn.disabled = true;
+            shareBtn.title = 'Please book some leave days first to generate a share link.';
+        } else {
+            shareBtn.disabled = false;
+            shareBtn.removeAttribute('title');
+        }
+    }
 }
 
 /**
