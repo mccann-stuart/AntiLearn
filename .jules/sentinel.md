@@ -10,3 +10,7 @@
 **Vulnerability:** Full URLs and raw error messages were being logged during fetch failures, potentially leaking API keys via query parameters. Custom redaction functions were used but are error-prone.
 **Learning:** Relying on custom string replacement to redact secrets from URLs or error messages is brittle. If a new secret or query parameter is added, it might be missed by the redaction logic.
 **Prevention:** To prevent API key leakage via query parameters in logs, never log full URLs from outgoing requests or rely on custom redaction functions. Instead, parse the URL to log strictly the hostname and pathname, and use generic error messages.
+## 2025-03-29 - Prevent Data Leakage in Shareable URLs
+**Vulnerability:** The `buildShareableUrl` function in `public/app.js` was using `window.location.href` to construct the shareable link, potentially leaking existing sensitive query parameters (like tracking IDs or temporary tokens) to anyone the link is shared with.
+**Learning:** Constructing shareable links based on the current full URL blindly copies existing, potentially private or sensitive query parameters into the new link intended for public sharing.
+**Prevention:** To prevent unintended data leakage when generating shareable application URLs, construct the clean base URL using `window.location.origin + window.location.pathname`. Functions that strictly read incoming parameters must still use `window.location.href` to access the full URL.
