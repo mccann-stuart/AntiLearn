@@ -3,8 +3,77 @@ const {
     encodePlanString,
     getCurrentState,
     setTestState,
-    REGIONS
+    REGIONS,
+    handleShareLink
 } = require('../public/app.js');
+
+describe('handleShareLink DOM Updates', () => {
+    let app;
+    let shareBtn;
+
+    beforeEach(() => {
+        jest.resetModules();
+        document.body.innerHTML = `
+            <div id="toast-container"></div>
+            <button id="share-btn" aria-label="Copy Share Link">
+                <span aria-hidden="true">🔗</span> Copy Share Link
+            </button>
+        `;
+
+        // Mock clipboard API
+        Object.assign(navigator, {
+            clipboard: {
+                writeText: jest.fn().mockResolvedValue()
+            }
+        });
+
+        // Mock getElementById to return our test element
+        jest.spyOn(document, 'getElementById').mockImplementation((id) => {
+            return document.querySelector('#' + id);
+        });
+
+        app = require('../public/app.js');
+        shareBtn = document.getElementById('share-btn');
+    });
+
+    afterEach(() => {
+        jest.restoreAllMocks();
+    });
+
+    test('updates button state temporarily without using innerHTML and restores original nodes', async () => {
+        jest.useFakeTimers();
+
+        // Save original DOM nodes
+        const originalChildren = Array.from(shareBtn.childNodes);
+        expect(originalChildren.length).toBeGreaterThan(0);
+
+        // Spy on DOM methods that could lead to XSS
+        const innerHTMLSpy = jest.spyOn(shareBtn, 'innerHTML', 'set');
+
+        // Execute the function
+        await handleShareLink();
+
+        // Verify the temporary "Copied!" state is set without using innerHTML
+        expect(innerHTMLSpy).not.toHaveBeenCalled();
+        expect(shareBtn.classList.contains('btn-success')).toBe(true);
+        expect(shareBtn.getAttribute('aria-label')).toBe('Copied!');
+
+        // Verify text content was updated properly
+        expect(shareBtn.textContent).toBe('✅ Copied!');
+
+        // Advance timers to trigger the setTimeout callback (2000ms)
+        jest.runAllTimers();
+
+        // Verify the button restored to its original state properly
+        expect(shareBtn.classList.contains('btn-success')).toBe(false);
+        expect(shareBtn.getAttribute('aria-label')).toBe('Copy Share Link');
+
+        // Verify original DOM nodes were restored exactly as they were (not stringified)
+        expect(Array.from(shareBtn.childNodes)).toEqual(originalChildren);
+
+        jest.useRealTimers();
+    });
+});
 
 describe('applySharedPlanFromUrl', () => {
 
