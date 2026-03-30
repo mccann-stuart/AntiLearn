@@ -486,14 +486,14 @@ async function handleShareLink() {
 
             const btn = document.getElementById('share-btn');
             if (btn && !btn.classList.contains('btn-success')) {
-                const originalText = btn.textContent;
+                const originalHTML = btn.innerHTML;
                 const originalAriaLabel = btn.getAttribute('aria-label');
-                btn.textContent = '✅ Copied!';
+                btn.innerHTML = '<span aria-hidden="true">✅</span> Copied!';
                 btn.setAttribute('aria-label', 'Copied!');
                 btn.classList.add('btn-success');
 
                 setTimeout(() => {
-                    btn.textContent = originalText;
+                    btn.innerHTML = originalHTML;
                     if (originalAriaLabel) {
                         btn.setAttribute('aria-label', originalAriaLabel);
                     } else {
