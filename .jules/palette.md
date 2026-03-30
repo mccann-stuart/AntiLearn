@@ -17,3 +17,7 @@
 ## 2026-03-29 - Preserving Accessibility When Modifying Button Content
 **Learning:** When temporarily replacing a button's content to indicate a state change (like changing "Share" to "✅ Copied!"), using `.textContent` permanently strips any nested HTML elements. If the original button contained structural elements for accessibility (such as `<span aria-hidden="true">` wrapping an icon/emoji), `.textContent` ruins the component's accessible markup when the original text is restored.
 **Action:** Always use `.innerHTML` rather than `.textContent` to capture, temporarily replace, and restore button content if the button contains nested HTML structure, ensuring that `aria-hidden` spans or SVG elements are properly preserved throughout the interaction.
+
+## 2026-03-31 - Use of Color for Error States
+**Learning:** Relying solely on color changes (e.g., turning text red) to convey an error state violates WCAG 1.4.1. Colorblind users or users with low-contrast screens might completely miss the information. In addition, an error state that is only conveyed visually is completely invisible to screen readers unless explicitly marked up.
+**Action:** Whenever introducing an error or warning state (like exceeding a limit), ensure it is accompanied by an accessible visual indicator (like an icon or text change) and explicitly announce it to screen readers using `.sr-only` text or relevant ARIA attributes.

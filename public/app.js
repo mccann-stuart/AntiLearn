@@ -2544,12 +2544,13 @@ function renderStats() {
     const totalOff = blocks.reduce((sum, b) => sum + b.totalDays, 0);
 
     const usedEl = document.getElementById('days-used');
-    usedEl.textContent = used;
 
     if (used > currentAllowance) {
         usedEl.classList.add('error');
+        usedEl.innerHTML = `${used}<span aria-hidden="true" title="Exceeds allowance" style="font-size: 0.5em; vertical-align: super; margin-left: 0.25rem; cursor: help; display: inline-block;">⚠️</span><span class="sr-only"> (Exceeds allowance)</span>`;
     } else {
         usedEl.classList.remove('error');
+        usedEl.textContent = used;
     }
     usedEl.style.color = '';
 
@@ -2631,6 +2632,7 @@ function renderRecommendations() {
         emptyMsg.style.marginBottom = '1.5rem';
 
         const optimizeBtn = document.createElement('button');
+        optimizeBtn.className = 'btn-success';
 
         const optimizeIcon = document.createElement('span');
         optimizeIcon.setAttribute('aria-hidden', 'true');
