@@ -412,7 +412,7 @@ function applySharedPlanFromUrl() {
             }
         }
 
-        holidaysCache.clear();
+        clearHolidaysCache();
         invalidateInsightCaches();
         return true;
     } catch (e) {
@@ -591,7 +591,7 @@ async function loadHolidayDataset(force = false) {
             } catch (e) {
                 // Ignore cache failures
             }
-            holidaysCache.clear();
+            clearHolidaysCache();
             invalidateInsightCaches();
             renderHolidayDataStatus();
             if (isDatasetLocation(currentRegion) && typeof document !== 'undefined') {
@@ -947,6 +947,25 @@ function getUKHolidays(year, region) {
 
 // Cache holidays for performance
 const holidaysCache = new Map();
+
+// Fast-path cache for getHolidaysForYear to avoid string interpolation and lookups in hot loops
+let cachedHolidaysYear = null;
+let cachedHolidaysRegion = null;
+let cachedHolidaysCustomCount = null;
+let cachedHolidaysDatasetKey = null;
+let cachedHolidaysResult = null;
+
+/**
+ * Clears the holidays cache and its associated fast-path cache.
+ */
+function clearHolidaysCache() {
+    holidaysCache.clear();
+    cachedHolidaysYear = null;
+    cachedHolidaysRegion = null;
+    cachedHolidaysCustomCount = null;
+    cachedHolidaysDatasetKey = null;
+    cachedHolidaysResult = null;
+}
 // Cache per-date insights (efficiency + bridge) to avoid recomputation while interacting.
 const dayInsightCache = new Map();
 // Cache year-over-year comparison to avoid recomputing optimal plans unnecessarily.
@@ -974,6 +993,13 @@ function invalidateInsightCaches() {
         customCount: null
     };
     bookedDaysIndices = null;
+
+    // Also clear the fast-path cache
+    cachedHolidaysYear = null;
+    cachedHolidaysRegion = null;
+    cachedHolidaysCustomCount = null;
+    cachedHolidaysDatasetKey = null;
+    cachedHolidaysResult = null;
 }
 
 /**
@@ -1078,6 +1104,15 @@ function getHolidaysForYear(year, region) {
     const datasetKey = holidayDataset && (holidayDataset.updatedAt || holidayDataset.generatedAt)
         ? (holidayDataset.updatedAt || holidayDataset.generatedAt)
         : 'no-data';
+
+    // Fast-path to avoid string interpolation and Map lookups in hot loops
+    if (cachedHolidaysYear === year &&
+        cachedHolidaysRegion === region &&
+        cachedHolidaysCustomCount === customCount &&
+        cachedHolidaysDatasetKey === datasetKey) {
+        return cachedHolidaysResult;
+    }
+
     const key = `${year}-${region}-${customCount}-${datasetKey}`; // Simple cache bust on custom change
     if (!holidaysCache.has(key)) {
         let holidays = [];
@@ -1099,7 +1134,14 @@ function getHolidaysForYear(year, region) {
         const lookup = new Map(holidays.map(h => [h.date, h]));
         holidaysCache.set(key, { holidays, lookup });
     }
-    return holidaysCache.get(key);
+
+    cachedHolidaysYear = year;
+    cachedHolidaysRegion = region;
+    cachedHolidaysCustomCount = customCount;
+    cachedHolidaysDatasetKey = datasetKey;
+    cachedHolidaysResult = holidaysCache.get(key);
+
+    return cachedHolidaysResult;
 }
 
 /**
@@ -2140,7 +2182,7 @@ function init() {
             }
 
             // Clear cache to force reload of holidays for new location
-            holidaysCache.clear();
+            clearHolidaysCache();
             invalidateInsightCaches();
             renderCustomHolidays();
             renderHolidayDataStatus();
@@ -2249,7 +2291,7 @@ function addCustomHoliday() {
         if (!customHolidays.some(h => h.date === dateVal)) {
             customHolidays.push({ date: dateVal, name: nameVal, isCustom: true });
             renderCustomHolidays();
-            holidaysCache.clear(); // Reset cache to include new holiday
+            clearHolidaysCache(); // Reset cache to include new holiday
             invalidateInsightCaches();
             resetToOptimal();
             saveState();
@@ -2272,7 +2314,7 @@ function removeCustomHoliday(dateStr) {
     const holidayToRemove = customHolidays.find(h => h.date === dateStr);
     customHolidaysByLocation[currentRegion] = customHolidays.filter(h => h.date !== dateStr);
     renderCustomHolidays();
-    holidaysCache.clear();
+    clearHolidaysCache();
     invalidateInsightCaches();
     resetToOptimal();
     saveState();
@@ -3055,13 +3097,13 @@ if (typeof module !== 'undefined' && module.exports) {
             } else {
                 bookedDates = new Set();
             }
-            holidaysCache.clear();
+            clearHolidaysCache();
             invalidateInsightCaches();
         },
         setHolidayDatasetForTests: (dataset) => {
             holidayDataset = dataset;
             holidayDatasetFromCache = false;
-            holidaysCache.clear();
+            clearHolidaysCache();
             invalidateInsightCaches();
         },
         showToast,
