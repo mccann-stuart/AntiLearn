@@ -486,14 +486,14 @@ async function handleShareLink() {
 
             const btn = document.getElementById('share-btn');
             if (btn && !btn.classList.contains('btn-success')) {
-                const originalText = btn.textContent;
+                const originalHTML = btn.innerHTML;
                 const originalAriaLabel = btn.getAttribute('aria-label');
-                btn.textContent = '✅ Copied!';
+                btn.innerHTML = '<span aria-hidden="true">✅</span> Copied!';
                 btn.setAttribute('aria-label', 'Copied!');
                 btn.classList.add('btn-success');
 
                 setTimeout(() => {
-                    btn.textContent = originalText;
+                    btn.innerHTML = originalHTML;
                     if (originalAriaLabel) {
                         btn.setAttribute('aria-label', originalAriaLabel);
                     } else {
@@ -1253,9 +1253,10 @@ function isDayOff(date, bookedSet = null) {
  */
 function getDayInsight(date, dateStr = null) {
     if (getDayType(date, dateStr) !== 'workday') return null;
-    const customCount = getCustomHolidaysForLocation(currentRegion).length;
     const dStr = dateStr || toLocalISOString(date);
-    const key = `${dStr}-${currentRegion}-${currentWeekendPattern}-${customCount}`;
+    // Bolt Optimization: dayInsightCache is fully invalidated when region/weekend/custom changes.
+    // Encoding global state into individual date keys causes massive string allocation overhead.
+    const key = dStr;
     if (!dayInsightCache.has(key)) {
         let efficiency, totalDaysOff, bridge;
 
