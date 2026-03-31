@@ -486,14 +486,23 @@ async function handleShareLink() {
 
             const btn = document.getElementById('share-btn');
             if (btn && !btn.classList.contains('btn-success')) {
-                const originalHTML = btn.innerHTML;
+                const originalChildNodes = Array.from(btn.childNodes);
                 const originalAriaLabel = btn.getAttribute('aria-label');
-                btn.innerHTML = '<span aria-hidden="true">✅</span> Copied!';
+
+                btn.textContent = '';
+                const iconSpan = document.createElement('span');
+                iconSpan.setAttribute('aria-hidden', 'true');
+                iconSpan.textContent = '✅';
+                btn.appendChild(iconSpan);
+                btn.appendChild(document.createTextNode(' Copied!'));
+
                 btn.setAttribute('aria-label', 'Copied!');
                 btn.classList.add('btn-success');
 
                 setTimeout(() => {
-                    btn.innerHTML = originalHTML;
+                    btn.textContent = '';
+                    originalChildNodes.forEach(node => btn.appendChild(node));
+
                     if (originalAriaLabel) {
                         btn.setAttribute('aria-label', originalAriaLabel);
                     } else {
