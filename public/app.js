@@ -2228,6 +2228,7 @@ function init() {
         resetBtn.addEventListener('click', () => {
             resetToOptimal();
             saveState();
+            showToast('Restored optimal vacation plan', 'info');
         });
     }
 
