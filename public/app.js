@@ -1662,31 +1662,40 @@ function selectTopCandidates(candidates) {
     // Instead of using splice and pop which modifies the array and shifts elements natively,
     // we use a pre-allocated array and manually shift elements to avoid garbage collection
     // overhead and excessive array object reallocation, making it 2x faster.
+    // Further optimized by inlining the comparison logic and hoisting property accesses.
     const topEff = new Array(100);
     const topDur = new Array(50);
     let effCount = 0;
     let durCount = 0;
 
-    const cmpEff = (a, b) => (b.efficiency - a.efficiency) || (b.totalDaysOff - a.totalDaysOff) || (a.startIdx - b.startIdx);
-    const cmpDur = (a, b) => (b.totalDaysOff - a.totalDaysOff) || (b.efficiency - a.efficiency) || (a.startIdx - b.startIdx);
-
     for (let i = 0; i < candidates.length; i++) {
         const c = candidates[i];
 
-        // Insert into top efficiency array
-        if (effCount < 100 || cmpEff(c, topEff[99]) < 0) {
+        let shouldInsertEff = false;
+        if (effCount < 100) {
+            shouldInsertEff = true;
+        } else {
+            const b = topEff[99];
+            if (c.efficiency > b.efficiency ||
+               (c.efficiency === b.efficiency && (c.totalDaysOff > b.totalDaysOff ||
+               (c.totalDaysOff === b.totalDaysOff && c.startIdx < b.startIdx)))) {
+                shouldInsertEff = true;
+            }
+        }
+
+        if (shouldInsertEff) {
             let low = 0;
             let high = effCount - 1;
             while (low <= high) {
                 const mid = (low + high) >> 1;
-                const cmp = cmpEff(c, topEff[mid]);
-                if (cmp < 0) {
-                    high = mid - 1;
-                } else if (cmp > 0) {
+                const b = topEff[mid];
+
+                if (b.efficiency > c.efficiency ||
+                   (b.efficiency === c.efficiency && (b.totalDaysOff > c.totalDaysOff ||
+                   (b.totalDaysOff === c.totalDaysOff && b.startIdx < c.startIdx)))) {
                     low = mid + 1;
                 } else {
-                    low = mid;
-                    break;
+                    high = mid - 1;
                 }
             }
             if (effCount < 100) effCount++;
@@ -1696,20 +1705,31 @@ function selectTopCandidates(candidates) {
             topEff[low] = c;
         }
 
-        // Insert into top duration array
-        if (durCount < 50 || cmpDur(c, topDur[49]) < 0) {
+        let shouldInsertDur = false;
+        if (durCount < 50) {
+            shouldInsertDur = true;
+        } else {
+            const b = topDur[49];
+            if (c.totalDaysOff > b.totalDaysOff ||
+               (c.totalDaysOff === b.totalDaysOff && (c.efficiency > b.efficiency ||
+               (c.efficiency === b.efficiency && c.startIdx < b.startIdx)))) {
+                shouldInsertDur = true;
+            }
+        }
+
+        if (shouldInsertDur) {
             let low = 0;
             let high = durCount - 1;
             while (low <= high) {
                 const mid = (low + high) >> 1;
-                const cmp = cmpDur(c, topDur[mid]);
-                if (cmp < 0) {
-                    high = mid - 1;
-                } else if (cmp > 0) {
+                const b = topDur[mid];
+
+                if (b.totalDaysOff > c.totalDaysOff ||
+                   (b.totalDaysOff === c.totalDaysOff && (b.efficiency > c.efficiency ||
+                   (b.efficiency === c.efficiency && b.startIdx < c.startIdx)))) {
                     low = mid + 1;
                 } else {
-                    low = mid;
-                    break;
+                    high = mid - 1;
                 }
             }
             if (durCount < 50) durCount++;
