@@ -1667,19 +1667,29 @@ function selectTopCandidates(candidates) {
     let effCount = 0;
     let durCount = 0;
 
-    const cmpEff = (a, b) => (b.efficiency - a.efficiency) || (b.totalDaysOff - a.totalDaysOff) || (a.startIdx - b.startIdx);
-    const cmpDur = (a, b) => (b.totalDaysOff - a.totalDaysOff) || (b.efficiency - a.efficiency) || (a.startIdx - b.startIdx);
-
     for (let i = 0; i < candidates.length; i++) {
         const c = candidates[i];
 
+        // Bolt Optimization: Hoist properties and inline comparisons to avoid closure allocation
+        // and redundant property lookups in the hot loop.
+        const cEff = c.efficiency;
+        const cDur = c.totalDaysOff;
+        const cStart = c.startIdx;
+
         // Insert into top efficiency array
-        if (effCount < 100 || cmpEff(c, topEff[99]) < 0) {
+        let effCmpLast = -1;
+        if (effCount === 100) {
+            const last = topEff[99];
+            effCmpLast = (last.efficiency - cEff) || (last.totalDaysOff - cDur) || (cStart - last.startIdx);
+        }
+
+        if (effCount < 100 || effCmpLast < 0) {
             let low = 0;
             let high = effCount - 1;
             while (low <= high) {
                 const mid = (low + high) >> 1;
-                const cmp = cmpEff(c, topEff[mid]);
+                const tm = topEff[mid];
+                const cmp = (tm.efficiency - cEff) || (tm.totalDaysOff - cDur) || (cStart - tm.startIdx);
                 if (cmp < 0) {
                     high = mid - 1;
                 } else if (cmp > 0) {
@@ -1697,12 +1707,19 @@ function selectTopCandidates(candidates) {
         }
 
         // Insert into top duration array
-        if (durCount < 50 || cmpDur(c, topDur[49]) < 0) {
+        let durCmpLast = -1;
+        if (durCount === 50) {
+             const last = topDur[49];
+             durCmpLast = (last.totalDaysOff - cDur) || (last.efficiency - cEff) || (cStart - last.startIdx);
+        }
+
+        if (durCount < 50 || durCmpLast < 0) {
             let low = 0;
             let high = durCount - 1;
             while (low <= high) {
                 const mid = (low + high) >> 1;
-                const cmp = cmpDur(c, topDur[mid]);
+                const tm = topDur[mid];
+                const cmp = (tm.totalDaysOff - cDur) || (tm.efficiency - cEff) || (cStart - tm.startIdx);
                 if (cmp < 0) {
                     high = mid - 1;
                 } else if (cmp > 0) {
