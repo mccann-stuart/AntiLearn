@@ -54,7 +54,7 @@
 **Learning:** Parsing strictly formatted ISO strings (`YYYY-MM-DD`) into `Date` objects in high-frequency rendering loops using `dateStr.split('-').map(Number)` is a significant performance bottleneck due to intermediate array allocation and repeated function calls. In a single UI update loop running over ~365 days, this pattern causes thousands of unnecessary objects to be GC'd. Benchmarks revealed that a custom parser using `.charCodeAt(idx)` and direct mathematical extraction (e.g., `(charCodeAt(idx) - 48) * 10`) is roughly 3x faster and memory-efficient.
 **Action:** When working with strict formats that are heavily validated (e.g. `DATE_REGEX` validated `YYYY-MM-DD` strings), prefer direct string slicing or `charCodeAt` arithmetic over array-based parsing methods (`split`/`map`) if the operation sits in a hot execution path.
 
-## $(date +%Y-%m-%d) - Optimize Dynamic Programming Memory Allocation and Loop Hoisting
+## 2026-03-31 - Optimize Dynamic Programming Memory Allocation and Loop Hoisting
 **Learning:** `findBestCombination` was a significant performance bottleneck due to repeatedly allocating a large `new Int32Array((N+1)*ROW_SIZE)` matrix (often >60k elements) and repeatedly evaluating index math and conditionals inside deep inner loops.
 **Action:** Reusing a module-level `sharedMemo = new Int32Array(0)` and clearing it via `.fill(-1, 0, requiredSize)` drastically cuts allocation and GC overhead. Additionally, unrolling the inner `k=1..3` iterations and hoisting all index base pointers outside the `for(let w...)` loops eliminates branch mispredictions and redundant multiplications, improving overall function speed by ~20%.
 
@@ -68,3 +68,7 @@
 ## 2026-05-18 - Avoid encoding global state into individual cache keys if fully invalidated
 **Learning:** In `public/app.js`, `getDayInsight` optimization encoded global state variables (region, weekend pattern, custom count) into individual date cache keys (`${dStr}-${currentRegion}-${currentWeekendPattern}-${customCount}`). Because `dayInsightCache` is completely invalidated via `invalidateInsightCaches()` whenever these global variables change, this per-key encoding is completely redundant and generates massive string allocation overhead in high-frequency rendering loops (e.g., executing 365 times per UI update). Changing the cache key to simply `dStr` resulted in a ~5x speedup for this critical rendering path.
 **Action:** Do not append global state configuration string parameters to individual item cache keys if the cache mapping itself is purposefully cleared when those global settings change. Simplify keys strictly to the item identifier to minimize string template creation and memory overhead in hot paths.
+
+## 2026-03-31 - Optimize hot loops by inlining comparison functions
+**Learning:** Bounded binary insertion sorting in hot paths (like `selectTopCandidates`) incurs significant function call overhead when invoking comparison functions natively (`cmpEff` and `cmpDur`) within multiple tight `while` loops.
+**Action:** When performing intense sorting over many candidates, directly inline comparison logic and hoist object property accesses to eliminate execution overhead in performance-critical code sections.
