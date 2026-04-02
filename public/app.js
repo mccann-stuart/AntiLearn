@@ -2835,6 +2835,16 @@ function updateDayNode(el, date, dateStr = null) {
         if (el.getAttribute('aria-label') !== fullLabel) {
             el.setAttribute('aria-label', fullLabel);
         }
+
+        if (type === 'holiday') {
+            if (el.style.cursor !== 'pointer') el.style.cursor = 'pointer';
+            if (el.tabIndex !== 0) el.tabIndex = 0;
+            if (el.getAttribute('role') !== 'button') el.setAttribute('role', 'button');
+        } else if (type === 'weekend') {
+            if (el.style.cursor === 'pointer') el.style.cursor = '';
+            if (el.hasAttribute('tabindex')) el.removeAttribute('tabindex');
+            if (el.hasAttribute('role')) el.removeAttribute('role');
+        }
     }
 
     // Bolt Optimization: Compare Year/Month/Date integers instead of creating new Date objects
@@ -2909,7 +2919,13 @@ function toggleDateBooking(dateStr) {
 function handleDayClick(e) {
     const dateStr = e.currentTarget.dataset.date;
     if (dateStr) {
-        toggleDateBooking(dateStr);
+        const date = e.currentTarget._dateObj || parseISODateString(dateStr);
+        if (getDayType(date, dateStr) === 'holiday') {
+            const name = getHolidayName(date, dateStr);
+            if (name) showToast(name, 'info');
+        } else {
+            toggleDateBooking(dateStr);
+        }
     }
 }
 
@@ -2921,7 +2937,13 @@ function handleDayKeyDown(e) {
         e.preventDefault(); // Prevent scrolling on Space
         const dateStr = e.currentTarget.dataset.date;
         if (dateStr) {
-            toggleDateBooking(dateStr);
+            const date = e.currentTarget._dateObj || parseISODateString(dateStr);
+            if (getDayType(date, dateStr) === 'holiday') {
+                const name = getHolidayName(date, dateStr);
+                if (name) showToast(name, 'info');
+            } else {
+                toggleDateBooking(dateStr);
+            }
         }
     }
 }
@@ -3022,7 +3044,7 @@ function renderCalendar() {
             el._dateObj = date; // Bolt Optimization: Cache Date object
 
             // Attach event listeners (only needed on creation)
-            if (getDayType(date, dateStr) === 'workday') {
+            if (getDayType(date, dateStr) === 'workday' || getDayType(date, dateStr) === 'holiday') {
                  // Bolt Optimization: Use shared module-level event handlers to avoid
                  // instantiating hundreds of closures during rendering.
                  el.addEventListener('click', handleDayClick);
