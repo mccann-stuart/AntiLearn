@@ -1,5 +1,6 @@
 const {
     applySharedPlanFromUrl,
+    buildShareableUrl,
     encodePlanString,
     getCurrentState,
     setTestState,
@@ -151,5 +152,52 @@ describe('applySharedPlanFromUrl', () => {
         expect(state.customHolidaysByLocation[REGIONS.US_CA]).toEqual(
             expect.arrayContaining([expect.objectContaining({ name: 'Cesar Chavez Day' })])
         );
+    });
+});
+
+describe('Security Vulnerability: buildShareableUrl Data Leakage', () => {
+
+    const setUrl = (urlStr) => {
+        const url = new URL(urlStr);
+        window.history.pushState({}, 'Test', url.href);
+    };
+
+    beforeEach(() => {
+        setTestState(2023, REGIONS.ENGLAND_WALES, [], [], 'sat-sun', 25);
+    });
+
+    test('should construct shareable URL without leaking existing query parameters', () => {
+        // Set the current URL to include a sensitive query parameter
+        setUrl('http://localhost/?secret_token=super-secret-12345');
+
+        // Generate the shareable URL
+        const shareableUrlStr = buildShareableUrl();
+        const shareableUrl = new URL(shareableUrlStr);
+
+        // Verify that the plan parameter is present
+        expect(shareableUrl.searchParams.has('plan')).toBe(true);
+
+        // Verify that the sensitive query parameter was NOT included
+        expect(shareableUrl.searchParams.has('secret_token')).toBe(false);
+        expect(shareableUrlStr).not.toContain('super-secret-12345');
+    });
+
+    test('should construct clean base URL even with multiple parameters', () => {
+        // Set the current URL to include multiple parameters
+        setUrl('http://localhost/app?param1=value1&param2=value2#hashfragment');
+
+        // Generate the shareable URL
+        const shareableUrlStr = buildShareableUrl();
+        const shareableUrl = new URL(shareableUrlStr);
+
+        // Verify that the plan parameter is present
+        expect(shareableUrl.searchParams.has('plan')).toBe(true);
+
+        // Verify that existing parameters and fragments are NOT included
+        expect(shareableUrl.searchParams.has('param1')).toBe(false);
+        expect(shareableUrl.searchParams.has('param2')).toBe(false);
+        expect(shareableUrl.hash).toBe('');
+        expect(shareableUrlStr).not.toContain('param1');
+        expect(shareableUrlStr).not.toContain('value1');
     });
 });
