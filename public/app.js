@@ -2835,6 +2835,16 @@ function updateDayNode(el, date, dateStr = null) {
         if (el.getAttribute('aria-label') !== fullLabel) {
             el.setAttribute('aria-label', fullLabel);
         }
+
+        if (tooltipTitle !== '') {
+            if (el.style.cursor !== 'pointer') el.style.cursor = 'pointer';
+            if (el.tabIndex !== 0) el.tabIndex = 0;
+            if (el.getAttribute('role') !== 'button') el.setAttribute('role', 'button');
+        } else {
+            if (el.style.cursor === 'pointer') el.style.cursor = '';
+            if (el.hasAttribute('tabindex')) el.removeAttribute('tabindex');
+            if (el.getAttribute('role') === 'button') el.removeAttribute('role');
+        }
     }
 
     // Bolt Optimization: Compare Year/Month/Date integers instead of creating new Date objects
@@ -2907,9 +2917,15 @@ function toggleDateBooking(dateStr) {
  * Shared event handler for clicking a day element.
  */
 function handleDayClick(e) {
-    const dateStr = e.currentTarget.dataset.date;
+    const el = e.currentTarget;
+    const dateStr = el.dataset.date;
     if (dateStr) {
-        toggleDateBooking(dateStr);
+        const _dateObj = el._dateObj || new Date(dateStr);
+        if (getDayType(_dateObj, dateStr) === 'workday') {
+            toggleDateBooking(dateStr);
+        } else if (el.title) {
+            showToast(el.title, 'info');
+        }
     }
 }
 
@@ -2919,9 +2935,15 @@ function handleDayClick(e) {
 function handleDayKeyDown(e) {
     if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault(); // Prevent scrolling on Space
-        const dateStr = e.currentTarget.dataset.date;
+        const el = e.currentTarget;
+        const dateStr = el.dataset.date;
         if (dateStr) {
-            toggleDateBooking(dateStr);
+            const _dateObj = el._dateObj || new Date(dateStr);
+            if (getDayType(_dateObj, dateStr) === 'workday') {
+                toggleDateBooking(dateStr);
+            } else if (el.title) {
+                showToast(el.title, 'info');
+            }
         }
     }
 }
@@ -3022,12 +3044,10 @@ function renderCalendar() {
             el._dateObj = date; // Bolt Optimization: Cache Date object
 
             // Attach event listeners (only needed on creation)
-            if (getDayType(date, dateStr) === 'workday') {
-                 // Bolt Optimization: Use shared module-level event handlers to avoid
-                 // instantiating hundreds of closures during rendering.
-                 el.addEventListener('click', handleDayClick);
-                 el.addEventListener('keydown', handleDayKeyDown);
-            }
+            // Bolt Optimization: Use shared module-level event handlers to avoid
+            // instantiating hundreds of closures during rendering.
+            el.addEventListener('click', handleDayClick);
+            el.addEventListener('keydown', handleDayKeyDown);
 
             updateDayNode(el, date, dateStr);
             grid.appendChild(el);
