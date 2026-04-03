@@ -17,3 +17,7 @@
 ## 2026-03-29 - Preserving Accessibility When Modifying Button Content
 **Learning:** When temporarily replacing a button's content to indicate a state change (like changing "Share" to "✅ Copied!"), using `.textContent` permanently strips any nested HTML elements. If the original button contained structural elements for accessibility (such as `<span aria-hidden="true">` wrapping an icon/emoji), `.textContent` ruins the component's accessible markup when the original text is restored.
 **Action:** Always use `.innerHTML` rather than `.textContent` to capture, temporarily replace, and restore button content if the button contains nested HTML structure, ensuring that `aria-hidden` spans or SVG elements are properly preserved throughout the interaction.
+
+## 2026-04-03 - Exposing Hover Tooltips to Touch and Keyboard Users
+**Learning:** Relying solely on the HTML `title` attribute for tooltips (e.g., explaining holiday names) completely excludes keyboard users and touch device users (like iOS/Android), since `title` only triggers on mouse hover. This hides critical context.
+**Action:** Make elements with `title` attributes natively focusable (`tabIndex=0`, `role="button"`) and provide an interactive fallback, such as attaching click and keydown handlers that read the title and display it using an `aria-live` toast notification. This ensures the information is accessible via touch and keyboard navigation without needing complex custom tooltip UI components.
