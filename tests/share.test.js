@@ -1,5 +1,6 @@
 const {
     applySharedPlanFromUrl,
+    buildShareableUrl,
     encodePlanString,
     getCurrentState,
     setTestState,
@@ -151,5 +152,37 @@ describe('applySharedPlanFromUrl', () => {
         expect(state.customHolidaysByLocation[REGIONS.US_CA]).toEqual(
             expect.arrayContaining([expect.objectContaining({ name: 'Cesar Chavez Day' })])
         );
+    });
+});
+
+describe('buildShareableUrl', () => {
+    // Helper to update URL using pushState
+    const setUrl = (urlStr) => {
+        const url = new URL(urlStr);
+        window.history.pushState({}, 'Test', url.href);
+    };
+
+    beforeEach(() => {
+        // Reset state before each test
+        setTestState(2023, REGIONS.ENGLAND_WALES, [], [], 'sat-sun', 25);
+    });
+
+    test('strips existing query parameters to prevent data leakage', () => {
+        // Set a URL with sensitive/unrelated query parameters
+        setUrl('http://localhost/app?secret_token=12345&utm_source=email');
+
+        const shareUrlStr = buildShareableUrl();
+        const shareUrl = new URL(shareUrlStr);
+
+        // Verify that the new URL does not contain the old parameters
+        expect(shareUrl.searchParams.has('secret_token')).toBe(false);
+        expect(shareUrl.searchParams.has('utm_source')).toBe(false);
+
+        // Verify it does contain the plan parameter
+        expect(shareUrl.searchParams.has('plan')).toBe(true);
+
+        // Verify the base URL is correct
+        expect(shareUrl.origin).toBe('http://localhost');
+        expect(shareUrl.pathname).toBe('/app');
     });
 });
