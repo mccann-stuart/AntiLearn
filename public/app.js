@@ -2835,6 +2835,21 @@ function updateDayNode(el, date, dateStr = null) {
         if (el.getAttribute('aria-label') !== fullLabel) {
             el.setAttribute('aria-label', fullLabel);
         }
+
+        if (type === 'workday' || type === 'holiday' || holidayName) {
+            if (el.style.cursor !== 'pointer') el.style.cursor = 'pointer';
+            if (el.tabIndex !== 0) el.tabIndex = 0;
+            if (el.getAttribute('role') !== 'button') el.setAttribute('role', 'button');
+        } else {
+            if (el.style.cursor === 'pointer') el.style.cursor = '';
+            if (el.hasAttribute('tabindex')) el.removeAttribute('tabindex');
+            if (el.hasAttribute('role')) el.removeAttribute('role');
+        }
+    }
+
+    // Workday aria-pressed cleanup if switching to holiday/weekend
+    if (type !== 'workday' && el.hasAttribute('aria-pressed')) {
+        el.removeAttribute('aria-pressed');
     }
 
     // Bolt Optimization: Compare Year/Month/Date integers instead of creating new Date objects
@@ -2907,9 +2922,21 @@ function toggleDateBooking(dateStr) {
  * Shared event handler for clicking a day element.
  */
 function handleDayClick(e) {
-    const dateStr = e.currentTarget.dataset.date;
+    const el = e.currentTarget;
+    const dateStr = el.dataset.date;
     if (dateStr) {
-        toggleDateBooking(dateStr);
+        let date = el._dateObj;
+        if (!date) {
+            date = parseISODateString(dateStr);
+            el._dateObj = date;
+        }
+        const type = getDayType(date, dateStr);
+        const holidayName = getHolidayName(date, dateStr);
+        if (type === 'holiday' || holidayName) {
+            showToast(holidayName || 'Holiday', 'info');
+        } else if (type === 'workday') {
+            toggleDateBooking(dateStr);
+        }
     }
 }
 
@@ -2919,9 +2946,21 @@ function handleDayClick(e) {
 function handleDayKeyDown(e) {
     if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault(); // Prevent scrolling on Space
-        const dateStr = e.currentTarget.dataset.date;
+        const el = e.currentTarget;
+        const dateStr = el.dataset.date;
         if (dateStr) {
-            toggleDateBooking(dateStr);
+            let date = el._dateObj;
+            if (!date) {
+                date = parseISODateString(dateStr);
+                el._dateObj = date;
+            }
+            const type = getDayType(date, dateStr);
+            const holidayName = getHolidayName(date, dateStr);
+            if (type === 'holiday' || holidayName) {
+                showToast(holidayName || 'Holiday', 'info');
+            } else if (type === 'workday') {
+                toggleDateBooking(dateStr);
+            }
         }
     }
 }
@@ -3022,12 +3061,10 @@ function renderCalendar() {
             el._dateObj = date; // Bolt Optimization: Cache Date object
 
             // Attach event listeners (only needed on creation)
-            if (getDayType(date, dateStr) === 'workday') {
-                 // Bolt Optimization: Use shared module-level event handlers to avoid
-                 // instantiating hundreds of closures during rendering.
-                 el.addEventListener('click', handleDayClick);
-                 el.addEventListener('keydown', handleDayKeyDown);
-            }
+            // Bolt Optimization: Use shared module-level event handlers to avoid
+            // instantiating hundreds of closures during rendering.
+            el.addEventListener('click', handleDayClick);
+            el.addEventListener('keydown', handleDayKeyDown);
 
             updateDayNode(el, date, dateStr);
             grid.appendChild(el);
