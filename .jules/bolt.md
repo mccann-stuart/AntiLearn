@@ -72,3 +72,6 @@
 ## 2026-03-31 - Optimize hot loops by inlining comparison functions
 **Learning:** Bounded binary insertion sorting in hot paths (like `selectTopCandidates`) incurs significant function call overhead when invoking comparison functions natively (`cmpEff` and `cmpDur`) within multiple tight `while` loops.
 **Action:** When performing intense sorting over many candidates, directly inline comparison logic and hoist object property accesses to eliminate execution overhead in performance-critical code sections.
+## 2025-04-05 - Optimize getHolidayName lookups in updateDayNode
+**Learning:** `updateDayNode` is called repeatedly for every single day on the calendar (365 times per year) and during initial render or updates. Redundantly looking up `getHolidayName` (which does map lookups and date formatting) for every day, even when it is not a holiday, is an architectural bottleneck in this application's specific render loop.
+**Action:** When working in rendering loops like `updateDayNode`, leverage previously calculated states (like `getDayType`) to short-circuit expensive lookups. I bypassed `getHolidayName` for non-holidays.

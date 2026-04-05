@@ -2769,7 +2769,8 @@ function updateDayNode(el, date, dateStr = null) {
 
     let tooltipTitle = '';
 
-    const holidayName = getHolidayName(date, dStr);
+    // Bolt Optimization: Only calculate holidayName if it is actually a holiday to avoid redundant map lookups.
+    const holidayName = type === 'holiday' ? getHolidayName(date, dStr) : null;
     if (holidayName) {
         cls += ' holiday';
         tooltipTitle = holidayName;
@@ -2824,8 +2825,7 @@ function updateDayNode(el, date, dateStr = null) {
         if (el.tabIndex !== 0) el.tabIndex = 0;
         if (el.getAttribute('role') !== 'button') el.setAttribute('role', 'button');
     } else {
-        const type = getDayType(date, dStr);
-        const holidayName = getHolidayName(date, dStr);
+        // Bolt Optimization: Removed redundant getDayType and getHolidayName lookups.
         const dateLabel = ariaLabelFormatter.format(date);
         let statusLabel = type === 'weekend' ? 'Weekend' : 'Holiday';
         if (holidayName) {
