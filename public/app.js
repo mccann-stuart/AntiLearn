@@ -426,7 +426,8 @@ function applySharedPlanFromUrl() {
  */
 function buildShareableUrl() {
     if (typeof window === 'undefined') return '';
-    const url = new URL(window.location.href);
+    const cleanUrlStr = window.location.origin + window.location.pathname;
+    const url = new URL(cleanUrlStr);
     const encoded = encodePlanString(getPlanPayload());
     if (!encoded) return '';
     url.searchParams.set(SHARE_PARAM, encoded);
@@ -3097,6 +3098,7 @@ if (typeof module !== 'undefined' && module.exports) {
         encodePlanString,
         decodePlanString,
         applySharedPlanFromUrl,
+        buildShareableUrl,
         renderCustomHolidays,
         getCurrentState,
         LOCATION_GROUPS,

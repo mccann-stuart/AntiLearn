@@ -153,3 +153,40 @@ describe('applySharedPlanFromUrl', () => {
         );
     });
 });
+
+describe('buildShareableUrl', () => {
+    let buildShareableUrl;
+
+    beforeEach(() => {
+        // We need to re-require the module to get the updated buildShareableUrl
+        jest.isolateModules(() => {
+            // Need to mock getPlanPayload internal dependency implicitly through state
+            const app = require('../public/app.js');
+            app.setTestState(2023, REGIONS.ENGLAND_WALES, [], [], 'sat-sun', 25);
+            buildShareableUrl = app.buildShareableUrl;
+        });
+    });
+
+    // Helper to update URL using pushState
+    const setUrl = (urlStr) => {
+        const url = new URL(urlStr);
+        window.history.pushState({}, 'Test', url.href);
+    };
+
+    test('should prevent data leakage by stripping existing query parameters', () => {
+        // Set the current URL to contain sensitive query parameters
+        setUrl('http://localhost/vacation?secret_token=12345&private_data=xyz');
+
+        const shareUrlStr = buildShareableUrl();
+        const shareUrl = new URL(shareUrlStr);
+
+        // The generated URL should only contain the 'plan' parameter
+        expect(shareUrl.searchParams.has('plan')).toBe(true);
+        expect(shareUrl.searchParams.has('secret_token')).toBe(false);
+        expect(shareUrl.searchParams.has('private_data')).toBe(false);
+
+        // Ensure the base path is correct
+        expect(shareUrl.origin).toBe('http://localhost');
+        expect(shareUrl.pathname).toBe('/vacation');
+    });
+});
