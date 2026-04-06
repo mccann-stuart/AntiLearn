@@ -2819,13 +2819,7 @@ function updateDayNode(el, date, dateStr = null) {
         if (el.getAttribute('aria-label') !== fullLabel) {
             el.setAttribute('aria-label', fullLabel);
         }
-
-        if (el.style.cursor !== 'pointer') el.style.cursor = 'pointer';
-        if (el.tabIndex !== 0) el.tabIndex = 0;
-        if (el.getAttribute('role') !== 'button') el.setAttribute('role', 'button');
     } else {
-        const type = getDayType(date, dStr);
-        const holidayName = getHolidayName(date, dStr);
         const dateLabel = ariaLabelFormatter.format(date);
         let statusLabel = type === 'weekend' ? 'Weekend' : 'Holiday';
         if (holidayName) {
@@ -2835,6 +2829,20 @@ function updateDayNode(el, date, dateStr = null) {
         if (el.getAttribute('aria-label') !== fullLabel) {
             el.setAttribute('aria-label', fullLabel);
         }
+    }
+
+    if (type === 'workday') {
+        if (el.style.cursor !== 'pointer') el.style.cursor = 'pointer';
+        if (el.tabIndex !== 0) el.tabIndex = 0;
+        if (el.getAttribute('role') !== 'button') el.setAttribute('role', 'button');
+    } else if (holidayName) {
+        if (el.tabIndex !== 0) el.tabIndex = 0;
+        if (el.getAttribute('role') !== 'button') el.setAttribute('role', 'button');
+        if (el.style.cursor !== 'help') el.style.cursor = 'help';
+    } else {
+        if (el.hasAttribute('tabindex')) el.removeAttribute('tabindex');
+        if (el.hasAttribute('role')) el.removeAttribute('role');
+        if (el.style.cursor !== '') el.style.cursor = '';
     }
 
     // Bolt Optimization: Compare Year/Month/Date integers instead of creating new Date objects
@@ -2908,8 +2916,14 @@ function toggleDateBooking(dateStr) {
  */
 function handleDayClick(e) {
     const dateStr = e.currentTarget.dataset.date;
-    if (dateStr) {
-        toggleDateBooking(dateStr);
+    const date = e.currentTarget._dateObj;
+    if (dateStr && date) {
+        const type = getDayType(date, dateStr);
+        if (type === 'workday') {
+            toggleDateBooking(dateStr);
+        } else if (e.currentTarget.title) {
+            showToast(e.currentTarget.title, 'info');
+        }
     }
 }
 
@@ -2920,8 +2934,14 @@ function handleDayKeyDown(e) {
     if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault(); // Prevent scrolling on Space
         const dateStr = e.currentTarget.dataset.date;
-        if (dateStr) {
-            toggleDateBooking(dateStr);
+        const date = e.currentTarget._dateObj;
+        if (dateStr && date) {
+            const type = getDayType(date, dateStr);
+            if (type === 'workday') {
+                toggleDateBooking(dateStr);
+            } else if (e.currentTarget.title) {
+                showToast(e.currentTarget.title, 'info');
+            }
         }
     }
 }
@@ -3022,12 +3042,9 @@ function renderCalendar() {
             el._dateObj = date; // Bolt Optimization: Cache Date object
 
             // Attach event listeners (only needed on creation)
-            if (getDayType(date, dateStr) === 'workday') {
-                 // Bolt Optimization: Use shared module-level event handlers to avoid
-                 // instantiating hundreds of closures during rendering.
-                 el.addEventListener('click', handleDayClick);
-                 el.addEventListener('keydown', handleDayKeyDown);
-            }
+            // Palette Optimization: Attach listeners to all days so holidays can receive tooltip interaction on touch.
+            el.addEventListener('click', handleDayClick);
+            el.addEventListener('keydown', handleDayKeyDown);
 
             updateDayNode(el, date, dateStr);
             grid.appendChild(el);
