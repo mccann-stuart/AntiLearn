@@ -2824,8 +2824,6 @@ function updateDayNode(el, date, dateStr = null) {
         if (el.tabIndex !== 0) el.tabIndex = 0;
         if (el.getAttribute('role') !== 'button') el.setAttribute('role', 'button');
     } else {
-        const type = getDayType(date, dStr);
-        const holidayName = getHolidayName(date, dStr);
         const dateLabel = ariaLabelFormatter.format(date);
         let statusLabel = type === 'weekend' ? 'Weekend' : 'Holiday';
         if (holidayName) {
