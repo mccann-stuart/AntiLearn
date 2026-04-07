@@ -17,3 +17,7 @@
 ## 2026-03-29 - Preserving Accessibility When Modifying Button Content
 **Learning:** When temporarily replacing a button's content to indicate a state change (like changing "Share" to "✅ Copied!"), using `.textContent` permanently strips any nested HTML elements. If the original button contained structural elements for accessibility (such as `<span aria-hidden="true">` wrapping an icon/emoji), `.textContent` ruins the component's accessible markup when the original text is restored.
 **Action:** Always use `.innerHTML` rather than `.textContent` to capture, temporarily replace, and restore button content if the button contains nested HTML structure, ensuring that `aria-hidden` spans or SVG elements are properly preserved throughout the interaction.
+
+## 2025-05-15 - Accessible Tooltips and Dynamic ARIA Attributes
+**Learning:** Tooltips provided solely via the `title` attribute are inaccessible on touch devices because there is no hover state. Additionally, when dynamically modifying accessibility attributes (like `tabindex` and `role="button"`) to make elements focusable, failing to explicitly remove these attributes when the element loses interactivity can create "empty focus stops" for keyboard users, leading to confusion.
+**Action:** Provide touch-friendly, accessible alternatives to `title` tooltips, such as clicking/tapping to trigger an `aria-live` toast notification. Always explicitly remove dynamic ARIA attributes (e.g., `removeAttribute('tabindex')`) when an element's state changes to non-interactive.

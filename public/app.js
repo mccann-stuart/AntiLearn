@@ -2775,7 +2775,10 @@ function updateDayNode(el, date, dateStr = null) {
         tooltipTitle = holidayName;
     }
 
+    let isInteractive = false;
+
     if (type === 'workday') {
+        isInteractive = true;
         const insight = getDayInsight(date, dStr);
         if (insight) {
             const tier = getEfficiencyTier(insight.efficiency);
@@ -2819,11 +2822,16 @@ function updateDayNode(el, date, dateStr = null) {
         if (el.getAttribute('aria-label') !== fullLabel) {
             el.setAttribute('aria-label', fullLabel);
         }
-
-        if (el.style.cursor !== 'pointer') el.style.cursor = 'pointer';
-        if (el.tabIndex !== 0) el.tabIndex = 0;
-        if (el.getAttribute('role') !== 'button') el.setAttribute('role', 'button');
     } else {
+        if (holidayName) {
+            isInteractive = true;
+        }
+
+        // Ensure data attributes and pressed state are cleaned up if a workday becomes a non-workday
+        if (el.hasAttribute('data-efficiency')) el.removeAttribute('data-efficiency');
+        if (el.hasAttribute('data-totaloff')) el.removeAttribute('data-totaloff');
+        if (el.hasAttribute('aria-pressed')) el.removeAttribute('aria-pressed');
+
         const dateLabel = ariaLabelFormatter.format(date);
         let statusLabel = type === 'weekend' ? 'Weekend' : 'Holiday';
         if (holidayName) {
@@ -2833,6 +2841,16 @@ function updateDayNode(el, date, dateStr = null) {
         if (el.getAttribute('aria-label') !== fullLabel) {
             el.setAttribute('aria-label', fullLabel);
         }
+    }
+
+    if (isInteractive) {
+        if (el.style.cursor !== 'pointer') el.style.cursor = 'pointer';
+        if (el.tabIndex !== 0) el.tabIndex = 0;
+        if (el.getAttribute('role') !== 'button') el.setAttribute('role', 'button');
+    } else {
+        if (el.style.cursor === 'pointer') el.style.cursor = '';
+        if (el.hasAttribute('tabindex')) el.removeAttribute('tabindex');
+        if (el.hasAttribute('role')) el.removeAttribute('role');
     }
 
     // Bolt Optimization: Compare Year/Month/Date integers instead of creating new Date objects
@@ -2907,7 +2925,16 @@ function toggleDateBooking(dateStr) {
 function handleDayClick(e) {
     const dateStr = e.currentTarget.dataset.date;
     if (dateStr) {
-        toggleDateBooking(dateStr);
+        const date = e.currentTarget._dateObj || parseISODateString(dateStr);
+        const type = getDayType(date, dateStr);
+        if (type === 'workday') {
+            toggleDateBooking(dateStr);
+        } else {
+            const holidayName = getHolidayName(date, dateStr);
+            if (holidayName) {
+                showToast(holidayName, 'info');
+            }
+        }
     }
 }
 
@@ -2919,7 +2946,16 @@ function handleDayKeyDown(e) {
         e.preventDefault(); // Prevent scrolling on Space
         const dateStr = e.currentTarget.dataset.date;
         if (dateStr) {
-            toggleDateBooking(dateStr);
+            const date = e.currentTarget._dateObj || parseISODateString(dateStr);
+            const type = getDayType(date, dateStr);
+            if (type === 'workday') {
+                toggleDateBooking(dateStr);
+            } else {
+                const holidayName = getHolidayName(date, dateStr);
+                if (holidayName) {
+                    showToast(holidayName, 'info');
+                }
+            }
         }
     }
 }
@@ -3020,12 +3056,10 @@ function renderCalendar() {
             el._dateObj = date; // Bolt Optimization: Cache Date object
 
             // Attach event listeners (only needed on creation)
-            if (getDayType(date, dateStr) === 'workday') {
-                 // Bolt Optimization: Use shared module-level event handlers to avoid
-                 // instantiating hundreds of closures during rendering.
-                 el.addEventListener('click', handleDayClick);
-                 el.addEventListener('keydown', handleDayKeyDown);
-            }
+            // Bolt Optimization: Use shared module-level event handlers to avoid
+            // instantiating hundreds of closures during rendering.
+            el.addEventListener('click', handleDayClick);
+            el.addEventListener('keydown', handleDayKeyDown);
 
             updateDayNode(el, date, dateStr);
             grid.appendChild(el);
