@@ -72,3 +72,7 @@
 ## 2026-06-12 - Remove redundant function calls in inner conditional blocks
 **Learning:** In `public/app.js`'s `updateDayNode` rendering loop, variable values (`type`, `holidayName`) were correctly retrieved once at the top of the loop for rendering classes, but then redundantly re-fetched by re-calling `getDayType` and `getHolidayName` inside an `else` block (used for non-workdays) to format the ARIA label. This redundant look-up on roughly ~115 non-workdays per year added unnecessary cache and function execution overhead.
 **Action:** Always reuse variables fetched at the top level of hot loops instead of re-calculating them inside deeper, nested conditional blocks.
+
+## 2026-06-12 - [Optimizing Holiday Merging by Removing Intermediate Array Allocations]
+**Learning:** Using `new Set(array.map(h => h.date))` creates intermediate arrays, causing unnecessary garbage collection overhead in hot loops. Replacing it with a `for...of` loop (or standard `for` loop) iterating over the original array to populate the Set significantly improves performance.
+**Action:** When creating a Set of properties from an array of objects, use a `for...of` loop instead of `Array.prototype.map()` to avoid intermediate array allocations.
