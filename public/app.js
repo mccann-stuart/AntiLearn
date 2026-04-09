@@ -2775,6 +2775,16 @@ function updateDayNode(el, date, dateStr = null) {
         tooltipTitle = holidayName;
     }
 
+    if (holidayName) {
+        if (el.tabIndex !== 0) el.tabIndex = 0;
+        if (el.getAttribute('role') !== 'button') el.setAttribute('role', 'button');
+        if (el.style.cursor !== 'pointer') el.style.cursor = 'pointer';
+    } else if (type !== 'workday') {
+        if (el.hasAttribute('tabindex')) el.removeAttribute('tabindex');
+        if (el.hasAttribute('role')) el.removeAttribute('role');
+        if (el.style.cursor) el.style.cursor = '';
+    }
+
     if (type === 'workday') {
         const insight = getDayInsight(date, dStr);
         if (insight) {
@@ -2906,8 +2916,13 @@ function toggleDateBooking(dateStr) {
  */
 function handleDayClick(e) {
     const dateStr = e.currentTarget.dataset.date;
+    const dateObj = e.currentTarget._dateObj || parseISODateString(dateStr);
     if (dateStr) {
-        toggleDateBooking(dateStr);
+        if (getDayType(dateObj, dateStr) === 'workday') {
+            toggleDateBooking(dateStr);
+        } else if (e.currentTarget.title) {
+            showToast(e.currentTarget.title, 'info');
+        }
     }
 }
 
@@ -2918,8 +2933,13 @@ function handleDayKeyDown(e) {
     if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault(); // Prevent scrolling on Space
         const dateStr = e.currentTarget.dataset.date;
+        const dateObj = e.currentTarget._dateObj || parseISODateString(dateStr);
         if (dateStr) {
-            toggleDateBooking(dateStr);
+            if (getDayType(dateObj, dateStr) === 'workday') {
+                toggleDateBooking(dateStr);
+            } else if (e.currentTarget.title) {
+                showToast(e.currentTarget.title, 'info');
+            }
         }
     }
 }
@@ -3020,7 +3040,7 @@ function renderCalendar() {
             el._dateObj = date; // Bolt Optimization: Cache Date object
 
             // Attach event listeners (only needed on creation)
-            if (getDayType(date, dateStr) === 'workday') {
+            if (getDayType(date, dateStr) !== 'weekend') {
                  // Bolt Optimization: Use shared module-level event handlers to avoid
                  // instantiating hundreds of closures during rendering.
                  el.addEventListener('click', handleDayClick);
