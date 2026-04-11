@@ -2315,6 +2315,12 @@ function addCustomHoliday() {
         }
 
         const customHolidays = ensureCustomHolidays(currentRegion);
+
+        if (customHolidays.length >= MAX_CUSTOM_HOLIDAYS) {
+            showToast(`Maximum limit of ${MAX_CUSTOM_HOLIDAYS} custom holidays reached.`, 'error');
+            return;
+        }
+
         // Prevent dupes
         if (!customHolidays.some(h => h.date === dateVal)) {
             customHolidays.push({ date: dateVal, name: nameVal, isCustom: true });
@@ -2894,6 +2900,10 @@ function toggleDateBooking(dateStr) {
     if (bookedDates.has(dateStr)) {
         bookedDates.delete(dateStr);
     } else {
+        if (bookedDates.size >= MAX_BOOKED_DATES) {
+            showToast(`Maximum limit of ${MAX_BOOKED_DATES} booked dates reached.`, 'error');
+            return;
+        }
         bookedDates.add(dateStr);
     }
     const newCount = bookedDates.size;
