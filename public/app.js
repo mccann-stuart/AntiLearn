@@ -2008,6 +2008,11 @@ function overlap(b1, b2) {
  * Generates and downloads an iCal (.ics) file containing all booked leave periods.
  */
 function exportToICS() {
+    const exportBtn = document.getElementById('export-btn');
+    if (exportBtn && exportBtn.getAttribute('aria-disabled') === 'true') {
+        return;
+    }
+
     const blocks = analyzeCurrentPlan();
     if (blocks.length === 0) {
         showToast('No leave periods to export. Please book some leave days first.', 'error');
@@ -2586,10 +2591,10 @@ function renderStats() {
     const exportBtn = document.getElementById('export-btn');
     if (exportBtn) {
         if (blocks.length === 0) {
-            exportBtn.disabled = true;
+            exportBtn.setAttribute('aria-disabled', 'true');
             exportBtn.title = 'Please book some leave days first to export a plan.';
         } else {
-            exportBtn.disabled = false;
+            exportBtn.removeAttribute('aria-disabled');
             exportBtn.removeAttribute('title');
         }
     }

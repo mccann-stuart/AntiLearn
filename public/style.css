@@ -1346,7 +1346,8 @@ button:active,
 }
 
 /* Disabled state for buttons */
-button:disabled {
+button:disabled,
+button[aria-disabled="true"] {
     opacity: 0.5;
     cursor: not-allowed;
 }

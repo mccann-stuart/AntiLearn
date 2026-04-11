@@ -21,3 +21,7 @@
 ## 2026-03-31 - Mobile and Keyboard Fallbacks for Tooltips
 **Learning:** Using `title` attributes for tooltips on non-interactive elements (like calendar holidays) completely alienates touch device users and keyboard navigators, as they cannot hover to see the information.
 **Action:** To ensure crucial context from `title` attributes is accessible, make the elements natively focusable (`tabIndex=0`, `role="button"`) and provide an interactive fallback, such as a click/keydown handler that triggers an `aria-live` toast notification with the tooltip content.
+
+## 2026-04-10 - Keyboard Accessibility of Disabled Buttons
+**Learning:** Using the native `disabled` attribute on buttons removes them from the document tab order. This means keyboard-only users and screen readers cannot access explanatory tooltips (like `title` attributes) that explain *why* the button is disabled, creating an inaccessible barrier.
+**Action:** When a disabled button requires an explanatory tooltip, use `aria-disabled="true"` instead of the native `disabled` attribute. Combine this with custom click-event blocking in JavaScript and CSS styling `button[aria-disabled="true"]` to visually indicate the disabled state, while preserving keyboard focusability.
