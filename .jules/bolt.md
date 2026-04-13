@@ -76,3 +76,7 @@
 ## 2025-05-23 - Map Value Extraction and Object Spread Overhead
 **Learning:** Using `.forEach` on arrays and object spread syntax (`{...item, sourceAlt: existing.source}`) when merging data inside hot loops creates significant memory allocation overhead. Replacing these with native `for` loops, explicitly defining merged object properties, and extracting Map values using pre-allocated arrays (instead of `Array.from(map.values())`) improves execution time by >15%.
 **Action:** In data merging utilities, replace higher-order array methods and object spread syntax with native loops and explicit property assignment.
+
+## 2026-06-12 - Object Property Extraction Before Hot Inner Loops
+**Learning:** In candidate selection logic (`selectTopCandidates`), repeatedly extracting object properties (e.g. `c.efficiency`, `c.totalDaysOff`, `c.startIdx`) within hot binary search insertion loops adds noticeable overhead due to property lookup mechanics. By simply extracting these primitive values to local variables (`const cEff = c.efficiency;` etc.) once before entering the loop bounds evaluation and binary search logic, the JavaScript engine avoids thousands of redundant object property lookups.
+**Action:** When working with objects inside tight algorithm inner loops (like bounded binary insertion), always evaluate and cache required object properties into local primitive variables prior to entering the high-iteration components of the loop.
