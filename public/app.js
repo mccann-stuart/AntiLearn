@@ -1630,8 +1630,13 @@ function generateAllCandidates(year, allowance) {
         }
     }
 
-    const uniqueCandidates = [];
     const numWorkdays = workdayIndices.length;
+    // Bolt Optimization: Pre-allocate candidates array to its maximum possible bounds.
+    // Pushing onto a dynamically growing array in a hot loop triggers memory reallocation and garbage collection.
+    // Using exact bounds and truncating reduces V8 array resizing overhead.
+    const maxCandidates = numWorkdays * allowance;
+    const uniqueCandidates = new Array(maxCandidates);
+    let candidateCount = 0;
 
     for (let k = 0; k < numWorkdays; k++) {
         const firstBookedIdx = workdayIndices[k];
@@ -1645,7 +1650,7 @@ function generateAllCandidates(year, allowance) {
             const realEnd = expansionEnd[lastBookedIdx];
 
             const totalDaysOff = realEnd - realStart + 1;
-            uniqueCandidates.push({
+            uniqueCandidates[candidateCount++] = {
                 startIdx: realStart,
                 endIdx: realEnd,
                 startDate: realStart, // for findBestCombination sorting (index)
@@ -1653,10 +1658,11 @@ function generateAllCandidates(year, allowance) {
                 leaveDaysUsed: len,
                 totalDaysOff: totalDaysOff,
                 efficiency: totalDaysOff / len
-            });
+            };
         }
     }
 
+    uniqueCandidates.length = candidateCount;
     return uniqueCandidates;
 }
 
@@ -1679,14 +1685,19 @@ function selectTopCandidates(candidates) {
     for (let i = 0; i < candidates.length; i++) {
         const c = candidates[i];
 
+        // Bolt Optimization: Extract properties to avoid repeated property lookups in hot binary insertion loop
+        const cEff = c.efficiency;
+        const cDur = c.totalDaysOff;
+        const cStart = c.startIdx;
+
         let shouldInsertEff = false;
         if (effCount < 100) {
             shouldInsertEff = true;
         } else {
             const b = topEff[99];
-            if (c.efficiency > b.efficiency ||
-               (c.efficiency === b.efficiency && (c.totalDaysOff > b.totalDaysOff ||
-               (c.totalDaysOff === b.totalDaysOff && c.startIdx < b.startIdx)))) {
+            if (cEff > b.efficiency ||
+               (cEff === b.efficiency && (cDur > b.totalDaysOff ||
+               (cDur === b.totalDaysOff && cStart < b.startIdx)))) {
                 shouldInsertEff = true;
             }
         }
@@ -1698,9 +1709,9 @@ function selectTopCandidates(candidates) {
                 const mid = (low + high) >> 1;
                 const b = topEff[mid];
 
-                if (b.efficiency > c.efficiency ||
-                   (b.efficiency === c.efficiency && (b.totalDaysOff > c.totalDaysOff ||
-                   (b.totalDaysOff === c.totalDaysOff && b.startIdx < c.startIdx)))) {
+                if (b.efficiency > cEff ||
+                   (b.efficiency === cEff && (b.totalDaysOff > cDur ||
+                   (b.totalDaysOff === cDur && b.startIdx < cStart)))) {
                     low = mid + 1;
                 } else {
                     high = mid - 1;
@@ -1718,9 +1729,9 @@ function selectTopCandidates(candidates) {
             shouldInsertDur = true;
         } else {
             const b = topDur[49];
-            if (c.totalDaysOff > b.totalDaysOff ||
-               (c.totalDaysOff === b.totalDaysOff && (c.efficiency > b.efficiency ||
-               (c.efficiency === b.efficiency && c.startIdx < b.startIdx)))) {
+            if (cDur > b.totalDaysOff ||
+               (cDur === b.totalDaysOff && (cEff > b.efficiency ||
+               (cEff === b.efficiency && cStart < b.startIdx)))) {
                 shouldInsertDur = true;
             }
         }
@@ -1732,9 +1743,9 @@ function selectTopCandidates(candidates) {
                 const mid = (low + high) >> 1;
                 const b = topDur[mid];
 
-                if (b.totalDaysOff > c.totalDaysOff ||
-                   (b.totalDaysOff === c.totalDaysOff && (b.efficiency > c.efficiency ||
-                   (b.efficiency === c.efficiency && b.startIdx < c.startIdx)))) {
+                if (b.totalDaysOff > cDur ||
+                   (b.totalDaysOff === cDur && (b.efficiency > cEff ||
+                   (b.efficiency === cEff && b.startIdx < cStart)))) {
                     low = mid + 1;
                 } else {
                     high = mid - 1;
