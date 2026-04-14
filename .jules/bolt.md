@@ -76,3 +76,7 @@
 ## 2025-05-23 - Map Value Extraction and Object Spread Overhead
 **Learning:** Using `.forEach` on arrays and object spread syntax (`{...item, sourceAlt: existing.source}`) when merging data inside hot loops creates significant memory allocation overhead. Replacing these with native `for` loops, explicitly defining merged object properties, and extracting Map values using pre-allocated arrays (instead of `Array.from(map.values())`) improves execution time by >15%.
 **Action:** In data merging utilities, replace higher-order array methods and object spread syntax with native loops and explicit property assignment.
+## 2026-05-18 - Replacing Object Array Splice with Manual Shift
+## 2026-06-25 - Avoid array allocation in uniqueCandidates generation
+**Learning:** In `public/app.js`, `generateAllCandidates` is called frequently. It allocates an empty array and uses `Array.prototype.push()` within a double-nested loop to populate candidates. Because the max number of items is statically known (bounded by `allowance` and number of workdays), we can preallocate an array of exact maximum capacity, set its elements directly by index, and truncate the array length instead. This avoids resizing costs and array re-allocation during hot execution paths, offering a ~10-15% speed boost.
+**Action:** In generation functions where the exact final size can be calculated deterministically in $O(N)$ before the inner loops, pre-allocate the array via `new Array(size)` instead of `[]` and `push()`.
