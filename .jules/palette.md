@@ -25,3 +25,7 @@
 ## 2026-04-10 - Keyboard Accessibility of Disabled Buttons
 **Learning:** Using the native `disabled` attribute on buttons removes them from the document tab order. This means keyboard-only users and screen readers cannot access explanatory tooltips (like `title` attributes) that explain *why* the button is disabled, creating an inaccessible barrier.
 **Action:** When a disabled button requires an explanatory tooltip, use `aria-disabled="true"` instead of the native `disabled` attribute. Combine this with custom click-event blocking in JavaScript and CSS styling `button[aria-disabled="true"]` to visually indicate the disabled state, while preserving keyboard focusability.
+
+## 2024-05-20 - Adding explicit roles to Toasts
+**Learning:** While placing toasts inside a container with `aria-live="polite"` helps announce new content, adding explicit `role="alert"` (for errors) or `role="status"` (for success/info) directly onto the newly injected toast element guarantees reliable and semantically correct screen reader announcements across different browser/AT combinations.
+**Action:** Always add semantic ARIA roles to dynamic toast elements as they are created, in addition to the live region wrapper.
