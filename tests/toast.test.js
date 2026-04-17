@@ -22,6 +22,7 @@ describe('showToast DOM Updates', () => {
         const toasts = container.querySelectorAll('.toast');
         expect(toasts.length).toBe(1);
         expect(toasts[0].className).toContain('toast info');
+        expect(toasts[0].getAttribute('role')).toBe('status');
         expect(toasts[0].textContent).toBe('ℹ️ ' + message);
     });
 
@@ -32,6 +33,7 @@ describe('showToast DOM Updates', () => {
         const toasts = container.querySelectorAll('.toast');
         expect(toasts.length).toBe(1);
         expect(toasts[0].className).toContain('toast success');
+        expect(toasts[0].getAttribute('role')).toBe('status');
         expect(toasts[0].textContent).toBe('✅ ' + message);
     });
 
@@ -42,6 +44,7 @@ describe('showToast DOM Updates', () => {
         const toasts = container.querySelectorAll('.toast');
         expect(toasts.length).toBe(1);
         expect(toasts[0].className).toContain('toast error');
+        expect(toasts[0].getAttribute('role')).toBe('alert');
         expect(toasts[0].textContent).toBe('⚠️ ' + message);
     });
 
