@@ -25,3 +25,7 @@
 ## 2026-04-10 - Keyboard Accessibility of Disabled Buttons
 **Learning:** Using the native `disabled` attribute on buttons removes them from the document tab order. This means keyboard-only users and screen readers cannot access explanatory tooltips (like `title` attributes) that explain *why* the button is disabled, creating an inaccessible barrier.
 **Action:** When a disabled button requires an explanatory tooltip, use `aria-disabled="true"` instead of the native `disabled` attribute. Combine this with custom click-event blocking in JavaScript and CSS styling `button[aria-disabled="true"]` to visually indicate the disabled state, while preserving keyboard focusability.
+
+## 2024-04-17 - Missing explicit roles inside aria-live regions
+**Learning:** Adding new child elements inside an existing `aria-live` container sometimes fails to be announced by screen readers (especially iOS VoiceOver) if those newly appended elements lack explicit `role` attributes, even if the parent container has `aria-live="polite"`.
+**Action:** Always assign explicit ARIA roles (`role="alert"` for errors, `role="status"` for info/success) directly to dynamically created elements within toast or alert notifications, even when appended to a parent `aria-live` region, ensuring reliable cross-device screen reader announcements.
