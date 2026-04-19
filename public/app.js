@@ -1054,14 +1054,26 @@ function ensureDayTypeCache(year = currentYear) {
 
     const types = new Array(daysCount);
 
+    // Bolt Optimization: Extract lookup and weekend presets outside the loop to avoid redundant function calls.
+    // Instead of using isHoliday and isWeekend which re-fetch these maps on every loop iteration,
+    // we fetch them once and manually construct the date string for map lookup.
+    const { lookup } = getHolidaysForYear(year, currentRegion);
+    const preset = getWeekendPreset(currentWeekendPattern);
+
     let current = new Date(year, 0, 1);
     for (let i = 0; i < daysCount; i++) {
         let type = 'workday';
-        if (isHoliday(current)) type = 'holiday';
-        else if (isWeekend(current)) type = 'weekend';
+
+        // Manual string construction is faster than toLocalISOString
+        const m = current.getMonth() + 1;
+        const d = current.getDate();
+        const dStr = year + (m < 10 ? '-0' : '-') + m + (d < 10 ? '-0' : '-') + d;
+
+        if (lookup.has(dStr)) type = 'holiday';
+        else if (preset.days.includes(current.getDay())) type = 'weekend';
 
         types[i] = type;
-        current.setDate(current.getDate() + 1);
+        current.setDate(d + 1);
     }
 
     dayTypeCache.set(year, { types, startTs });
