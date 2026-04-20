@@ -445,6 +445,9 @@ function showToast(message, type = 'info') {
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
 
+    // Assign explicit role for screen readers
+    toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+
     const icon = type === 'success' ? '✅' : type === 'error' ? '⚠️' : 'ℹ️';
     const iconSpan = document.createElement('span');
     iconSpan.setAttribute('aria-hidden', 'true');
