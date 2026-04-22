@@ -1054,14 +1054,21 @@ function ensureDayTypeCache(year = currentYear) {
 
     const types = new Array(daysCount);
 
+    const { lookup } = getHolidaysForYear(year, currentRegion);
+    const preset = getWeekendPreset(currentWeekendPattern);
+
     let current = new Date(year, 0, 1);
     for (let i = 0; i < daysCount; i++) {
+        const month = current.getMonth() + 1;
+        const date = current.getDate();
+        const dStr = year + (month < 10 ? '-0' : '-') + month + (date < 10 ? '-0' : '-') + date;
+
         let type = 'workday';
-        if (isHoliday(current)) type = 'holiday';
-        else if (isWeekend(current)) type = 'weekend';
+        if (lookup.has(dStr)) type = 'holiday';
+        else if (preset.days.includes(current.getDay())) type = 'weekend';
 
         types[i] = type;
-        current.setDate(current.getDate() + 1);
+        current.setDate(date + 1);
     }
 
     dayTypeCache.set(year, { types, startTs });
@@ -3124,6 +3131,7 @@ if (typeof module !== 'undefined' && module.exports) {
         findOptimalPlan,
         addDays,
         getDayType,
+        ensureDayTypeCache,
         getDayInsight,
         getYearComparison,
         getEfficiencyTier,
