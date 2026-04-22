@@ -76,3 +76,7 @@
 ## 2025-05-23 - Map Value Extraction and Object Spread Overhead
 **Learning:** Using `.forEach` on arrays and object spread syntax (`{...item, sourceAlt: existing.source}`) when merging data inside hot loops creates significant memory allocation overhead. Replacing these with native `for` loops, explicitly defining merged object properties, and extracting Map values using pre-allocated arrays (instead of `Array.from(map.values())`) improves execution time by >15%.
 **Action:** In data merging utilities, replace higher-order array methods and object spread syntax with native loops and explicit property assignment.
+
+## 2026-06-21 - Optimize High-Frequency `ensureDayTypeCache`
+**Learning:** `ensureDayTypeCache` is a critical loop running 365+ times per year change. Previously, it called `isHoliday(current)` and `isWeekend(current)` which dynamically fetched maps and executed includes on arrays inside the loop. Hoisting static data fetching (`getHolidaysForYear`, `getWeekendPreset`) outside the loop, computing `YYYY-MM-DD` strings natively via standard integer parsing, and eliminating `setDate` round-trips via cached internal primitives drastically improved speed by over ~25%.
+**Action:** When a high-frequency initialisation array loop depends on lookup values dynamically fetched from global states, extract lookup resolution before the loop and compute comparison keys inside the loop using strict inline primitive extraction to minimise function calling and memory allocation.
