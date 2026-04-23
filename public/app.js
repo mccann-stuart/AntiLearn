@@ -445,6 +445,12 @@ function showToast(message, type = 'info') {
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
 
+    if (type === 'error') {
+        toast.setAttribute('role', 'alert');
+    } else {
+        toast.setAttribute('role', 'status');
+    }
+
     const icon = type === 'success' ? '✅' : type === 'error' ? '⚠️' : 'ℹ️';
     const iconSpan = document.createElement('span');
     iconSpan.setAttribute('aria-hidden', 'true');
