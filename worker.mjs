@@ -39,6 +39,9 @@ function applySecurityHeaders(response, pathname) {
     newHeaders.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
     newHeaders.set('Referrer-Policy', 'strict-origin-when-cross-origin');
     newHeaders.set('Permissions-Policy', 'accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=(), display-capture=()');
+    newHeaders.set('Cross-Origin-Opener-Policy', 'same-origin');
+    newHeaders.set('Cross-Origin-Embedder-Policy', 'require-corp');
+    newHeaders.set('Cross-Origin-Resource-Policy', 'same-origin');
 
     // Content Security Policy
     newHeaders.set('Content-Security-Policy',

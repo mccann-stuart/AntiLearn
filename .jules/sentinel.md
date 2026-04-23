@@ -15,3 +15,8 @@
 **Vulnerability:** The application was not enforcing its constants `MAX_CUSTOM_HOLIDAYS` and `MAX_BOOKED_DATES` at runtime when users added items, opening the application to state bloating via excessive additions which would slow down JSON.stringify/parse loops in local storage routines and cause out-of-memory errors over prolonged usage or automated abuse.
 **Learning:** Checking payload limits during object initialization is insufficient. State limits must be strictly verified and bounded during every mutation (addition) to the state.
 **Prevention:** Always ensure arrays or Sets exposed to unchecked insertions check against their application-defined limits (`if (size >= MAX) return;`) before pushing elements, and communicate failures to the user via toast notifications or errors rather than silently accepting unbounded inputs.
+
+## 2024-04-20 - Defense in Depth: Cross-Origin Isolation
+ **Vulnerability:** Lack of Cross-Origin Resource Policy (CORP), Cross-Origin Embedder Policy (COEP), and Cross-Origin Opener Policy (COOP) headers.
+ **Learning:** Security headers should not only protect against XSS and framing (CSP, X-Frame-Options) but also isolate the browsing context to protect against advanced attacks like Spectre, Meltdown, and Cross-Site Leaks (XS-Leaks). These policies ensure that cross-origin documents cannot maliciously read or embed sensitive application data.
+ **Prevention:** Ensure COOP, COEP, and CORP are included in the baseline security headers returned by edge workers or web servers. Note that enabling these may require explicitly allowing required cross-origin assets (e.g., via `crossorigin` attributes or CORS).
