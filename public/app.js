@@ -445,6 +445,9 @@ function showToast(message, type = 'info') {
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
 
+    // Explicit ARIA role for screen readers
+    toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
+
     const icon = type === 'success' ? '✅' : type === 'error' ? '⚠️' : 'ℹ️';
     const iconSpan = document.createElement('span');
     iconSpan.setAttribute('aria-hidden', 'true');
@@ -2506,6 +2509,13 @@ function updateUI() {
     renderInsights();
     renderHolidayDataStatus();
     renderCalendar();
+
+    // Snap custom date input to the current year for better mobile UX
+    const customDateInput = document.getElementById('custom-date-input');
+    if (customDateInput) {
+        customDateInput.min = `${currentYear}-01-01`;
+        customDateInput.max = `${currentYear}-12-31`;
+    }
 }
 
 /**
