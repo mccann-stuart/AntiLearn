@@ -1630,15 +1630,25 @@ function generateAllCandidates(year, allowance) {
     }
 
     // 3. Identify workday indices
-    const workdayIndices = [];
+    // Bolt Optimization: Pre-allocate array and track count instead of push
+    let workdayCount = 0;
     for (let i = 0; i < daysCount; i++) {
         if (isOffArray[i] === 0) {
-            workdayIndices.push(i);
+            workdayCount++;
+        }
+    }
+    const workdayIndices = new Int32Array(workdayCount);
+    let wdIdx = 0;
+    for (let i = 0; i < daysCount; i++) {
+        if (isOffArray[i] === 0) {
+            workdayIndices[wdIdx++] = i;
         }
     }
 
-    const uniqueCandidates = [];
     const numWorkdays = workdayIndices.length;
+    // Bolt Optimization: Pre-allocate uniqueCandidates array to exact required size to avoid GC thrashing and dynamic resize overhead
+    const uniqueCandidates = new Array(numWorkdays * allowance);
+    let candidateCount = 0;
 
     for (let k = 0; k < numWorkdays; k++) {
         const firstBookedIdx = workdayIndices[k];
@@ -1652,7 +1662,7 @@ function generateAllCandidates(year, allowance) {
             const realEnd = expansionEnd[lastBookedIdx];
 
             const totalDaysOff = realEnd - realStart + 1;
-            uniqueCandidates.push({
+            uniqueCandidates[candidateCount++] = {
                 startIdx: realStart,
                 endIdx: realEnd,
                 startDate: realStart, // for findBestCombination sorting (index)
@@ -1660,10 +1670,11 @@ function generateAllCandidates(year, allowance) {
                 leaveDaysUsed: len,
                 totalDaysOff: totalDaysOff,
                 efficiency: totalDaysOff / len
-            });
+            };
         }
     }
 
+    uniqueCandidates.length = candidateCount;
     return uniqueCandidates;
 }
 
@@ -1797,8 +1808,13 @@ function findBestCombination(candidates, allowance) {
 
     // Sort candidates by start date for DP
     // Bolt Optimization: Replace spread syntax with slice() for faster array copying
-    const sortedCandidates = candidates.slice().sort((a, b) => a.startDate - b.startDate);
-    const N = sortedCandidates.length;
+    // Bolt Optimization: Pre-allocate array and manually copy to avoid slice overhead. Sort using integer indices.
+    const N = candidates.length;
+    const sortedCandidates = new Array(N);
+    for (let i = 0; i < N; i++) {
+        sortedCandidates[i] = candidates[i];
+    }
+    sortedCandidates.sort((a, b) => a.startIdx - b.startIdx);
 
     // Precompute next compatible candidate index for each candidate
     // nextCompatible[i] = index of first candidate that starts after candidate[i] ends
@@ -1806,7 +1822,7 @@ function findBestCombination(candidates, allowance) {
     let j = 0;
     for (let i = 0; i < N; i++) {
         if (j < i + 1) j = i + 1;
-        while (j < N && sortedCandidates[j].startDate <= sortedCandidates[i].endDate) {
+        while (j < N && sortedCandidates[j].startIdx <= sortedCandidates[i].endIdx) {
             j++;
         }
         nextCompatible[i] = j;
@@ -1953,7 +1969,7 @@ function findBestCombination(candidates, allowance) {
         }
     }
 
-    bestCombo.sort((a, b) => a.startDate - b.startDate);
+    bestCombo.sort((a, b) => a.startIdx - b.startIdx);
     return bestCombo;
 }
 
