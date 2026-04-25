@@ -2078,6 +2078,15 @@ function exportToICS() {
 
 // --- MAIN UI ---
 
+function updateCustomDateBounds() {
+    if (typeof document === 'undefined') return;
+    const dateInput = document.getElementById('custom-date-input');
+    if (dateInput) {
+        dateInput.min = `${currentYear}-01-01`;
+        dateInput.max = `${currentYear}-12-31`;
+    }
+}
+
 function renderLocationSelectOptions() {
     if (typeof document === 'undefined') return;
     const locationSelect = document.getElementById('location-select');
@@ -2175,6 +2184,9 @@ function init() {
         if (currentYear < minYear || currentYear > maxYear) {
             currentYear = minYear;
         }
+
+        updateCustomDateBounds();
+
         for (let i = 0; i <= 5; i++) {
             const year = currentYearNow + i;
             const option = document.createElement('option');
@@ -2188,6 +2200,7 @@ function init() {
 
         yearSelect.addEventListener('change', (e) => {
             currentYear = parseInt(e.target.value);
+            updateCustomDateBounds();
             if (isDatasetLocation(currentRegion)) {
                 loadHolidayDataset();
             }

@@ -13,6 +13,11 @@ describe('Security Input Validation', () => {
             <select id="location-select">
                 <option value="england-wales" selected>England & Wales</option>
             </select>
+            <form id="custom-holiday-form" class="custom-holiday-inputs">
+                <input type="date" id="custom-date-input" required>
+                <input type="text" id="custom-name-input" required>
+                <button type="submit" id="add-custom-btn">Add</button>
+            </form>
             <select id="weekend-select"></select>
             <input id="allowance-input" value="25">
             <div id="days-used"></div>
@@ -22,11 +27,6 @@ describe('Security Input Validation', () => {
             <div id="yoy-main"></div>
             <div id="yoy-sub"></div>
             <div id="holiday-data-status"></div>
-            <form id="custom-holiday-form" class="custom-holiday-inputs">
-                <input type="date" id="custom-date-input" required>
-                <input type="text" id="custom-name-input" required>
-                <button type="submit" id="add-custom-btn">Add</button>
-            </form>
             <div id="custom-holidays-list"></div>
             <div id="toast-container"></div>
         `;
@@ -71,7 +71,8 @@ describe('Security Input Validation', () => {
 
         dateInput.value = '2025-01-01';
         nameInput.value = longName;
-        addBtn.click();
+        const form = document.getElementById('custom-holiday-form');
+        form.dispatchEvent(new Event('submit'));
 
         // Check if state was updated
         const state = app.getCurrentState();
@@ -97,7 +98,8 @@ describe('Security Input Validation', () => {
         dateInput.type = 'text';
         dateInput.value = 'not-a-date';
         nameInput.value = 'My Holiday';
-        addBtn.click();
+        const form = document.getElementById('custom-holiday-form');
+        form.dispatchEvent(new Event('submit'));
 
         const state = app.getCurrentState();
         const holidays = state.customHolidaysByLocation['england-wales'] || [];
@@ -119,6 +121,7 @@ describe('Security Input Validation', () => {
         const addBtn = document.getElementById('add-custom-btn');
         const toastContainer = document.getElementById('toast-container');
 
+        const form = document.getElementById('custom-holiday-form');
         // Add exactly MAX_CUSTOM_HOLIDAYS valid holidays
         for (let i = 0; i < MAX_CUSTOM_HOLIDAYS; i++) {
             // Need unique dates for all 50 items. Month 1 has 31 days, so we spill into month 2
@@ -127,7 +130,7 @@ describe('Security Input Validation', () => {
             const dateStr = `2025-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             dateInput.value = dateStr;
             nameInput.value = `Holiday ${i}`;
-            addBtn.click();
+            form.dispatchEvent(new Event('submit'));
 
             // clear toast
             toastContainer.innerHTML = '';
@@ -139,7 +142,7 @@ describe('Security Input Validation', () => {
         // Attempt to add one more
         dateInput.value = '2025-12-31';
         nameInput.value = 'Too Many Holidays';
-        addBtn.click();
+        form.dispatchEvent(new Event('submit'));
 
         const stateAfter = app.getCurrentState();
         expect(stateAfter.customHolidaysByLocation['england-wales'] || []).toHaveLength(MAX_CUSTOM_HOLIDAYS);
