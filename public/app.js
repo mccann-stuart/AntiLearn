@@ -2506,6 +2506,12 @@ function updateUI() {
     renderInsights();
     renderHolidayDataStatus();
     renderCalendar();
+
+    const dateInput = document.getElementById('custom-date-input');
+    if (dateInput) {
+        dateInput.min = `${currentYear}-01-01`;
+        dateInput.max = `${currentYear}-12-31`;
+    }
 }
 
 /**
