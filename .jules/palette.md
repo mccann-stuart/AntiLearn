@@ -25,3 +25,7 @@
 ## 2026-04-10 - Keyboard Accessibility of Disabled Buttons
 **Learning:** Using the native `disabled` attribute on buttons removes them from the document tab order. This means keyboard-only users and screen readers cannot access explanatory tooltips (like `title` attributes) that explain *why* the button is disabled, creating an inaccessible barrier.
 **Action:** When a disabled button requires an explanatory tooltip, use `aria-disabled="true"` instead of the native `disabled` attribute. Combine this with custom click-event blocking in JavaScript and CSS styling `button[aria-disabled="true"]` to visually indicate the disabled state, while preserving keyboard focusability.
+
+## 2026-04-26 - Dynamic Date Picker Bounds
+**Learning:** Native date inputs (`<input type="date">`) on mobile devices typically default to the current real-world date. If an application involves planning for future or specific years (like a vacation planner set to next year), the user is forced to manually scroll through months/years to reach the correct context, creating a high-friction UX.
+**Action:** Always dynamically set the `min` and `max` attributes of native date inputs to bound the selection to the relevant working context (e.g., the currently selected year). This forces the native UI picker to snap directly to the relevant time period.
