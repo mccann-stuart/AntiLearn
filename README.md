@@ -16,12 +16,14 @@ A simple web application to help you find the most efficient way to use your ann
 *   **Persistent Plans**: Saves your plan to `localStorage` and restores it on return visits.
 *   **Share Your Plan**: Generate a unique link to share your optimized leave schedule with others.
 
-## Status (as of 2026-03-17)
+## Status (as of 2026-04-20)
 
 *   Core optimizer, multi-location holiday logic, custom holidays, export, heatmap, year-over-year insights, and shareable plans are implemented in `public/app.js`.
 *   Frontend is static in `public/` and runs without a backend.
 *   International Support: Active for Qatar, UAE, Saudi Arabia, Canada, and all 50 U.S. states using automated data refreshes.
-*   Tests: `pnpm test` runs unit tests across application logic, worker configuration, dataset building, security headers, and XSS prevention.
+*   Security hardening: Share/localStorage plan payloads now validate real calendar dates and integer allowance/year values before reaching optimizer or export paths.
+*   UI hardening: Dynamic share-button copied states preserve text-only accessible names, compact allowance fields avoid clipping three-digit values, and the custom-holiday panel is constrained to the main page width.
+*   Tests: `npm test` runs unit tests across application logic, worker configuration, dataset building, security headers, and XSS prevention.
 *   Deployment uses `worker.mjs` to add security headers and caching on Cloudflare, and to refresh holiday data weekly.
 
 ## Getting Started
@@ -39,8 +41,14 @@ open public/index.html
 ### Tests
 
 ```bash
-pnpm install
-pnpm test
+npm install
+npm test
+```
+
+Production dependency audit:
+
+```bash
+npm audit --omit=dev
 ```
 
 ### Production Deployment
@@ -87,6 +95,13 @@ calendarific=your_key pnpm run populate-kv
 In Cloudflare, store the Calendarific key in a Secrets Store secret named `calendarific` and ensure it is bound in `wrangler.toml` via `secrets_store_secrets`.
 
 For local dev, prefer adding `calendarific=...` to `.dev.vars` (and keep it out of git).
+
+## Security Notes
+
+*   Shared plan URLs are base64url-encoded JSON. The decoder rejects oversized payloads, unsupported locations/weekend presets, non-integer allowances/years, and impossible dates such as `2025-02-29`.
+*   Custom holiday names are rendered with `textContent`, not HTML, and holiday dates must be real `YYYY-MM-DD` calendar dates.
+*   Worker responses receive CSP, frame-denial, referrer-policy, permissions-policy, HSTS, and no-store caching on error responses.
+*   Calendarific secrets must stay in Cloudflare Secrets Store or local ignored env files. Logs should not include full outbound URLs or raw secret-binding exception messages.
 
 ## Future Roadmap
 

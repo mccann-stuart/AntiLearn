@@ -202,6 +202,34 @@ let holidayDatasetPromise = null;
 let holidayDatasetFromCache = false;
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
+function isLeapYear(year) {
+    return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+}
+
+function isValidISODateString(dateStr) {
+    if (typeof dateStr !== 'string' || !DATE_REGEX.test(dateStr)) return false;
+    const year = (dateStr.charCodeAt(0) - 48) * 1000 + (dateStr.charCodeAt(1) - 48) * 100 + (dateStr.charCodeAt(2) - 48) * 10 + (dateStr.charCodeAt(3) - 48);
+    const month = (dateStr.charCodeAt(5) - 48) * 10 + (dateStr.charCodeAt(6) - 48);
+    const day = (dateStr.charCodeAt(8) - 48) * 10 + (dateStr.charCodeAt(9) - 48);
+    if (year < 1000 || month < 1 || month > 12 || day < 1) return false;
+    const monthLengths = [31, isLeapYear(year) ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    return day <= monthLengths[month - 1];
+}
+
+function isValidAllowance(value) {
+    return Number.isInteger(value) && value > 0 && value <= 365;
+}
+
+function isValidPlanningYear(value) {
+    return Number.isInteger(value) && value >= 1900 && value <= 9999;
+}
+
+function sanitizeBookedDateList(list) {
+    return Array.isArray(list)
+        ? list.slice(0, MAX_BOOKED_DATES).filter(isValidISODateString)
+        : [];
+}
+
 // --- PERSISTENCE ---
 const STORAGE_KEY = 'vacationMaximiser';
 const SHARE_PARAM = 'plan';
@@ -273,7 +301,7 @@ function sanitizeHolidayList(list) {
     return Array.isArray(list)
         ? list.slice(0, MAX_CUSTOM_HOLIDAYS).filter(h =>
             h && typeof h === 'object' &&
-            typeof h.date === 'string' && DATE_REGEX.test(h.date) &&
+            isValidISODateString(h.date) &&
             typeof h.name === 'string' && h.name.length < 100
           )
         : [];
@@ -347,20 +375,21 @@ function decodePlanString(encoded) {
             : decodeURIComponent(escape(atob(padded)));
         const obj = JSON.parse(json);
         if (!obj || typeof obj !== 'object') return null;
-        const allowance = typeof obj.currentAllowance === 'number' && obj.currentAllowance > 0 && obj.currentAllowance <= 365
+        const allowance = isValidAllowance(obj.currentAllowance)
             ? obj.currentAllowance
             : currentAllowance;
+        const year = isValidPlanningYear(obj.currentYear)
+            ? obj.currentYear
+            : currentYear;
         const weekendPattern = typeof obj.currentWeekendPattern === 'string' && Object.prototype.hasOwnProperty.call(WEEKEND_PRESETS, obj.currentWeekendPattern)
             ? obj.currentWeekendPattern
             : null;
         return {
             currentAllowance: allowance,
-            currentYear: typeof obj.currentYear === 'number' ? obj.currentYear : currentYear,
+            currentYear: year,
             currentRegion: typeof obj.currentRegion === 'string' ? obj.currentRegion : currentRegion,
             currentWeekendPattern: weekendPattern,
-            bookedDates: Array.isArray(obj.bookedDates)
-                ? obj.bookedDates.slice(0, MAX_BOOKED_DATES).filter(d => typeof d === 'string' && DATE_REGEX.test(d))
-                : [],
+            bookedDates: sanitizeBookedDateList(obj.bookedDates),
             customHolidays: sanitizeHolidayList(obj.customHolidays),
             customHolidaysByLocation: sanitizeHolidayMap(obj.customHolidaysByLocation)
         };
@@ -468,6 +497,15 @@ function showToast(message, type = 'info') {
     }, 3000);
 }
 
+function setButtonIconText(button, icon, label) {
+    button.textContent = '';
+    const iconSpan = document.createElement('span');
+    iconSpan.setAttribute('aria-hidden', 'true');
+    iconSpan.textContent = icon + ' ';
+    button.appendChild(iconSpan);
+    button.appendChild(document.createTextNode(label));
+}
+
 /**
  * Copies the shareable link to the clipboard (with fallback).
  */
@@ -486,22 +524,13 @@ async function handleShareLink() {
 
             const btn = document.getElementById('share-btn');
             if (btn && !btn.classList.contains('btn-success')) {
-                const originalNodes = Array.from(btn.childNodes);
                 const originalAriaLabel = btn.getAttribute('aria-label');
-
-                btn.textContent = '';
-                const iconSpan = document.createElement('span');
-                iconSpan.setAttribute('aria-hidden', 'true');
-                iconSpan.textContent = '✅ ';
-                btn.appendChild(iconSpan);
-                btn.appendChild(document.createTextNode('Copied!'));
-
+                setButtonIconText(btn, '✅', 'Copied!');
                 btn.setAttribute('aria-label', 'Copied!');
                 btn.classList.add('btn-success');
 
                 setTimeout(() => {
-                    btn.textContent = '';
-                    originalNodes.forEach(node => btn.appendChild(node));
+                    setButtonIconText(btn, '🔗', 'Copy Share Link');
                     if (originalAriaLabel) {
                         btn.setAttribute('aria-label', originalAriaLabel);
                     } else {
@@ -2111,19 +2140,17 @@ function init() {
     const appliedSharedPlan = applySharedPlanFromUrl();
     if (!appliedSharedPlan && savedState) {
         // Restore state variables from local storage if no shared plan
-        if (typeof savedState.currentAllowance === 'number' && savedState.currentAllowance > 0 && savedState.currentAllowance <= 365) {
+        if (isValidAllowance(savedState.currentAllowance)) {
             currentAllowance = savedState.currentAllowance;
         }
-        if (typeof savedState.currentYear === 'number') {
+        if (isValidPlanningYear(savedState.currentYear)) {
             currentYear = savedState.currentYear;
         }
         if (typeof savedState.currentRegion === 'string' && isSupportedRegion(savedState.currentRegion)) {
             currentRegion = savedState.currentRegion;
         }
         if (Array.isArray(savedState.bookedDates)) {
-            const safeDates = savedState.bookedDates
-                .slice(0, MAX_BOOKED_DATES)
-                .filter(d => typeof d === 'string' && DATE_REGEX.test(d));
+            const safeDates = sanitizeBookedDateList(savedState.bookedDates);
             bookedDates = new Set(safeDates);
             shouldRestoreFromSaved = safeDates.length > 0;
         }
@@ -2316,7 +2343,7 @@ function addCustomHoliday() {
     const nameVal = nameInput.value.trim();
 
     if (dateVal && nameVal) {
-        if (!DATE_REGEX.test(dateVal)) {
+        if (!isValidISODateString(dateVal)) {
             showToast('Invalid date format. Please use YYYY-MM-DD.', 'error');
             return;
         }
@@ -3137,7 +3164,9 @@ if (typeof module !== 'undefined' && module.exports) {
         getEfficiencyTier,
         encodePlanString,
         decodePlanString,
+        isValidISODateString,
         applySharedPlanFromUrl,
+        handleShareLink,
         renderCustomHolidays,
         getCurrentState,
         LOCATION_GROUPS,

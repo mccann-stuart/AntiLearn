@@ -149,6 +149,26 @@ describe('Security Input Validation', () => {
         expect(toast.textContent).toContain(`Maximum limit of ${MAX_CUSTOM_HOLIDAYS} custom holidays reached`);
     });
 
+    test('rejects impossible custom holiday dates', () => {
+        const dateInput = document.getElementById('custom-date-input');
+        const nameInput = document.getElementById('custom-name-input');
+        const addBtn = document.getElementById('add-custom-btn');
+        const toastContainer = document.getElementById('toast-container');
+
+        dateInput.type = 'text';
+        dateInput.value = '2025-02-29';
+        nameInput.value = 'Impossible Holiday';
+        addBtn.click();
+
+        const state = app.getCurrentState();
+        const holidays = state.customHolidaysByLocation['england-wales'] || [];
+        expect(holidays.find(h => h.name === 'Impossible Holiday')).toBeUndefined();
+
+        const toast = toastContainer.querySelector('.toast.error');
+        expect(toast).not.toBeNull();
+        expect(toast.textContent).toContain('Invalid date format');
+    });
+
     test('rejects booking dates beyond MAX_BOOKED_DATES limit', () => {
         const MAX_BOOKED_DATES = 1000;
         const toastContainer = document.getElementById('toast-container');
@@ -215,7 +235,7 @@ describe('Security Input Validation', () => {
     test('sanitizes bookedDates from localStorage to prevent DoS', () => {
         // Mock large and invalid data in localStorage
         const maliciousDates = Array.from({ length: 1500 }, () => '2025-01-01');
-        maliciousDates.push('invalid-date', 12345, null, '<script>alert(1)</script>');
+        maliciousDates.push('invalid-date', 12345, null, '<script>alert(1)</script>', '2025-02-29', '2025-13-01');
 
         const maliciousState = {
             currentAllowance: 25,
@@ -239,6 +259,8 @@ describe('Security Input Validation', () => {
             expect(state.bookedDates).not.toContain(12345);
             expect(state.bookedDates).not.toContain(null);
             expect(state.bookedDates).not.toContain('<script>alert(1)</script>');
+            expect(state.bookedDates).not.toContain('2025-02-29');
+            expect(state.bookedDates).not.toContain('2025-13-01');
 
             // Ensure all dates strictly conform to the date regex
             const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
@@ -282,6 +304,42 @@ describe('Security Input Validation', () => {
 
             // Default allowance should be 25 because -5 is invalid
             expect(state.currentAllowance).toBe(25);
+        });
+    });
+
+    test('ignores fractional currentAllowance from localStorage to protect integer DP indexing', () => {
+        const maliciousState = {
+            currentAllowance: 1.5,
+            currentYear: 2025,
+            currentRegion: 'england-wales',
+            bookedDates: []
+        };
+
+        Storage.prototype.getItem.mockReturnValue(JSON.stringify(maliciousState));
+
+        jest.isolateModules(() => {
+            const app = require('../public/app.js');
+            const state = app.getCurrentState();
+
+            expect(state.currentAllowance).toBe(25);
+        });
+    });
+
+    test('ignores fractional currentYear from localStorage', () => {
+        const maliciousState = {
+            currentAllowance: 25,
+            currentYear: 2026.5,
+            currentRegion: 'england-wales',
+            bookedDates: []
+        };
+
+        Storage.prototype.getItem.mockReturnValue(JSON.stringify(maliciousState));
+
+        jest.isolateModules(() => {
+            const app = require('../public/app.js');
+            const state = app.getCurrentState();
+
+            expect(state.currentYear).toBe(new Date().getFullYear());
         });
     });
 });

@@ -80,3 +80,7 @@
 ## 2026-06-21 - Optimize High-Frequency `ensureDayTypeCache`
 **Learning:** `ensureDayTypeCache` is a critical loop running 365+ times per year change. Previously, it called `isHoliday(current)` and `isWeekend(current)` which dynamically fetched maps and executed includes on arrays inside the loop. Hoisting static data fetching (`getHolidaysForYear`, `getWeekendPreset`) outside the loop, computing `YYYY-MM-DD` strings natively via standard integer parsing, and eliminating `setDate` round-trips via cached internal primitives drastically improved speed by over ~25%.
 **Action:** When a high-frequency initialisation array loop depends on lookup values dynamically fetched from global states, extract lookup resolution before the loop and compute comparison keys inside the loop using strict inline primitive extraction to minimise function calling and memory allocation.
+
+## 2026-04-20 - Validate Before Fast Date Parsing
+**Learning:** Fast `charCodeAt` date parsing is only safe after a date has been validated as a real calendar date. A regex-only `YYYY-MM-DD` check can still allow impossible dates that JavaScript later overflows into another day.
+**Action:** Pair hot-path parsers with a strict validator that checks month bounds, day bounds, and leap years. Keep the parser lean, but make every untrusted ingress call the validator first.

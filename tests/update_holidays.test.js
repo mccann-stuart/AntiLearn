@@ -44,6 +44,7 @@ describe('Holiday Data Normalization', () => {
         test('should filter out invalid dates', () => {
             const input = [
                 { date: { iso: 'invalid-date' }, name: 'Bad Date' },
+                { date: { iso: '2025-02-29' }, name: 'Impossible Date' },
                 { date: null, name: 'No Date' },
                 { date: { iso: '2025-01-01' }, name: 'Good Date' }
             ];
@@ -83,6 +84,7 @@ describe('Holiday Data Normalization', () => {
         test('should filter out invalid dates', () => {
             const input = [
                 { date: 'invalid', name: 'Bad Date' },
+                { date: '2025-02-29', name: 'Impossible Date' },
                 { date: '2025-01-01', name: 'Good Date' }
             ];
             const expected = [

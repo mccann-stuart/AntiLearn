@@ -25,3 +25,11 @@
 ## 2026-04-10 - Keyboard Accessibility of Disabled Buttons
 **Learning:** Using the native `disabled` attribute on buttons removes them from the document tab order. This means keyboard-only users and screen readers cannot access explanatory tooltips (like `title` attributes) that explain *why* the button is disabled, creating an inaccessible barrier.
 **Action:** When a disabled button requires an explanatory tooltip, use `aria-disabled="true"` instead of the native `disabled` attribute. Combine this with custom click-event blocking in JavaScript and CSS styling `button[aria-disabled="true"]` to visually indicate the disabled state, while preserving keyboard focusability.
+
+## 2026-04-20 - Preserve Accessible Markup During Temporary Button States
+**Learning:** Replacing a button's entire `textContent` for a temporary state can accidentally remove existing `aria-hidden` icon spans, so the restored button looks correct but regresses its accessible name.
+**Action:** When a button has icon+text markup, update temporary states by rebuilding the same span/text-node structure and restoring the original `aria-label`; do not restore with plain `textContent`.
+
+## 2026-04-20 - Keep Standalone Panels Aligned With Main Content
+**Learning:** A section placed outside the primary `.container` can silently become full-width even when it visually reads as part of the same tool. This is especially noticeable on wide desktop screens.
+**Action:** Any standalone panel that belongs to the main workflow should carry the same `max-width`, responsive width, and box sizing as the main container, or it should be moved into that container.

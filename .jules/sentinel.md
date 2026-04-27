@@ -2,7 +2,7 @@
 **Vulnerability:** CDN cache poisoning vulnerability via error states.
 **Learning:** `applySecurityHeaders` in `worker.mjs` was checking `pathname` to determine static cache rules (e.g., `public, max-age=31536000, immutable` for `.css` files) and applying them to all responses without checking `response.status`. If a 404 Not Found error response had a pathname ending in `.css`, it inherited a long-lived cache header, resulting in CDN caching a 404 response.
 **Prevention:** In functions appending cache-control headers based on route/pathname, explicitly ensure `response.status >= 400` sets `Cache-Control: no-store` instead of inheriting static rules.
-## $(date +%Y-%m-%d) - Prevent XSS by avoiding direct innerHTML assignment
+## 2026-03-29 - Prevent XSS by avoiding direct innerHTML assignment
  **Vulnerability:** Code used direct assignment to innerHTML (`.innerHTML = ''`) to clear DOM nodes.
  **Learning:** While assigning an empty string to innerHTML is not inherently exploitable, it establishes an unsafe anti-pattern that can lead to XSS if later modified to include user input.
  **Prevention:** Use `.textContent = ''` instead of `.innerHTML = ''` when clearing DOM elements to maintain safer coding habits and slightly improve performance.
@@ -15,3 +15,16 @@
 **Vulnerability:** The application was not enforcing its constants `MAX_CUSTOM_HOLIDAYS` and `MAX_BOOKED_DATES` at runtime when users added items, opening the application to state bloating via excessive additions which would slow down JSON.stringify/parse loops in local storage routines and cause out-of-memory errors over prolonged usage or automated abuse.
 **Learning:** Checking payload limits during object initialization is insufficient. State limits must be strictly verified and bounded during every mutation (addition) to the state.
 **Prevention:** Always ensure arrays or Sets exposed to unchecked insertions check against their application-defined limits (`if (size >= MAX) return;`) before pushing elements, and communicate failures to the user via toast notifications or errors rather than silently accepting unbounded inputs.
+
+## 2026-04-20 - Validate Calendar Dates Beyond Regex Shape
+**Vulnerability:** Shared URLs and localStorage payloads accepted strings that matched `YYYY-MM-DD` but were impossible dates, such as `2025-02-29`. Later `Date` parsing could overflow those strings into a different real day, causing hidden bookings to affect stats or exports.
+**Learning:** Regex validation only proves shape, not calendar validity. Any date string that later reaches `Date` arithmetic must be checked for month/day bounds and leap-year correctness first.
+**Prevention:** Use a strict ISO date validator for all URL, storage, custom holiday, and holiday dataset inputs before parsing with `Date` or fast `charCodeAt` helpers.
+## 2026-04-20 - Require Integer Planning Numbers
+**Vulnerability:** Fractional allowance or year values from shared URLs/localStorage could reach integer-indexed optimizer code and create fractional typed-array offsets or inconsistent calendar labels.
+**Learning:** Numeric bounds are incomplete for state that drives array indexing, year selectors, or calendar construction. Integers need explicit `Number.isInteger` validation.
+**Prevention:** Validate allowance and year values with integer checks before applying persisted or shared state.
+## 2026-04-20 - Do Not Log Raw Secret Binding Exceptions
+**Vulnerability:** Secret-store access errors were logged with raw exception messages. Even if current providers are safe, exception text is not a reliable boundary for secrets.
+**Learning:** Secret handling should log the failed operation, not provider-controlled or secret-adjacent error details.
+**Prevention:** Keep secret-binding warnings generic and continue returning an empty key on failure.

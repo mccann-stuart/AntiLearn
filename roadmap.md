@@ -2,10 +2,12 @@
 
 This document outlines the strategic plan for the next major development epics to enhance the UK Vacation Maximiser application.
 
-## Status Summary (as of 2026-03-17)
+## Status Summary (as of 2026-04-20)
 
 *   Implemented: regional holidays (England & Wales, Scotland, Northern Ireland), dataset-backed holidays for Qatar/UAE/Saudi Arabia/Canada and all 50 U.S. states, custom holidays, localStorage persistence, iCal export, heatmap/bridge-day insights, year-over-year comparison, and shareable plan links.
-*   Tests: Jest suite (114 tests) covering application logic, dataset building, worker configuration, security headers, and XSS prevention.
+*   Security hardening: share/localStorage payloads reject impossible dates, fractional allowances, and fractional years before they can affect optimizer, stats, or export output.
+*   UI polish: copied share-button states keep emoji hidden from assistive names, compact allowance display supports three-digit values, and the custom holiday panel now aligns with the main content width.
+*   Tests: Jest suite covers application logic, dataset building, worker configuration, security headers, XSS prevention, plan decoding, and share-button accessibility behavior.
 *   Pending: half-day leave, custom work schedules, and school holidays overlay.
 
 ## Epic 1: Regional Support & Customization (Completed)
@@ -56,14 +58,19 @@ This document outlines the strategic plan for the next major development epics t
 
 *   **Feature: Comprehensive Unit Tests (Completed)**
     *   Expand test coverage for logic, especially holiday calculations and optimization algorithms.
-    *   Added tests for worker configuration, security headers, and XSS prevention.
-*   **Feature: Code Refactoring & Documentation (Planned)**
+    *   Added tests for worker configuration, security headers, XSS prevention, strict date validation, and share-button accessibility state.
+*   **Feature: Security Input Validation (Completed)**
+    *   Validate shared plan and localStorage calendar dates as real dates, not only strings matching `YYYY-MM-DD`.
+    *   Require integer allowance and year values before optimizer code allocates integer-indexed DP tables.
+    *   Keep Calendarific secret values and raw secret-binding errors out of logs.
+*   **Feature: Code Refactoring & Documentation (In Progress)**
     *   Refactor code into smaller modules if possible.
     *   Ensure JSDoc is complete and accurate.
     *   Remove any unused code.
-*   **Feature: UI/UX Polish (Planned)**
+*   **Feature: UI/UX Polish (In Progress)**
     *   Review accessibility (ARIA labels, contrast).
     *   Ensure responsive design works well on mobile.
+    *   Keep dynamic button labels structurally equivalent to their initial accessible markup.
 
 ## Epic 6: Enhanced Personalization & Sharing (In Progress)
 **Goal:** Allow users to share their plans and integrate with external factors like school holidays.

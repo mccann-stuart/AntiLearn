@@ -2,6 +2,7 @@ const {
     applySharedPlanFromUrl,
     encodePlanString,
     getCurrentState,
+    handleShareLink,
     setTestState,
     REGIONS
 } = require('../public/app.js');
@@ -151,5 +152,32 @@ describe('applySharedPlanFromUrl', () => {
         expect(state.customHolidaysByLocation[REGIONS.US_CA]).toEqual(
             expect.arrayContaining([expect.objectContaining({ name: 'Cesar Chavez Day' })])
         );
+    });
+
+    test('keeps share button emoji hidden from assistive names after copied state resets', async () => {
+        jest.useFakeTimers();
+        document.body.innerHTML = `
+            <button id="share-btn" aria-label="Copy Share Link"><span aria-hidden="true">🔗</span> Copy Share Link</button>
+            <div id="toast-container"></div>
+        `;
+        Object.defineProperty(navigator, 'clipboard', {
+            value: { writeText: jest.fn().mockResolvedValue() },
+            configurable: true
+        });
+
+        await handleShareLink();
+
+        const shareBtn = document.getElementById('share-btn');
+        expect(shareBtn.textContent).toBe('✅ Copied!');
+        expect(shareBtn.querySelector('span').getAttribute('aria-hidden')).toBe('true');
+        expect(shareBtn.getAttribute('aria-label')).toBe('Copied!');
+
+        jest.advanceTimersByTime(2000);
+
+        expect(shareBtn.textContent).toBe('🔗 Copy Share Link');
+        expect(shareBtn.querySelector('span').getAttribute('aria-hidden')).toBe('true');
+        expect(shareBtn.getAttribute('aria-label')).toBe('Copy Share Link');
+
+        jest.useRealTimers();
     });
 });

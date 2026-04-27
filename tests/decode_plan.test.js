@@ -61,6 +61,20 @@ describe('decodePlanString Defaults and Recovery', () => {
         encoded = encode({ currentAllowance: 0 });
         decoded = decodePlanString(encoded);
         expect(decoded.currentAllowance).toBe(25);
+
+        // Case 4: fractional allowance would break integer-indexed DP arrays
+        encoded = encode({ currentAllowance: 1.5 });
+        decoded = decodePlanString(encoded);
+        expect(decoded.currentAllowance).toBe(25);
+    });
+
+    test('Invalid Values: falls back to global state for non-integer year', () => {
+        setTestState(2024, REGIONS.ENGLAND_WALES, [], [], 'sat-sun', 25);
+
+        const encoded = encode({ currentYear: 2026.5 });
+        const decoded = decodePlanString(encoded);
+
+        expect(decoded.currentYear).toBe(2024);
     });
 
     test('Weekend Pattern: validates against presets', () => {
@@ -96,7 +110,9 @@ describe('decodePlanString Defaults and Recovery', () => {
                 12345,             // Invalid type
                 null,              // Invalid type
                 "2023/01/01",      // Invalid format (must be YYYY-MM-DD)
-                "2023-1-1"         // Invalid format (must be padded)
+                "2023-1-1",        // Invalid format (must be padded)
+                "2023-02-29",      // Invalid calendar date
+                "2023-13-01"       // Invalid month
             ]
         };
         const encoded = encode(payload);
@@ -111,6 +127,7 @@ describe('decodePlanString Defaults and Recovery', () => {
             customHolidays: [
                 { date: "2023-05-01", name: "May Day" }, // Valid
                 { date: "invalid", name: "Bad Date" },   // Invalid date
+                { date: "2023-02-29", name: "Impossible Date" }, // Invalid calendar date
                 { date: "2023-05-02" },                  // Missing name
                 { name: "No Date" },                     // Missing date
                 "Not an object",                         // Invalid type

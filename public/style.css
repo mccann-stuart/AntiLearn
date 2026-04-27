@@ -220,11 +220,6 @@ body.scrolled .calendar-section {
     padding-top: calc(1.5rem + var(--sticky-compact-height));
 }
 
-
-body.scrolled .calendar-section {
-    padding-top: calc(1.5rem + var(--sticky-compact-height));
-}
-
 .calendar-title {
     margin: 0 0 1.25rem;
     text-align: center;
@@ -700,7 +695,7 @@ body.scrolled .stat-value {
 
 body.scrolled #allowance-input {
     font-size: 1.2rem;
-    width: 60px;
+    width: 74px;
     border-bottom: 1px solid var(--accent-color);
     text-align: left;
     padding: 0 1.4rem 0.05rem 0.4rem;
@@ -1073,7 +1068,10 @@ body.scrolled .weekend-group {
     padding: 1.25rem;
     border-radius: 16px;
     border: 1px solid var(--border-color);
-    margin: 0.75rem 0 1rem 0;
+    margin: 0.75rem auto 1rem;
+    max-width: 1200px;
+    width: calc(100% - 3rem);
+    box-sizing: border-box;
 }
 
 .custom-holidays-section h3 {
@@ -1203,6 +1201,10 @@ body.scrolled .weekend-group {
 
     .custom-holiday-inputs {
         flex-direction: column;
+    }
+
+    .custom-holidays-section {
+        width: calc(100% - 1.5rem);
     }
 
     .custom-holiday-inputs input,
