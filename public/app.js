@@ -2213,10 +2213,20 @@ function init() {
             yearSelect.appendChild(option);
         }
 
+        const customDateInput = document.getElementById('custom-date-input');
+        if (customDateInput) {
+            customDateInput.min = `${currentYear}-01-01`;
+            customDateInput.max = `${currentYear}-12-31`;
+        }
+
         yearSelect.addEventListener('change', (e) => {
             currentYear = parseInt(e.target.value);
             if (isDatasetLocation(currentRegion)) {
                 loadHolidayDataset();
+            }
+            if (customDateInput) {
+                customDateInput.min = `${currentYear}-01-01`;
+                customDateInput.max = `${currentYear}-12-31`;
             }
             invalidateInsightCaches();
             resetToOptimal();
