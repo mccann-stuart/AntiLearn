@@ -71,7 +71,7 @@ describe('Security Input Validation', () => {
 
         dateInput.value = '2025-01-01';
         nameInput.value = longName;
-        addBtn.click();
+        document.getElementById('custom-holiday-form').dispatchEvent(new Event('submit'));
 
         // Check if state was updated
         const state = app.getCurrentState();
@@ -97,7 +97,7 @@ describe('Security Input Validation', () => {
         dateInput.type = 'text';
         dateInput.value = 'not-a-date';
         nameInput.value = 'My Holiday';
-        addBtn.click();
+        document.getElementById('custom-holiday-form').dispatchEvent(new Event('submit'));
 
         const state = app.getCurrentState();
         const holidays = state.customHolidaysByLocation['england-wales'] || [];
@@ -127,7 +127,7 @@ describe('Security Input Validation', () => {
             const dateStr = `2025-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
             dateInput.value = dateStr;
             nameInput.value = `Holiday ${i}`;
-            addBtn.click();
+            document.getElementById('custom-holiday-form').dispatchEvent(new Event('submit'));
 
             // clear toast
             toastContainer.innerHTML = '';
@@ -139,7 +139,7 @@ describe('Security Input Validation', () => {
         // Attempt to add one more
         dateInput.value = '2025-12-31';
         nameInput.value = 'Too Many Holidays';
-        addBtn.click();
+        document.getElementById('custom-holiday-form').dispatchEvent(new Event('submit'));
 
         const stateAfter = app.getCurrentState();
         expect(stateAfter.customHolidaysByLocation['england-wales'] || []).toHaveLength(MAX_CUSTOM_HOLIDAYS);
@@ -158,7 +158,7 @@ describe('Security Input Validation', () => {
         dateInput.type = 'text';
         dateInput.value = '2025-02-29';
         nameInput.value = 'Impossible Holiday';
-        addBtn.click();
+        document.getElementById('custom-holiday-form').dispatchEvent(new Event('submit'));
 
         const state = app.getCurrentState();
         const holidays = state.customHolidaysByLocation['england-wales'] || [];
