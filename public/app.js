@@ -1666,8 +1666,10 @@ function generateAllCandidates(year, allowance) {
         }
     }
 
-    const uniqueCandidates = [];
     const numWorkdays = workdayIndices.length;
+    // Bolt Optimization: Pre-allocate maximum bounds to avoid GrowFastSmiOrObjectElements array resizing
+    const uniqueCandidates = new Array(numWorkdays * allowance);
+    let candidateCount = 0;
 
     for (let k = 0; k < numWorkdays; k++) {
         const firstBookedIdx = workdayIndices[k];
@@ -1681,7 +1683,7 @@ function generateAllCandidates(year, allowance) {
             const realEnd = expansionEnd[lastBookedIdx];
 
             const totalDaysOff = realEnd - realStart + 1;
-            uniqueCandidates.push({
+            uniqueCandidates[candidateCount++] = {
                 startIdx: realStart,
                 endIdx: realEnd,
                 startDate: realStart, // for findBestCombination sorting (index)
@@ -1689,10 +1691,11 @@ function generateAllCandidates(year, allowance) {
                 leaveDaysUsed: len,
                 totalDaysOff: totalDaysOff,
                 efficiency: totalDaysOff / len
-            });
+            };
         }
     }
 
+    uniqueCandidates.length = candidateCount;
     return uniqueCandidates;
 }
 

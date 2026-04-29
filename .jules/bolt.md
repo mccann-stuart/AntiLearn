@@ -84,3 +84,7 @@
 ## 2026-04-20 - Validate Before Fast Date Parsing
 **Learning:** Fast `charCodeAt` date parsing is only safe after a date has been validated as a real calendar date. A regex-only `YYYY-MM-DD` check can still allow impossible dates that JavaScript later overflows into another day.
 **Action:** Pair hot-path parsers with a strict validator that checks month bounds, day bounds, and leap years. Keep the parser lean, but make every untrusted ingress call the validator first.
+
+## 2024-04-29 - Array Pre-allocation over Push in Hot Loops
+**Learning:** In `public/app.js`, `generateAllCandidates` dynamically pushes thousands of objects into an initially empty array (`uniqueCandidates`). This forces V8 to repeatedly resize the array, taking extra time and generating garbage collection overhead.
+**Action:** When creating arrays of objects in hot bounded loops where the maximum size can be calculated, pre-allocate the array via `new Array(maxSize)`, insert items via an index counter, and manually set `.length = count` at the end. This prevents dynamic resizing and yields a measurable performance boost.
