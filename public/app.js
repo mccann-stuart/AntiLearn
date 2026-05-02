@@ -1007,6 +1007,8 @@ function clearHolidaysCache() {
 const dayInsightCache = new Map();
 // Cache year-over-year comparison to avoid recomputing optimal plans unnecessarily.
 const yearComparisonCache = new Map();
+// Cache for optimal plans (efficiency + memory allocation optimization)
+const optimalPlanCache = new Map();
 
 // Cache day types for each year to avoid repeated checks and allow cross-year persistence
 const dayTypeCache = new Map(); // Map<year, { types: Array, startTs: number }>
@@ -1023,6 +1025,7 @@ let bookedDaysYear = null;
 function invalidateInsightCaches() {
     dayInsightCache.clear();
     yearComparisonCache.clear();
+    optimalPlanCache.clear();
     dayTypeCache.clear();
     dayTypeCacheContext = {
         region: null,
@@ -1987,12 +1990,22 @@ function findBestCombination(candidates, allowance) {
 }
 
 function findOptimalPlan(year, allowance) {
+    const customCount = getCustomHolidaysForLocation(currentRegion).length;
+    const datasetKey = holidayDataset && (holidayDataset.updatedAt || holidayDataset.generatedAt)
+        ? (holidayDataset.updatedAt || holidayDataset.generatedAt)
+        : 'no-data';
+    const key = `${year}-${allowance}-${currentRegion}-${currentWeekendPattern}-${customCount}-${datasetKey}`;
+
+    if (optimalPlanCache.has(key)) {
+        return optimalPlanCache.get(key);
+    }
+
     const uniqueCandidates = generateAllCandidates(year, allowance);
     const topCandidates = selectTopCandidates(uniqueCandidates);
     const bestCombo = findBestCombination(topCandidates, allowance);
 
     // Convert optimized index-based candidates back to full Date objects
-    return bestCombo.map(c => {
+    const result = bestCombo.map(c => {
         // startIdx and endIdx are 0-based from Jan 1 of 'year'
         const startDate = new Date(year, 0, 1);
         startDate.setDate(startDate.getDate() + c.startIdx);
@@ -2029,6 +2042,9 @@ function findOptimalPlan(year, allowance) {
             bookedDates
         };
     });
+
+    optimalPlanCache.set(key, result);
+    return result;
 }
 
 /**
