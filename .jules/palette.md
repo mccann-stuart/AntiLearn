@@ -37,3 +37,7 @@
 ## 2026-05-18 - Native Date Picker Mobile Snap Behavior
 **Learning:** For better mobile UX on native date inputs (`<input type="date">`), dynamically setting `min` and `max` attributes to the relevant working year boundaries ensures the date picker snaps directly to that year rather than defaulting to the current real-world date. This saves users from having to manually scroll or swipe back/forward months or years when planning for future dates.
 **Action:** When providing a date input that is contextually bound to a specific year or range, always dynamically update its `min` and `max` attributes to match that context to improve native mobile date picker behavior.
+
+## 2026-05-03 - Explicit ARIA Roles for Dynamic Toasts
+**Learning:** Even when a toast container has `aria-live="polite"`, dynamically injected toast children can sometimes be missed or incorrectly announced by certain screen readers if they lack their own semantic roles.
+**Action:** When dynamically creating toast elements, always assign explicit ARIA roles directly to the injected element (`role="alert"` for errors, `role="status"` for info/success) to ensure reliable announcements.
