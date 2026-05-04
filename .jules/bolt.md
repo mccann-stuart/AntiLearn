@@ -84,3 +84,6 @@
 ## 2026-04-20 - Validate Before Fast Date Parsing
 **Learning:** Fast `charCodeAt` date parsing is only safe after a date has been validated as a real calendar date. A regex-only `YYYY-MM-DD` check can still allow impossible dates that JavaScript later overflows into another day.
 **Action:** Pair hot-path parsers with a strict validator that checks month bounds, day bounds, and leap years. Keep the parser lean, but make every untrusted ingress call the validator first.
+## 2024-05-18 - [Optimize Hot Path with Result Caching]
+**Learning:** `findOptimalPlan` dynamically computes the best combination of dates via `findBestCombination` and was called multiple times on load (e.g., once for the current UI and twice inside `getYearComparison`). Since the result of this combinatorial function is deterministic given a specific `year` and `allowance`, lack of caching caused redundant CPU-heavy operations.
+**Action:** When a deterministic, CPU-heavy operation (like combinatorial DP) is called repeatedly with the same parameters on a cold load or minor state change, implement a module-level `Map` cache keyed by the inputs, and ensure it correctly invalidates only when global context constraints (like region or datasets) change.
