@@ -30,6 +30,12 @@ const DOTENV_PATH = path.join(__dirname, '..', '.env');
 
 function loadEnvFile(filePath) {
     if (!fs.existsSync(filePath)) return;
+
+    if (typeof process.loadEnvFile === 'function') {
+        process.loadEnvFile(filePath);
+        return;
+    }
+
     const raw = fs.readFileSync(filePath, 'utf8');
     raw.split(/\r?\n/).forEach(line => {
         let trimmed = line.trim();

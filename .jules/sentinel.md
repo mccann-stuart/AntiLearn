@@ -28,3 +28,7 @@
 **Vulnerability:** Secret-store access errors were logged with raw exception messages. Even if current providers are safe, exception text is not a reliable boundary for secrets.
 **Learning:** Secret handling should log the failed operation, not provider-controlled or secret-adjacent error details.
 **Prevention:** Keep secret-binding warnings generic and continue returning an empty key on failure.
+## $(date +%Y-%m-%d) - Secure Manual Environment Parsing
+**Vulnerability:** A script contained custom string-parsing logic to manually read `.env` files. Manual parsing is error-prone and can improperly interpret quotes, spaces, or equals signs, potentially corrupting secrets or misconfiguring the environment.
+**Learning:** Native secure loaders like `process.loadEnvFile(path)` (introduced in Node.js v20.12.0) should be utilized when available instead of reinventing the wheel with naive text manipulation, minimizing edge cases in secret parsing.
+**Prevention:** Verify `typeof process.loadEnvFile === 'function'` and prioritize it over fallback manual parsing, ensuring it is not wrapped in a generic `try...catch` block to prevent swallowing missing-function `TypeError` exceptions on older Node runtimes.
