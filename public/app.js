@@ -2550,8 +2550,17 @@ async function resetToOptimal() {
 /**
  * Triggers a full refresh of the UI components.
  */
+function updateDateInputBounds() {
+    const dateInput = document.getElementById('custom-date-input');
+    if (dateInput) {
+        dateInput.min = `${currentYear}-01-01`;
+        dateInput.max = `${currentYear}-12-31`;
+    }
+}
+
 function updateUI() {
     document.getElementById('calendar-year-title').textContent = `${currentYear} Calendar`;
+    updateDateInputBounds();
     renderStats();
     renderRecommendations();
     renderInsights();
