@@ -87,3 +87,7 @@
 ## 2024-05-18 - [Optimize Hot Path with Result Caching]
 **Learning:** `findOptimalPlan` dynamically computes the best combination of dates via `findBestCombination` and was called multiple times on load (e.g., once for the current UI and twice inside `getYearComparison`). Since the result of this combinatorial function is deterministic given a specific `year` and `allowance`, lack of caching caused redundant CPU-heavy operations.
 **Action:** When a deterministic, CPU-heavy operation (like combinatorial DP) is called repeatedly with the same parameters on a cold load or minor state change, implement a module-level `Map` cache keyed by the inputs, and ensure it correctly invalidates only when global context constraints (like region or datasets) change.
+
+## 2024-05-23 - Avoid Brittle Micro-Optimizations on Arrays
+**Learning:** Replacing `array.includes(value)` with explicit comparisons like `p0 === value || p1 === value` for small arrays (like weekend days) introduces a brittle assumption about the array's maximum length. While it might save a minuscule fraction of a millisecond, it breaks if a user configures a 3-day weekend and violates the principle of not sacrificing maintainability for micro-optimizations.
+**Action:** Do not replace built-in array methods like `.includes()` with fixed-variable explicit comparisons if it encodes a brittle assumption about the array size. Use integer arithmetic to avoid Date object creation, but retain readability for array membership checks.

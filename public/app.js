@@ -1090,18 +1090,30 @@ function ensureDayTypeCache(year = currentYear) {
     const { lookup } = getHolidaysForYear(year, currentRegion);
     const preset = getWeekendPreset(currentWeekendPattern);
 
-    let current = new Date(year, 0, 1);
+    // Bolt Optimization: Replace Date object mutations with integer math
+    const monthLengths = [31, isLeap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    let month = 1;
+    let date = 1;
+    let currentDayOfWeek = new Date(year, 0, 1).getDay();
+
     for (let i = 0; i < daysCount; i++) {
-        const month = current.getMonth() + 1;
-        const date = current.getDate();
         const dStr = year + (month < 10 ? '-0' : '-') + month + (date < 10 ? '-0' : '-') + date;
 
         let type = 'workday';
-        if (lookup.has(dStr)) type = 'holiday';
-        else if (preset.days.includes(current.getDay())) type = 'weekend';
+        if (lookup.has(dStr)) {
+            type = 'holiday';
+        } else if (preset.days.includes(currentDayOfWeek)) {
+            type = 'weekend';
+        }
 
         types[i] = type;
-        current.setDate(date + 1);
+
+        date++;
+        if (date > monthLengths[month - 1]) {
+            date = 1;
+            month++;
+        }
+        currentDayOfWeek = currentDayOfWeek === 6 ? 0 : currentDayOfWeek + 1;
     }
 
     dayTypeCache.set(year, { types, startTs });
