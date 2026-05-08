@@ -91,3 +91,7 @@
 ## 2024-05-23 - Avoid Brittle Micro-Optimizations on Arrays
 **Learning:** Replacing `array.includes(value)` with explicit comparisons like `p0 === value || p1 === value` for small arrays (like weekend days) introduces a brittle assumption about the array's maximum length. While it might save a minuscule fraction of a millisecond, it breaks if a user configures a 3-day weekend and violates the principle of not sacrificing maintainability for micro-optimizations.
 **Action:** Do not replace built-in array methods like `.includes()` with fixed-variable explicit comparisons if it encodes a brittle assumption about the array size. Use integer arithmetic to avoid Date object creation, but retain readability for array membership checks.
+
+## 2024-05-18 - Avoid Push in Hot Expansion Loops
+**Learning:** In V8, repeatedly calling `Array.prototype.push()` in hot execution loops that dynamically generate variable amounts of objects (like `generateAllCandidates`) forces GC pauses and dynamic re-allocations that severely degrade performance compared to using fixed pre-allocated arrays where bounds can be theoretically calculated.
+**Action:** When dynamically generating unbounded permutations or candidates in hot loops within this codebase, pre-calculate the absolute maximum bounds (e.g., `numWorkdays * allowance`) and pre-allocate a standard array `new Array(maxBounds)`, assigning to indices sequentially and truncating `.length` at the end to trim unused space.
