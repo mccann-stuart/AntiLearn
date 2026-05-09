@@ -28,3 +28,7 @@
 **Vulnerability:** Secret-store access errors were logged with raw exception messages. Even if current providers are safe, exception text is not a reliable boundary for secrets.
 **Learning:** Secret handling should log the failed operation, not provider-controlled or secret-adjacent error details.
 **Prevention:** Keep secret-binding warnings generic and continue returning an empty key on failure.
+## 2026-05-15 - Prevent Data Leakage from Applied Shareable URLs
+**Vulnerability:** The application applied state from a shared URL parameter but left the parameter in the browser's address bar, making it possible for a user to accidentally leak their data if they subsequently share their current URL.
+**Learning:** Leaving sensitive payload parameters in the URL after they have been processed creates a persistent state leakage risk.
+**Prevention:** When consuming shareable URLs that contain sensitive parameters, strip the parameter from the address bar using `window.history.replaceState` immediately after it has been read.

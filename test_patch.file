@@ -1,0 +1,25 @@
+--- tests/share.test.js
++++ tests/share.test.js
+@@ -155,4 +155,22 @@
+
+         jest.useRealTimers();
+     });
++
++    test('should remove the plan parameter from the URL after applying', () => {
++        const payload = {
++            currentYear: 2025,
++            currentRegion: REGIONS.SCOTLAND,
++            currentAllowance: 30
++        };
++        const encoded = encodePlanString(payload);
++
++        const url = new URL('http://localhost/');
++        url.searchParams.set('plan', encoded);
++        setUrl(url.toString());
++
++        expect(applySharedPlanFromUrl()).toBe(true);
++
++        const currentUrl = new URL(window.location.href);
++        expect(currentUrl.searchParams.has('plan')).toBe(false);
++    });
+ });

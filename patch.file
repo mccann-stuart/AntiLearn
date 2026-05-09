@@ -1,0 +1,12 @@
+--- public/app.js
++++ public/app.js
+@@ -442,6 +442,9 @@
+
+         clearHolidaysCache();
+         invalidateInsightCaches();
++
++        url.searchParams.delete(SHARE_PARAM);
++        window.history.replaceState({}, '', url.toString());
+         return true;
+     } catch (e) {
+         console.warn('Failed to apply shared plan:', e);

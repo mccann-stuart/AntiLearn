@@ -443,9 +443,6 @@ function applySharedPlanFromUrl() {
 
         clearHolidaysCache();
         invalidateInsightCaches();
-
-        url.searchParams.delete(SHARE_PARAM);
-        window.history.replaceState({}, '', url.toString());
         return true;
     } catch (e) {
         console.warn('Failed to apply shared plan:', e);
@@ -3213,8 +3210,8 @@ if (typeof module !== 'undefined' && module.exports) {
         LOCATION_METADATA,
         LOCATION_CONFIG,
         WEEKEND_PRESETS,
-      
-    
+
+
         // Helper to set state for testing
         setTestState: (year, region, holidays, booked, weekendPattern, allowance) => {
             currentYear = year;
