@@ -313,14 +313,17 @@ function sanitizeHolidayList(list) {
 function sanitizeHolidayMap(map) {
     if (!map || typeof map !== 'object') return {};
     const result = {};
-    Object.entries(map).forEach(([key, value]) => {
+    // Bolt Optimization: Replace Object.entries and forEach with for loop to avoid intermediate array allocation overhead
+    const keys = Object.keys(map);
+    for (let i = 0; i < keys.length; i++) {
+        const key = keys[i];
         if (typeof key === 'string' && isSupportedRegion(key)) {
-            const safeList = sanitizeHolidayList(value);
+            const safeList = sanitizeHolidayList(map[key]);
             if (safeList.length > 0) {
                 result[key] = safeList;
             }
         }
-    });
+    }
     return result;
 }
 
@@ -2192,11 +2195,15 @@ function init() {
         }
         if (savedState.weekendByLocation && typeof savedState.weekendByLocation === 'object') {
             weekendByLocation = {};
-            Object.entries(savedState.weekendByLocation).forEach(([location, pattern]) => {
+            // Bolt Optimization: Replace Object.entries and forEach with for loop to avoid intermediate array allocation overhead
+            const locations = Object.keys(savedState.weekendByLocation);
+            for (let i = 0; i < locations.length; i++) {
+                const location = locations[i];
+                const pattern = savedState.weekendByLocation[location];
                 if (isSupportedRegion(location) && Object.prototype.hasOwnProperty.call(WEEKEND_PRESETS, pattern)) {
                     weekendByLocation[location] = pattern;
                 }
-            });
+            }
         }
         if (typeof savedState.currentWeekendPattern === 'string' && Object.prototype.hasOwnProperty.call(WEEKEND_PRESETS, savedState.currentWeekendPattern)) {
             currentWeekendPattern = savedState.currentWeekendPattern;
