@@ -180,4 +180,26 @@ describe('applySharedPlanFromUrl', () => {
 
         jest.useRealTimers();
     });
+
+    test('strips the share parameter from the URL after applying the plan', () => {
+        const payload = {
+            currentYear: 2025,
+            currentRegion: REGIONS.SCOTLAND,
+            currentAllowance: 30,
+            currentWeekendPattern: 'fri-sat',
+            bookedDates: ['2025-01-01', '2025-01-02'],
+            customHolidays: [{ date: '2025-05-05', name: 'Cinco De Mayo' }]
+        };
+        const encoded = encodePlanString(payload);
+
+        const url = new URL('http://localhost/?extra=123');
+        url.searchParams.set('plan', encoded);
+        setUrl(url.toString());
+
+        expect(applySharedPlanFromUrl()).toBe(true);
+
+        const currentUrl = new URL(window.location.href);
+        expect(currentUrl.searchParams.has('plan')).toBe(false);
+        expect(currentUrl.searchParams.get('extra')).toBe('123');
+    });
 });
