@@ -971,13 +971,20 @@ function getUKHolidays(year, region) {
     // Merge Custom Holidays
     const customHolidays = getCustomHolidaysForLocation(region);
     if (customHolidays.length > 0) {
-        const existingDates = new Set(holidays.map(h => h.date));
-        customHolidays.forEach(h => {
+        // Bolt Optimization: Replace `new Set(holidays.map(...))` and `.forEach` with manual for-loops.
+        // This avoids creating intermediate array allocations and nested closure allocations,
+        // reducing memory footprint and GC pressure during initialization.
+        const existingDates = new Set();
+        for (let i = 0; i < holidays.length; i++) {
+            existingDates.add(holidays[i].date);
+        }
+        for (let i = 0; i < customHolidays.length; i++) {
+            const h = customHolidays[i];
             if (!existingDates.has(h.date)) {
                 holidays.push(h);
                 existingDates.add(h.date);
             }
-        });
+        }
     }
 
     return holidays;
@@ -1181,18 +1188,31 @@ function getHolidaysForYear(year, region) {
             holidays = getDatasetHolidays(year, region);
             const customHolidays = getCustomHolidaysForLocation(region);
             if (customHolidays.length > 0) {
-                const existingDates = new Set(holidays.map(h => h.date));
-                customHolidays.forEach(h => {
+                // Bolt Optimization: Replace `new Set(holidays.map(...))` and `.forEach` with manual for-loops
+                // to avoid allocating intermediate arrays and closures on this hot path.
+                const existingDates = new Set();
+                for (let i = 0; i < holidays.length; i++) {
+                    existingDates.add(holidays[i].date);
+                }
+                for (let i = 0; i < customHolidays.length; i++) {
+                    const h = customHolidays[i];
                     if (!existingDates.has(h.date)) {
                         holidays.push(h);
                         existingDates.add(h.date);
                     }
-                });
+                }
             }
         } else {
             holidays = getUKHolidays(year, region);
         }
-        const lookup = new Map(holidays.map(h => [h.date, h]));
+        // Bolt Optimization: Replace `new Map(holidays.map(...))` with a manual for-loop.
+        // This avoids creating an intermediate tuple array of [key, value] pairs,
+        // significantly reducing memory allocation overhead during Map construction.
+        const lookup = new Map();
+        for (let i = 0; i < holidays.length; i++) {
+            const h = holidays[i];
+            lookup.set(h.date, h);
+        }
         holidaysCache.set(key, { holidays, lookup });
     }
 

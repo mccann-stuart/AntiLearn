@@ -91,3 +91,10 @@
 ## 2024-05-23 - Avoid Brittle Micro-Optimizations on Arrays
 **Learning:** Replacing `array.includes(value)` with explicit comparisons like `p0 === value || p1 === value` for small arrays (like weekend days) introduces a brittle assumption about the array's maximum length. While it might save a minuscule fraction of a millisecond, it breaks if a user configures a 3-day weekend and violates the principle of not sacrificing maintainability for micro-optimizations.
 **Action:** Do not replace built-in array methods like `.includes()` with fixed-variable explicit comparisons if it encodes a brittle assumption about the array size. Use integer arithmetic to avoid Date object creation, but retain readability for array membership checks.
+## 2024-05-20 - Set-based lookup for holiday merging
+**Learning:** Merging two arrays of holidays by checking for existence via `array.some()` in a loop results in O(N*M) complexity. For a typical year with ~10 bank holidays and up to 50 custom holidays, this resulted in redundant iterations. Replacing the search with a `Set` of existing holiday dates reduces the complexity to O(N+M).
+**Action:** When merging data based on unique keys (like dates), prefer using a `Set` for O(1) membership checks instead of `array.some()` or `array.includes()`, especially when one or both arrays can grow beyond a trivial size.
+
+## 2024-05-24 - Avoid intermediate array allocations in Map/Set initialization
+**Learning:** When creating a `Map` or `Set` from an array on a hot path, using the `new Map(array.map(...))` or `new Set(array.map(...))` pattern creates unnecessary intermediate arrays (and tuple arrays for Maps) which increases memory allocation and garbage collection overhead.
+**Action:** Replace `new Map(array.map(...))` and `new Set(array.map(...))` with manual `for` loops that directly `.set()` or `.add()` elements to avoid the intermediate allocations, especially in high-frequency functions.
