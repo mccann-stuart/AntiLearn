@@ -2073,6 +2073,7 @@ function overlap(b1, b2) {
 function exportToICS() {
     const exportBtn = document.getElementById('export-btn');
     if (exportBtn && exportBtn.getAttribute('aria-disabled') === 'true') {
+        showToast('Please book some leave days first to export a plan.', 'info');
         return;
     }
 
