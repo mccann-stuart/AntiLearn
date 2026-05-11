@@ -2073,6 +2073,9 @@ function overlap(b1, b2) {
 function exportToICS() {
     const exportBtn = document.getElementById('export-btn');
     if (exportBtn && exportBtn.getAttribute('aria-disabled') === 'true') {
+        if (exportBtn.title) {
+            showToast(exportBtn.title, 'info');
+        }
         return;
     }
 
@@ -2352,7 +2355,15 @@ function init() {
 
     const shareBtn = document.getElementById('share-btn');
     if (shareBtn) {
-        shareBtn.addEventListener('click', handleShareLink);
+        shareBtn.addEventListener('click', (e) => {
+            if (shareBtn.getAttribute('aria-disabled') === 'true') {
+                if (shareBtn.title) {
+                    showToast(shareBtn.title, 'info');
+                }
+                return;
+            }
+            handleShareLink(e);
+        });
     }
 
     if (isDatasetLocation(currentRegion)) {
