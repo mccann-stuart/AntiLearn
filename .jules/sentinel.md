@@ -28,3 +28,7 @@
 **Vulnerability:** Secret-store access errors were logged with raw exception messages. Even if current providers are safe, exception text is not a reliable boundary for secrets.
 **Learning:** Secret handling should log the failed operation, not provider-controlled or secret-adjacent error details.
 **Prevention:** Keep secret-binding warnings generic and continue returning an empty key on failure.
+## 2026-05-12 - Prevent State Leakage in Shared URLs
+**Vulnerability:** The application was not stripping the shareable state payload from the browser's address bar after applying it. If a user shared their URL after a plan was applied, they could unintentionally leak their state.
+**Learning:** Shared URLs often contain sensitive, encoded state. Leaving them in the address bar post-consumption allows the payload to be accidentally shared or copied in unrelated workflows, violating the Principle of Least Privilege for state distribution.
+**Prevention:** Always strip state-bearing parameters from `window.location` via `window.history.replaceState` immediately after reading and consuming them.

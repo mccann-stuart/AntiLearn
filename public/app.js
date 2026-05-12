@@ -439,6 +439,9 @@ function applySharedPlanFromUrl() {
             if (decoded.customHolidays && decoded.customHolidays.length > 0) {
                 customHolidaysByLocation[currentRegion] = decoded.customHolidays;
             }
+        url.searchParams.delete(SHARE_PARAM);
+        window.history.replaceState({}, "", url.toString());
+
         }
 
         clearHolidaysCache();

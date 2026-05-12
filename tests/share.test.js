@@ -181,3 +181,44 @@ describe('applySharedPlanFromUrl', () => {
         jest.useRealTimers();
     });
 });
+
+describe('SHARE_PARAM stripping', () => {
+    // Helper to update URL using pushState
+    const setUrl = (urlStr) => {
+        const url = new URL(urlStr);
+        window.history.pushState({}, 'Test', url.href);
+    };
+
+    beforeEach(() => {
+        setTestState(2023, REGIONS.ENGLAND_WALES, [], [], 'sat-sun', 25);
+        setUrl('http://localhost/');
+    });
+
+    test('strips the share parameter from the URL after successfully applying it', () => {
+        const payload = {
+            currentYear: 2025,
+            currentRegion: REGIONS.SCOTLAND,
+            currentAllowance: 30
+        };
+        const encoded = encodePlanString(payload);
+
+        const url = new URL('http://localhost/');
+        url.searchParams.set('plan', encoded);
+        setUrl(url.toString());
+
+        // Mock replaceState
+        const replaceStateSpy = jest.spyOn(window.history, 'replaceState');
+
+        expect(applySharedPlanFromUrl()).toBe(true);
+
+        // Verify the URL was updated without the plan parameter
+        expect(replaceStateSpy).toHaveBeenCalled();
+        const callArgs = replaceStateSpy.mock.calls[0];
+        const newUrl = new URL(callArgs[2]);
+        expect(newUrl.searchParams.has('plan')).toBe(false);
+        expect(newUrl.origin).toBe('http://localhost');
+        expect(newUrl.pathname).toBe('/');
+
+        replaceStateSpy.mockRestore();
+    });
+});
