@@ -34,6 +34,10 @@
 **Learning:** A section placed outside the primary `.container` can silently become full-width even when it visually reads as part of the same tool. This is especially noticeable on wide desktop screens.
 **Action:** Any standalone panel that belongs to the main workflow should carry the same `max-width`, responsive width, and box sizing as the main container, or it should be moved into that container.
 
+## 2026-05-12 - Touch Device Fallback for Disabled Button Tooltips
+**Learning:** When using `aria-disabled="true"` with a `title` attribute to explain why a button is disabled, touch device users (like iOS/Android users) cannot hover to see the tooltip. This leaves them unaware of why an action is unavailable.
+**Action:** Always provide an interactive fallback for touch devices when an `aria-disabled` button has a `title`. Intercept the click event on the disabled button and display the `title` text using an `aria-live` toast notification.
+
 ## 2026-05-18 - Native Date Picker Mobile Snap Behavior
 **Learning:** For better mobile UX on native date inputs (`<input type="date">`), dynamically setting `min` and `max` attributes to the relevant working year boundaries ensures the date picker snaps directly to that year rather than defaulting to the current real-world date. This saves users from having to manually scroll or swipe back/forward months or years when planning for future dates.
 **Action:** When providing a date input that is contextually bound to a specific year or range, always dynamically update its `min` and `max` attributes to match that context to improve native mobile date picker behavior.
