@@ -2851,7 +2851,7 @@ function updateDayNode(el, date, dateStr = null) {
 
     let tooltipTitle = '';
 
-    const holidayName = getHolidayName(date, dStr);
+    const holidayName = type === 'holiday' ? getHolidayName(date, dStr) : null;
     if (holidayName) {
         cls += ' holiday';
         tooltipTitle = holidayName;

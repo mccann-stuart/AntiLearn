@@ -91,3 +91,7 @@
 ## 2024-05-23 - Avoid Brittle Micro-Optimizations on Arrays
 **Learning:** Replacing `array.includes(value)` with explicit comparisons like `p0 === value || p1 === value` for small arrays (like weekend days) introduces a brittle assumption about the array's maximum length. While it might save a minuscule fraction of a millisecond, it breaks if a user configures a 3-day weekend and violates the principle of not sacrificing maintainability for micro-optimizations.
 **Action:** Do not replace built-in array methods like `.includes()` with fixed-variable explicit comparisons if it encodes a brittle assumption about the array size. Use integer arithmetic to avoid Date object creation, but retain readability for array membership checks.
+
+## 2024-05-24 - Avoid redundant Map lookups in calendar rendering
+**Learning:** Unconditionally calling getHolidayName during calendar rendering causes redundant Map lookups for non-holidays.
+**Action:** Guard lookups with a day type check to improve render performance.
