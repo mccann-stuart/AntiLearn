@@ -154,6 +154,25 @@ describe('applySharedPlanFromUrl', () => {
         );
     });
 
+    test('strips the plan parameter from the URL after successful application', () => {
+        const url = new URL('http://localhost/');
+        const encoded = encodePlanString({
+            currentYear: 2025,
+            currentRegion: REGIONS.SCOTLAND,
+            currentAllowance: 30,
+            currentWeekendPattern: 'fri-sat',
+            bookedDates: ['2025-01-01', '2025-01-02'],
+            customHolidaysByLocation: { [REGIONS.SCOTLAND]: [{ date: '2025-05-05', name: 'Cinco De Mayo' }] }
+        });
+        url.searchParams.set('plan', encoded);
+        setUrl(url.toString());
+
+        expect(applySharedPlanFromUrl()).toBe(true);
+
+        const newUrl = new URL(window.location.href);
+        expect(newUrl.searchParams.has('plan')).toBe(false);
+    });
+
     test('keeps share button emoji hidden from assistive names after copied state resets', async () => {
         jest.useFakeTimers();
         document.body.innerHTML = `
