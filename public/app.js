@@ -443,6 +443,13 @@ function applySharedPlanFromUrl() {
 
         clearHolidaysCache();
         invalidateInsightCaches();
+
+        // Sentinel Security Enhancement: Strip URL parameters to prevent state leakage
+        if (window.history && window.history.replaceState) {
+            url.searchParams.delete(SHARE_PARAM);
+            window.history.replaceState({}, document.title, url.toString());
+        }
+
         return true;
     } catch (e) {
         console.warn('Failed to apply shared plan:', e);

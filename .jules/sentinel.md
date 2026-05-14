@@ -28,3 +28,8 @@
 **Vulnerability:** Secret-store access errors were logged with raw exception messages. Even if current providers are safe, exception text is not a reliable boundary for secrets.
 **Learning:** Secret handling should log the failed operation, not provider-controlled or secret-adjacent error details.
 **Prevention:** Keep secret-binding warnings generic and continue returning an empty key on failure.
+
+## 2026-04-20 - Prevent State Leakage by Stripping Consumed URL Parameters
+**Vulnerability:** URL parameters used for initializing state (like `plan`) remained in the browser's address bar after they were consumed.
+**Learning:** If consumed state-initialization parameters are left in the URL, users might later copy and share the URL, unintentionally leaking their original state payload instead of their current updated state.
+**Prevention:** Use `window.history.replaceState` to strip initialization parameters from the URL immediately after they are consumed and applied to the application state.

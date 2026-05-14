@@ -180,4 +180,24 @@ describe('applySharedPlanFromUrl', () => {
 
         jest.useRealTimers();
     });
+
+    test('strips the share parameter from the URL after applying the plan', () => {
+        const payload = { currentYear: 2025, currentRegion: REGIONS.ENGLAND_WALES, currentAllowance: 25 };
+        const encoded = encodePlanString(payload);
+
+        const url = new URL('http://localhost/?other=123');
+        url.searchParams.set('plan', encoded);
+        setUrl(url.toString());
+
+        const pushStateSpy = jest.spyOn(window.history, 'replaceState');
+
+        expect(applySharedPlanFromUrl()).toBe(true);
+
+        expect(pushStateSpy).toHaveBeenCalled();
+        const calledUrl = new URL(pushStateSpy.mock.calls[0][2]);
+        expect(calledUrl.searchParams.has('plan')).toBe(false);
+        expect(calledUrl.searchParams.get('other')).toBe('123');
+
+        pushStateSpy.mockRestore();
+    });
 });
