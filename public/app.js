@@ -2851,7 +2851,9 @@ function updateDayNode(el, date, dateStr = null) {
 
     let tooltipTitle = '';
 
-    const holidayName = getHolidayName(date, dStr);
+    // Bolt Optimization: Only call getHolidayName if the day is already classified as a holiday.
+    // This avoids redundant Map.get() string lookups for the vast majority of non-holidays in the year (~355 days).
+    const holidayName = type === 'holiday' ? getHolidayName(date, dStr) : null;
     if (holidayName) {
         cls += ' holiday';
         tooltipTitle = holidayName;
