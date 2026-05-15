@@ -91,3 +91,11 @@
 ## 2024-05-23 - Avoid Brittle Micro-Optimizations on Arrays
 **Learning:** Replacing `array.includes(value)` with explicit comparisons like `p0 === value || p1 === value` for small arrays (like weekend days) introduces a brittle assumption about the array's maximum length. While it might save a minuscule fraction of a millisecond, it breaks if a user configures a 3-day weekend and violates the principle of not sacrificing maintainability for micro-optimizations.
 **Action:** Do not replace built-in array methods like `.includes()` with fixed-variable explicit comparisons if it encodes a brittle assumption about the array size. Use integer arithmetic to avoid Date object creation, but retain readability for array membership checks.
+
+## 2024-05-18 - Fast Sorting Algorithms for Candidate Selection
+**Learning:** In V8, attempting to replace a manual bounded binary insertion sort loop that tracks top X items with a native `Array.prototype.sort().slice()` approach introduces severe performance regressions (e.g., from ~2.5s down to ~40s when run repeatedly).
+**Action:** Do not remove the manual bounded binary insertion sort from `selectTopCandidates` in `public/app.js` in favor of simpler native array sorting unless the list sizes are trivially small.
+
+## 2024-05-18 - Avoiding Object Array Reallocations in Hot Loops
+**Learning:** Dynamically pushing to an array using `push()` when returning objects in high-frequency loops (like `generateAllCandidates`) causes significant object reallocation overhead in V8.
+**Action:** When creating large arrays of objects, calculate the upper bound and initialize a pre-sized array (`new Array(bound)`). Assign elements manually using an index tracker, then set `array.length = count` at the end to truncate. This simple optimization yields noticeable speed improvements on high-cardinality loops.

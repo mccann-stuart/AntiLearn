@@ -1676,15 +1676,18 @@ function generateAllCandidates(year, allowance) {
     }
 
     // 3. Identify workday indices
-    const workdayIndices = [];
+    const workdayIndices = new Int32Array(daysCount);
+    let numWorkdays = 0;
     for (let i = 0; i < daysCount; i++) {
         if (isOffArray[i] === 0) {
-            workdayIndices.push(i);
+            workdayIndices[numWorkdays++] = i;
         }
     }
 
-    const uniqueCandidates = [];
-    const numWorkdays = workdayIndices.length;
+    // numWorkdays already tracked
+    // Bolt Optimization: Allocate a pre-sized array instead of dynamic push
+    const uniqueCandidates = new Array(numWorkdays * allowance);
+    let candidateCount = 0;
 
     for (let k = 0; k < numWorkdays; k++) {
         const firstBookedIdx = workdayIndices[k];
@@ -1698,7 +1701,7 @@ function generateAllCandidates(year, allowance) {
             const realEnd = expansionEnd[lastBookedIdx];
 
             const totalDaysOff = realEnd - realStart + 1;
-            uniqueCandidates.push({
+            uniqueCandidates[candidateCount++] = {
                 startIdx: realStart,
                 endIdx: realEnd,
                 startDate: realStart, // for findBestCombination sorting (index)
@@ -1706,9 +1709,10 @@ function generateAllCandidates(year, allowance) {
                 leaveDaysUsed: len,
                 totalDaysOff: totalDaysOff,
                 efficiency: totalDaysOff / len
-            });
+            };
         }
     }
+    uniqueCandidates.length = candidateCount;
 
     return uniqueCandidates;
 }
