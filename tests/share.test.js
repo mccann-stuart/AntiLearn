@@ -60,6 +60,7 @@ describe('applySharedPlanFromUrl', () => {
         expect(state.customHolidaysByLocation[REGIONS.SCOTLAND]).toEqual(
             expect.arrayContaining([expect.objectContaining({ date: '2025-05-05', name: 'Cinco De Mayo' })])
         );
+        expect(window.location.search).toBe('');
     });
 
     test('returns false and keeps state if plan string is invalid', () => {
