@@ -37,3 +37,7 @@
 ## 2026-05-18 - Native Date Picker Mobile Snap Behavior
 **Learning:** For better mobile UX on native date inputs (`<input type="date">`), dynamically setting `min` and `max` attributes to the relevant working year boundaries ensures the date picker snaps directly to that year rather than defaulting to the current real-world date. This saves users from having to manually scroll or swipe back/forward months or years when planning for future dates.
 **Action:** When providing a date input that is contextually bound to a specific year or range, always dynamically update its `min` and `max` attributes to match that context to improve native mobile date picker behavior.
+
+## 2026-05-18 - Missing Context for Disabled Interactive Elements on Touch Devices
+**Learning:** Setting `aria-disabled="true"` on a button to preserve keyboard focusability is good for accessibility, but relying entirely on the native `title` attribute for the explanatory tooltip alienates touch device users (like iOS users) because they cannot trigger a hover state to read *why* the button is disabled.
+**Action:** When a button uses `aria-disabled="true"` alongside a `title` attribute for explanatory text, always implement a click/touch handler that intercepts the click (preventing default action) and surfaces the `title` text via an `aria-live` toast notification or similar mechanism. This ensures the explanatory context is available to all users, regardless of device input type.
