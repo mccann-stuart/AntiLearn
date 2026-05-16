@@ -62,6 +62,25 @@ describe('applySharedPlanFromUrl', () => {
         );
     });
 
+    test('strips plan parameter from URL after successful application', () => {
+        const payload = {
+            currentYear: 2025,
+            currentRegion: REGIONS.ENGLAND_WALES,
+            currentAllowance: 25
+        };
+        const encoded = encodePlanString(payload);
+
+        const url = new URL('http://localhost/');
+        url.searchParams.set('plan', encoded);
+        setUrl(url.toString());
+
+        expect(applySharedPlanFromUrl()).toBe(true);
+
+        // JSDOM updates window.location.href automatically via pushState/replaceState
+        const currentUrl = new URL(window.location.href);
+        expect(currentUrl.searchParams.has('plan')).toBe(false);
+    });
+
     test('returns false and keeps state if plan string is invalid', () => {
         const url = new URL('http://localhost/');
         url.searchParams.set('plan', 'invalid-base64-string');
