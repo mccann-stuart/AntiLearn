@@ -91,3 +91,7 @@
 ## 2024-05-23 - Avoid Brittle Micro-Optimizations on Arrays
 **Learning:** Replacing `array.includes(value)` with explicit comparisons like `p0 === value || p1 === value` for small arrays (like weekend days) introduces a brittle assumption about the array's maximum length. While it might save a minuscule fraction of a millisecond, it breaks if a user configures a 3-day weekend and violates the principle of not sacrificing maintainability for micro-optimizations.
 **Action:** Do not replace built-in array methods like `.includes()` with fixed-variable explicit comparisons if it encodes a brittle assumption about the array size. Use integer arithmetic to avoid Date object creation, but retain readability for array membership checks.
+
+## 2024-05-16 - Prevent Array Allocations in Hot Paths
+**Learning:** In high-frequency initialization paths like `getUKHolidays` and `getHolidaysForYear`, using `new Set(holidays.map(...))` and `new Map(holidays.map(...))` introduces measurable performance overhead due to intermediate array allocations via `.map()`.
+**Action:** Use manual `for` loops to populate Sets and Maps from arrays in performance-critical sections to eliminate intermediate array allocations.
