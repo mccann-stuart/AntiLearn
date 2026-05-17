@@ -2073,6 +2073,10 @@ function overlap(b1, b2) {
 function exportToICS() {
     const exportBtn = document.getElementById('export-btn');
     if (exportBtn && exportBtn.getAttribute('aria-disabled') === 'true') {
+        const title = exportBtn.getAttribute('title');
+        if (title) {
+            showToast(title, 'info');
+        }
         return;
     }
 
