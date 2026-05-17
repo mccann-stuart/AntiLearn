@@ -60,6 +60,10 @@ describe('applySharedPlanFromUrl', () => {
         expect(state.customHolidaysByLocation[REGIONS.SCOTLAND]).toEqual(
             expect.arrayContaining([expect.objectContaining({ date: '2025-05-05', name: 'Cinco De Mayo' })])
         );
+
+        // Verify that the plan parameter was stripped from the URL
+        const currentUrl = new URL(window.location.href);
+        expect(currentUrl.searchParams.has('plan')).toBe(false);
     });
 
     test('returns false and keeps state if plan string is invalid', () => {
