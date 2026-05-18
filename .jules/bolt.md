@@ -94,3 +94,7 @@
 ## 2026-05-18 - Optimize combinatorial array allocation
 **Learning:** In `public/app.js`, `generateAllCandidates` created a large array using `.push()` inside a nested loop, triggering costly V8 array resizes. While a pre-calculation loop could determine the exact size, the total combinations can actually be determined mathematically in O(1) time using an arithmetic progression sum based on the `allowance` and `numWorkdays` parameters, providing the exact required array size instantly.
 **Action:** When pre-allocating combinatorial arrays like `uniqueCandidates`, look for mathematical bounds (e.g., arithmetic progressions) to calculate the exact size in O(1) time instead of using pre-calculation loops, and instantiate a single `new Array(total)` to avoid V8 resizing overhead.
+
+## 2026-06-21 - Optimize intermediate array allocations in holiday fetching
+**Learning:** `new Set(array.map(...))` and `new Map(array.map(...))` create intermediate array allocations that can bottleneck high-frequency initialization. Replacing them with standard `for` loops eliminates this overhead and achieves measurable speedup.
+**Action:** When creating sets or maps from arrays in hot paths, avoid using higher-order array methods like `.map` or `.forEach` inside the constructor. Use standard `for` loops to manually populate the set or map.
