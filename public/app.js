@@ -443,6 +443,7 @@ function applySharedPlanFromUrl() {
 
         clearHolidaysCache();
         invalidateInsightCaches();
+        window.history.replaceState({}, document.title, window.location.pathname);
         return true;
     } catch (e) {
         console.warn('Failed to apply shared plan:', e);
