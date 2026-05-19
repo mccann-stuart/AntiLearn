@@ -34,6 +34,25 @@ describe('applySharedPlanFromUrl', () => {
         expect(state.currentYear).toBe(2023); // Default
     });
 
+    test('strips the share parameter from the URL after successfully applying a plan', () => {
+        const payload = {
+            currentYear: 2025,
+            currentRegion: REGIONS.SCOTLAND,
+            currentAllowance: 30
+        };
+        const encoded = encodePlanString(payload);
+
+        const url = new URL('http://localhost/');
+        url.searchParams.set('plan', encoded);
+        setUrl(url.toString());
+
+        expect(applySharedPlanFromUrl()).toBe(true);
+
+        const currentUrl = new URL(window.location.href);
+        expect(currentUrl.searchParams.has('plan')).toBe(false);
+        expect(currentUrl.toString()).toBe('http://localhost/');
+    });
+
     test('returns true and applies valid plan', () => {
         const payload = {
             currentYear: 2025,
