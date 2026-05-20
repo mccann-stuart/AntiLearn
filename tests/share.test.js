@@ -154,6 +154,25 @@ describe('applySharedPlanFromUrl', () => {
         );
     });
 
+    test('strips the plan parameter from the URL after successful application', () => {
+        const payload = {
+            currentYear: 2025,
+            currentRegion: REGIONS.ENGLAND_WALES,
+            currentAllowance: 30
+        };
+        const encoded = encodePlanString(payload);
+
+        const url = new URL('http://localhost/');
+        url.searchParams.set('plan', encoded);
+        setUrl(url.toString());
+
+        expect(applySharedPlanFromUrl()).toBe(true);
+
+        // Verify the plan parameter is removed from the URL
+        const currentUrl = new URL(window.location.href);
+        expect(currentUrl.searchParams.has('plan')).toBe(false);
+    });
+
     test('keeps share button emoji hidden from assistive names after copied state resets', async () => {
         jest.useFakeTimers();
         document.body.innerHTML = `
