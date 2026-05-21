@@ -2482,7 +2482,7 @@ function renderCustomHolidays() {
     if (customHolidays.length === 0) {
         const emptyMsg = document.createElement('div');
         emptyMsg.className = 'empty-message';
-        emptyMsg.textContent = 'No custom holidays added.';
+        emptyMsg.textContent = 'No custom holidays added. Add one above.';
         list.appendChild(emptyMsg);
         return;
     }
@@ -2694,6 +2694,10 @@ function renderStats() {
 
     if (used > currentAllowance) {
         usedEl.classList.add('error');
+        const iconSpan = document.createElement('span');
+        iconSpan.setAttribute('aria-hidden', 'true');
+        iconSpan.textContent = ' ⚠️';
+        usedEl.appendChild(iconSpan);
     } else {
         usedEl.classList.remove('error');
     }
