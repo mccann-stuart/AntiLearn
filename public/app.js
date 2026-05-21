@@ -313,14 +313,17 @@ function sanitizeHolidayList(list) {
 function sanitizeHolidayMap(map) {
     if (!map || typeof map !== 'object') return {};
     const result = {};
-    Object.entries(map).forEach(([key, value]) => {
+    const keys = Object.keys(map);
+    for (let i = 0; i < keys.length; i++) {
+        const key = keys[i];
+        const value = map[key];
         if (typeof key === 'string' && isSupportedRegion(key)) {
             const safeList = sanitizeHolidayList(value);
             if (safeList.length > 0) {
                 result[key] = safeList;
             }
         }
-    });
+    }
     return result;
 }
 
@@ -976,13 +979,18 @@ function getUKHolidays(year, region) {
     // Merge Custom Holidays
     const customHolidays = getCustomHolidaysForLocation(region);
     if (customHolidays.length > 0) {
-        const existingDates = new Set(holidays.map(h => h.date));
-        customHolidays.forEach(h => {
+        // Bolt Optimization: Replace map and forEach with native for loops to avoid intermediate array allocation
+        const existingDates = new Set();
+        for (let i = 0; i < holidays.length; i++) {
+            existingDates.add(holidays[i].date);
+        }
+        for (let i = 0; i < customHolidays.length; i++) {
+            const h = customHolidays[i];
             if (!existingDates.has(h.date)) {
                 holidays.push(h);
                 existingDates.add(h.date);
             }
-        });
+        }
     }
 
     return holidays;
@@ -1186,18 +1194,26 @@ function getHolidaysForYear(year, region) {
             holidays = getDatasetHolidays(year, region);
             const customHolidays = getCustomHolidaysForLocation(region);
             if (customHolidays.length > 0) {
-                const existingDates = new Set(holidays.map(h => h.date));
-                customHolidays.forEach(h => {
+                const existingDates = new Set();
+                for (let i = 0; i < holidays.length; i++) {
+                    existingDates.add(holidays[i].date);
+                }
+                for (let i = 0; i < customHolidays.length; i++) {
+                    const h = customHolidays[i];
                     if (!existingDates.has(h.date)) {
                         holidays.push(h);
                         existingDates.add(h.date);
                     }
-                });
+                }
             }
         } else {
             holidays = getUKHolidays(year, region);
         }
-        const lookup = new Map(holidays.map(h => [h.date, h]));
+        const lookup = new Map();
+        for (let i = 0; i < holidays.length; i++) {
+            const h = holidays[i];
+            lookup.set(h.date, h);
+        }
         holidaysCache.set(key, { holidays, lookup });
     }
 
@@ -2209,11 +2225,14 @@ function init() {
         }
         if (savedState.weekendByLocation && typeof savedState.weekendByLocation === 'object') {
             weekendByLocation = {};
-            Object.entries(savedState.weekendByLocation).forEach(([location, pattern]) => {
+            const locations = Object.keys(savedState.weekendByLocation);
+            for (let i = 0; i < locations.length; i++) {
+                const location = locations[i];
+                const pattern = savedState.weekendByLocation[location];
                 if (isSupportedRegion(location) && Object.prototype.hasOwnProperty.call(WEEKEND_PRESETS, pattern)) {
                     weekendByLocation[location] = pattern;
                 }
-            });
+            }
         }
         if (typeof savedState.currentWeekendPattern === 'string' && Object.prototype.hasOwnProperty.call(WEEKEND_PRESETS, savedState.currentWeekendPattern)) {
             currentWeekendPattern = savedState.currentWeekendPattern;
