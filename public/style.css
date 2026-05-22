@@ -862,7 +862,23 @@ body.scrolled .rec-details {
     }
 
     body.scrolled .stats-container {
-        display: none;
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.75rem;
+    }
+
+    body.scrolled .stat-card {
+        gap: 0.25rem;
+    }
+
+    body.scrolled .stat-value {
+        font-size: 1.1rem;
+    }
+
+    body.scrolled .stat-label {
+        font-size: 0.7rem;
     }
 
     body.scrolled .recommendations-section {
