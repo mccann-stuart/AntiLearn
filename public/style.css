@@ -1346,11 +1346,10 @@ body.scrolled .weekend-group {
 @media (max-width: 768px) {
 
     /* Prevent iOS zoom on focus by ensuring font size is at least 16px */
-    #year-select,
-    .location-group select,
-    .weekend-group select,
-    .custom-holiday-inputs input {
-        font-size: 16px;
+    select,
+    input,
+    textarea {
+        font-size: 16px !important;
     }
 }
 /* Global active state for tactile feedback */
