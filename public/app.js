@@ -2891,8 +2891,10 @@ function updateDayNode(el, date, dateStr = null) {
 
     let tooltipTitle = '';
 
-    const holidayName = getHolidayName(date, dStr);
-    if (holidayName) {
+    let holidayName = null;
+    // ⚡ Bolt Optimization: Gate getHolidayName behind type check to avoid Map lookup for the ~350 non-holidays per year
+    if (type === 'holiday') {
+        holidayName = getHolidayName(date, dStr);
         cls += ' holiday';
         tooltipTitle = holidayName;
     }
