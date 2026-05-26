@@ -98,3 +98,7 @@
 ## 2024-05-23 - Map, Set, and Object.entries overhead
 **Learning:** Replacing `new Set(array.map(...))` and `Object.entries(obj).forEach` with native `for` loops and `Object.keys()` avoids allocating intermediate arrays and nested destructuring closures. While the performance gain is negligible for extremely small arrays (like custom holidays) and often considered a micro-optimization that reduces readability without measurable real-world impact, it adheres strictly to the zero-allocation performance philosophy on hot or repeatedly executed code paths.
 **Action:** When iterating over arrays to build Sets or Maps, or when iterating over object keys, use native `for` loops instead of higher-order array methods (`.map`, `.forEach`, `Object.entries`) to avoid intermediate allocations and garbage collection overhead.
+
+## 2026-05-25 - Conditional holiday name lookups during rendering
+**Learning:** During UI updates, checking if a day is a holiday via `getDayType` before calling `getHolidayName` avoids executing string operations and Map lookups unnecessarily for workdays and weekends, which make up the vast majority of days in a year.
+**Action:** When rendering large data grids (like a calendar), ensure expensive detail lookups are gated by cheap type or flag checks.
