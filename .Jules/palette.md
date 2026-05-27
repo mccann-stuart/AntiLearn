@@ -9,3 +9,7 @@
 ## 2026-05-25 - Fix iOS Safari Auto-Zoom on Input Focus
 **Learning:** Targeting specific IDs/classes to prevent iOS Safari auto-zoom on input focus can lead to brittle CSS that fails when new inputs are added.
 **Action:** Explicitly set `font-size: 16px !important;` for generic `select`, `input`, and `textarea` elements within mobile media queries (e.g., `@media (max-width: 768px)`) to globally prevent auto-zoom and maintain layout stability.
+
+## 2026-05-27 - Surface tooltips for aria-disabled buttons on touch
+**Learning:** Buttons with `aria-disabled="true"` and tooltips (via the `title` attribute) are inaccessible on touch devices because there is no hover state. Users tapping the button receive no feedback or explanation.
+**Action:** Implemented a global capture-phase click handler that detects taps on `aria-disabled="true"` buttons and surfaces their `title` attribute via an `aria-live` toast notification, ensuring the context is accessible regardless of input method.
