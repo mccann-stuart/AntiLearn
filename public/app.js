@@ -1017,7 +1017,8 @@ function clearHolidaysCache() {
     cachedHolidaysDatasetKey = null;
     cachedHolidaysResult = null;
 }
-// Cache per-date insights (efficiency + bridge) to avoid recomputation while interacting.
+// Cache per-date insights (efficiency + bridge) using integer indexing within a year
+// Map<year, Array<{efficiency, totalDaysOff, bridge}>>
 const dayInsightCache = new Map();
 // Cache year-over-year comparison to avoid recomputing optimal plans unnecessarily.
 const yearComparisonCache = new Map();
@@ -1335,42 +1336,42 @@ function isDayOff(date, bookedSet = null) {
  */
 function getDayInsight(date, dateStr = null) {
     if (getDayType(date, dateStr) !== 'workday') return null;
-    const dStr = dateStr || toLocalISOString(date);
-    // Bolt Optimization: dayInsightCache is fully invalidated when region/weekend/custom changes.
-    // Encoding global state into individual date keys causes massive string allocation overhead.
-    const key = dStr;
-    if (!dayInsightCache.has(key)) {
-        let efficiency, totalDaysOff, bridge;
 
-        // Optimization: Use integer-based calculation if caches are ready/compatible
-        const year = date.getFullYear();
-        const cache = dayTypeCache.get(year);
-        if (cache) {
-             const diff = date.getTime() - cache.startTs;
-             // Use Math.round to handle potential DST shifts (usually 1 hour)
-             const idx = Math.round(diff / (1000 * 60 * 60 * 24));
-             if (idx >= 0 && idx < cache.types.length) {
-                 ensureBookedDaysIndices(year);
-                 const result = calculateInsightByIndex(idx, year);
-                 efficiency = result.efficiency;
-                 totalDaysOff = result.totalDaysOff;
-                 bridge = result.bridge;
-             }
+    const year = date.getFullYear();
+    const cache = dayTypeCache.get(year);
+
+    if (cache) {
+        let yearCache = dayInsightCache.get(year);
+        if (!yearCache) {
+            yearCache = new Array(cache.types.length);
+            dayInsightCache.set(year, yearCache);
         }
 
-        // Fallback to Date-based logic if optimization couldn't be used
-        if (efficiency === undefined) {
-            const result = calculateContinuousLeave(date, 1, bookedDates);
-            const prev = addDays(date, -1);
-            const next = addDays(date, 1);
-            bridge = isDayOff(prev, bookedDates) && isDayOff(next, bookedDates);
-            efficiency = result ? result.efficiency : 1;
-            totalDaysOff = result ? result.totalDaysOff : 1;
-        }
+        const diff = date.getTime() - cache.startTs;
+        // Use Math.round to handle potential DST shifts (usually 1 hour)
+        const idx = Math.round(diff / (1000 * 60 * 60 * 24));
 
-        dayInsightCache.set(key, { efficiency, totalDaysOff, bridge });
+        if (idx >= 0 && idx < cache.types.length) {
+            if (yearCache[idx] === undefined) {
+                ensureBookedDaysIndices(year);
+                yearCache[idx] = calculateInsightByIndex(idx, year);
+            }
+            return yearCache[idx];
+        }
     }
-    return dayInsightCache.get(key);
+
+    // Fallback if dayTypeCache is not ready or out of bounds (rare but possible across year boundaries)
+    // We don't bother caching this as it's not the hot path.
+    const result = calculateContinuousLeave(date, 1, bookedDates);
+    const prev = addDays(date, -1);
+    const next = addDays(date, 1);
+    const bridge = isDayOff(prev, bookedDates) && isDayOff(next, bookedDates);
+
+    return {
+        efficiency: result ? result.efficiency : 1,
+        totalDaysOff: result ? result.totalDaysOff : 1,
+        bridge: bridge
+    };
 }
 
 /**
