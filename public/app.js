@@ -2106,6 +2106,21 @@ function overlap(b1, b2) {
 // --- CALENDAR EXPORT ---
 
 /**
+ * Global click handler to surface tooltips for disabled buttons on touch devices.
+ */
+function initDisabledButtonTouchHandler() {
+    if (typeof document === 'undefined') return;
+    document.addEventListener('click', (e) => {
+        const disabledBtn = e.target.closest('button[aria-disabled="true"]');
+        if (disabledBtn && disabledBtn.title) {
+            e.preventDefault();
+            e.stopPropagation();
+            showToast(disabledBtn.title, 'info');
+        }
+    }, true);
+}
+
+/**
  * Generates and downloads an iCal (.ics) file containing all booked leave periods.
  */
 function exportToICS() {
@@ -2391,6 +2406,8 @@ function init() {
     if (exportBtn) {
         exportBtn.addEventListener('click', exportToICS);
     }
+
+    initDisabledButtonTouchHandler();
 
     const shareBtn = document.getElementById('share-btn');
     if (shareBtn) {
