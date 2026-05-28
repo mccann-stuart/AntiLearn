@@ -102,3 +102,7 @@
 ## 2026-05-25 - Conditional holiday name lookups during rendering
 **Learning:** During UI updates, checking if a day is a holiday via `getDayType` before calling `getHolidayName` avoids executing string operations and Map lookups unnecessarily for workdays and weekends, which make up the vast majority of days in a year.
 **Action:** When rendering large data grids (like a calendar), ensure expensive detail lookups are gated by cheap type or flag checks.
+
+## 2026-05-26 - Pre-allocate arrays and cache properties in top K selection
+**Learning:** In `public/app.js`, caching object properties (`c.efficiency`, `c.totalDaysOff`, `c.startIdx`) in local variables before executing bounded binary insertion logic reduces property access overhead. Furthermore, when merging the final small top-K results, replacing a `Set` (which creates iteration closures and memory allocations) with a pre-allocated array (`new Array(150)`) and manual deduplication scanning avoids garbage collection overhead and provides a measurable speedup.
+**Action:** Cache object property accesses before nested bounded sort loops, and use pre-allocated arrays with O(N^2) manual scanning for deduplication when merging very small arrays instead of using `Set`.
