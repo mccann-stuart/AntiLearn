@@ -1756,7 +1756,8 @@ function selectTopCandidates(candidates) {
     // Instead of using splice and pop which modifies the array and shifts elements natively,
     // we use a pre-allocated array and manually shift elements to avoid garbage collection
     // overhead and excessive array object reallocation, making it 2x faster.
-    // Further optimized by inlining the comparison logic and hoisting property accesses.
+    // Further optimized by inlining the comparison logic, hoisting property accesses,
+    // and replacing Set deduplication with manual scanning on pre-allocated arrays.
     const topEff = new Array(100);
     const topDur = new Array(50);
     let effCount = 0;
@@ -1764,15 +1765,18 @@ function selectTopCandidates(candidates) {
 
     for (let i = 0; i < candidates.length; i++) {
         const c = candidates[i];
+        const cEff = c.efficiency;
+        const cTotal = c.totalDaysOff;
+        const cStart = c.startIdx;
 
         let shouldInsertEff = false;
         if (effCount < 100) {
             shouldInsertEff = true;
         } else {
             const b = topEff[99];
-            if (c.efficiency > b.efficiency ||
-               (c.efficiency === b.efficiency && (c.totalDaysOff > b.totalDaysOff ||
-               (c.totalDaysOff === b.totalDaysOff && c.startIdx < b.startIdx)))) {
+            if (cEff > b.efficiency ||
+               (cEff === b.efficiency && (cTotal > b.totalDaysOff ||
+               (cTotal === b.totalDaysOff && cStart < b.startIdx)))) {
                 shouldInsertEff = true;
             }
         }
@@ -1784,9 +1788,9 @@ function selectTopCandidates(candidates) {
                 const mid = (low + high) >> 1;
                 const b = topEff[mid];
 
-                if (b.efficiency > c.efficiency ||
-                   (b.efficiency === c.efficiency && (b.totalDaysOff > c.totalDaysOff ||
-                   (b.totalDaysOff === c.totalDaysOff && b.startIdx < c.startIdx)))) {
+                if (b.efficiency > cEff ||
+                   (b.efficiency === cEff && (b.totalDaysOff > cTotal ||
+                   (b.totalDaysOff === cTotal && b.startIdx < cStart)))) {
                     low = mid + 1;
                 } else {
                     high = mid - 1;
@@ -1804,9 +1808,9 @@ function selectTopCandidates(candidates) {
             shouldInsertDur = true;
         } else {
             const b = topDur[49];
-            if (c.totalDaysOff > b.totalDaysOff ||
-               (c.totalDaysOff === b.totalDaysOff && (c.efficiency > b.efficiency ||
-               (c.efficiency === b.efficiency && c.startIdx < b.startIdx)))) {
+            if (cTotal > b.totalDaysOff ||
+               (cTotal === b.totalDaysOff && (cEff > b.efficiency ||
+               (cEff === b.efficiency && cStart < b.startIdx)))) {
                 shouldInsertDur = true;
             }
         }
@@ -1818,9 +1822,9 @@ function selectTopCandidates(candidates) {
                 const mid = (low + high) >> 1;
                 const b = topDur[mid];
 
-                if (b.totalDaysOff > c.totalDaysOff ||
-                   (b.totalDaysOff === c.totalDaysOff && (b.efficiency > c.efficiency ||
-                   (b.efficiency === c.efficiency && b.startIdx < c.startIdx)))) {
+                if (b.totalDaysOff > cTotal ||
+                   (b.totalDaysOff === cTotal && (b.efficiency > cEff ||
+                   (b.efficiency === cEff && b.startIdx < cStart)))) {
                     low = mid + 1;
                 } else {
                     high = mid - 1;
@@ -1834,27 +1838,29 @@ function selectTopCandidates(candidates) {
         }
     }
 
-    const finalCandidates = [];
-    const finalSeen = new Set();
+    const finalCandidates = new Array(150);
+    let finalCount = 0;
 
     for (let i = 0; i < effCount; i++) {
-        const c = topEff[i];
-        const key = (c.startIdx << 16) | c.endIdx;
-        if (!finalSeen.has(key)) {
-            finalSeen.add(key);
-            finalCandidates.push(c);
-        }
+        finalCandidates[finalCount++] = topEff[i];
     }
 
     for (let i = 0; i < durCount; i++) {
         const c = topDur[i];
-        const key = (c.startIdx << 16) | c.endIdx;
-        if (!finalSeen.has(key)) {
-            finalSeen.add(key);
-            finalCandidates.push(c);
+        let found = false;
+        for (let j = 0; j < effCount; j++) {
+            const b = topEff[j];
+            if (b.startIdx === c.startIdx && b.endIdx === c.endIdx) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            finalCandidates[finalCount++] = c;
         }
     }
 
+    finalCandidates.length = finalCount;
     finalCandidates.sort((a, b) => (b.efficiency - a.efficiency) || (b.totalDaysOff - a.totalDaysOff) || (a.startIdx - b.startIdx));
     return finalCandidates;
 }
@@ -2099,6 +2105,21 @@ function overlap(b1, b2) {
 }
 
 // --- CALENDAR EXPORT ---
+
+/**
+ * Global click handler to surface tooltips for disabled buttons on touch devices.
+ */
+function initDisabledButtonTouchHandler() {
+    if (typeof document === 'undefined') return;
+    document.addEventListener('click', (e) => {
+        const disabledBtn = e.target.closest('button[aria-disabled="true"]');
+        if (disabledBtn && disabledBtn.title) {
+            e.preventDefault();
+            e.stopPropagation();
+            showToast(disabledBtn.title, 'info');
+        }
+    }, true);
+}
 
 /**
  * Generates and downloads an iCal (.ics) file containing all booked leave periods.
@@ -2386,6 +2407,8 @@ function init() {
     if (exportBtn) {
         exportBtn.addEventListener('click', exportToICS);
     }
+
+    initDisabledButtonTouchHandler();
 
     const shareBtn = document.getElementById('share-btn');
     if (shareBtn) {
