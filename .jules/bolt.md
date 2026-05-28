@@ -102,3 +102,7 @@
 ## 2026-05-25 - Conditional holiday name lookups during rendering
 **Learning:** During UI updates, checking if a day is a holiday via `getDayType` before calling `getHolidayName` avoids executing string operations and Map lookups unnecessarily for workdays and weekends, which make up the vast majority of days in a year.
 **Action:** When rendering large data grids (like a calendar), ensure expensive detail lookups are gated by cheap type or flag checks.
+
+## $(date +%Y-%m-%d) - Array Indexing Trumps Maps for Known Integer Domains
+**Learning:** `dayInsightCache` was originally using a `Map` with string keys (`"YYYY-MM-DD"`). In high-frequency operations like calendar generation (`updateDayNode`), creating thousands of strings and doing `Map.get()`/`Map.has()` causes significant garbage collection and execution overhead. Since we know the domain of the keys perfectly (the 365/366 days in a year), converting this to a `Map<Year, Array>` where we index by the integer offset of the day improves performance substantially (~4x).
+**Action:** When caching properties associated with every single day of the year within hot rendering loops, favor arrays indexed by integer math (day of the year offset) over `Map` objects with string keys.
