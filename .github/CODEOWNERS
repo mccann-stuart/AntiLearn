@@ -1,0 +1,4 @@
+# This is a comment.
+# Each line is a file pattern followed by one or more owners.
+# These owners will be the default reviewers for any changes made to that file.
+* @mccann-stuart
