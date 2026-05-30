@@ -152,7 +152,7 @@ async function resolveSecretBinding(binding, secretName) {
             const value = await binding.get(secretName);
             if (typeof value === 'string') return value;
         } catch (e) {
-            console.warn(`Failed to access secret via get(name) for ${secretName}.`);
+            console.warn('Failed to access secret via get(name).');
             return '';
         }
     }
@@ -184,6 +184,8 @@ async function refreshHolidayDataset(env) {
     await env.HOLIDAY_DATA.put(HOLIDAY_DATA_KEY, JSON.stringify(dataset));
     console.log('Holiday dataset saved to KV.');
 }
+
+export { resolveSecretBinding };
 
 export default {
     async fetch(request, env) {
