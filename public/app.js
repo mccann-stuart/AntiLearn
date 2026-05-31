@@ -2722,6 +2722,11 @@ function renderStats() {
         iconSpan.setAttribute('aria-hidden', 'true');
         iconSpan.textContent = ' ⚠️';
         usedEl.appendChild(iconSpan);
+
+        const srSpan = document.createElement('span');
+        srSpan.className = 'sr-only';
+        srSpan.textContent = ' (Exceeds allowance)';
+        usedEl.appendChild(srSpan);
     } else {
         usedEl.classList.remove('error');
     }

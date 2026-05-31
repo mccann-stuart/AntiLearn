@@ -37,3 +37,7 @@
 ## 2026-05-18 - Native Date Picker Mobile Snap Behavior
 **Learning:** For better mobile UX on native date inputs (`<input type="date">`), dynamically setting `min` and `max` attributes to the relevant working year boundaries ensures the date picker snaps directly to that year rather than defaulting to the current real-world date. This saves users from having to manually scroll or swipe back/forward months or years when planning for future dates.
 **Action:** When providing a date input that is contextually bound to a specific year or range, always dynamically update its `min` and `max` attributes to match that context to improve native mobile date picker behavior.
+
+## 2026-05-31 - Accessible Dynamic Error States
+**Learning:** When indicating an error state dynamically (e.g., exceeding an allowance quota), relying solely on color changes and `aria-hidden` visual icons fails to convey the error to screen reader users. Screen readers will only read the numerical value without the critical context that it represents an error.
+**Action:** When dynamically injecting visual error indicators (like warning emojis), always pair them with an accompanying `span` utilizing a `.sr-only` class that explicitly articulates the error state (e.g., " (Exceeds allowance)") to ensure full compliance with WCAG guidelines preventing reliance on color alone.
