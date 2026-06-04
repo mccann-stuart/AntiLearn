@@ -2737,6 +2737,11 @@ function renderStats() {
 
     document.getElementById('days-off').textContent = totalOff;
 
+    const announcer = document.getElementById('a11y-stats-announcer');
+    if (announcer) {
+        announcer.textContent = `${used} out of ${currentAllowance} days used. ${totalOff} total days off.`;
+    }
+
     const exportBtn = document.getElementById('export-btn');
     if (exportBtn) {
         if (blocks.length === 0) {
