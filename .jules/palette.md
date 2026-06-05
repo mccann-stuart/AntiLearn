@@ -41,3 +41,7 @@
 ## 2026-05-31 - Accessible Dynamic Error States
 **Learning:** When indicating an error state dynamically (e.g., exceeding an allowance quota), relying solely on color changes and `aria-hidden` visual icons fails to convey the error to screen reader users. Screen readers will only read the numerical value without the critical context that it represents an error.
 **Action:** When dynamically injecting visual error indicators (like warning emojis), always pair them with an accompanying `span` utilizing a `.sr-only` class that explicitly articulates the error state (e.g., " (Exceeds allowance)") to ensure full compliance with WCAG guidelines preventing reliance on color alone.
+
+## 2025-02-28 - Screen Reader Context for Dynamic Statistics
+**Learning:** When user interactions (like clicking days in a calendar) update dynamic statistics located outside their immediate UI context (like a header summary), screen reader users receive no feedback that the state has changed. Relying on visual updates leaves them unaware of their remaining allowance or total days off.
+**Action:** When user interactions update dynamic statistics located outside the immediate UI context, inject a visually hidden (`.sr-only`) `aria-live="polite"` region that explicitly announces a human-readable summary of the updated state to screen readers.
