@@ -113,3 +113,7 @@
 ## 2026-06-01 - Replace expensive Date initialization with integer math for leap year checks
 **Learning:** `new Date(year, 1, 29).getMonth() === 1` was used to check for leap years. This creates an unnecessary `Date` object each time, which is roughly 60x slower than simple integer math (`(year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0))`). Since these checks occurred inside repeatedly executed functions, the `Date` initialization overhead added up.
 **Action:** Replace `Date` instantiation with mathematical checks (like `isLeapYear(year)`) when trying to calculate static properties of dates, particularly in hot loops.
+
+## 2026-06-07 - Replaced Date conversion with month offsets for date string indices calculation
+**Learning:** Inside hot loops such as `ensureBookedDaysIndices`, converting a date string like `"YYYY-MM-DD"` into a `Date` object and calling `getTime()` to calculate the day-of-year index by comparing with `startTs` causes significant performance overhead (~200ms per 1M iterations) due to object allocations and timezone-related calculations. Computing the day-of-year index directly from the string using string indices (`charCodeAt`) and pre-calculated month offsets reduces the execution time to ~15ms (a >10x speedup).
+**Action:** When determining the sequential day index of a date string within a year inside a hot loop, avoid full `Date` object conversion. Instead, parse the month and day integers using fast primitive operations like `charCodeAt` and add the pre-calculated day offsets for the given month.
