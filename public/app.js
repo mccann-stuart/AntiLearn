@@ -2747,6 +2747,14 @@ function renderStats() {
             exportBtn.removeAttribute('title');
         }
     }
+
+    const announcer = document.getElementById('stats-announcer');
+    if (announcer) {
+        const newAnnouncement = `Plan updated. ${used} of ${currentAllowance} allowance days used, resulting in ${totalOff} total days off.`;
+        if (announcer.textContent !== newAnnouncement) {
+            announcer.textContent = newAnnouncement;
+        }
+    }
 }
 
 /**
