@@ -130,7 +130,7 @@ describe('Security Input Validation', () => {
             document.getElementById('custom-holiday-form').dispatchEvent(new Event('submit'));
 
             // clear toast
-            toastContainer.innerHTML = '';
+            toastContainer.textContent = '';
         }
 
         const stateBefore = app.getCurrentState();

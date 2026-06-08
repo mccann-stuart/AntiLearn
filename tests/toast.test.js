@@ -6,13 +6,16 @@ describe('showToast DOM Updates', () => {
 
     beforeEach(() => {
         jest.useFakeTimers();
-        document.body.innerHTML = '<div id="toast-container"></div>';
+        document.body.textContent = '';
+        const div = document.createElement('div');
+        div.id = 'toast-container';
+        document.body.appendChild(div);
         container = document.getElementById('toast-container');
     });
 
     afterEach(() => {
         jest.useRealTimers();
-        document.body.innerHTML = '';
+        document.body.textContent = '';
     });
 
     test('should create and append a toast with default type (info)', () => {
@@ -46,7 +49,7 @@ describe('showToast DOM Updates', () => {
     });
 
     test('should do nothing if toast-container is missing', () => {
-        document.body.innerHTML = ''; // Remove container
+        document.body.textContent = ''; // Remove container
         const message = 'No container message';
 
         showToast(message);

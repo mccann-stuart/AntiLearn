@@ -74,7 +74,7 @@ describe('Allowance Feedback Logic', () => {
         dayElement.click();
 
         const toastContainer = document.getElementById('toast-container');
-        expect(toastContainer.innerHTML).toBe('');
+        expect(toastContainer.textContent).toBe('');
     });
 
     test('Does not display toast when removing a booked day', () => {
@@ -88,6 +88,6 @@ describe('Allowance Feedback Logic', () => {
         dayElement.click();
 
         const toastContainer = document.getElementById('toast-container');
-        expect(toastContainer.innerHTML).toBe('');
+        expect(toastContainer.textContent).toBe('');
     });
 });
