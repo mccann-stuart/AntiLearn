@@ -2737,6 +2737,18 @@ function renderStats() {
 
     document.getElementById('days-off').textContent = totalOff;
 
+    let announcer = document.getElementById('stats-announcer');
+    if (!announcer && typeof document !== 'undefined' && document.body) {
+        announcer = document.createElement('div');
+        announcer.id = 'stats-announcer';
+        announcer.className = 'sr-only';
+        announcer.setAttribute('aria-live', 'polite');
+        document.body.appendChild(announcer);
+    }
+    if (announcer) {
+        announcer.textContent = `Plan updated: ${used} out of ${currentAllowance} leave days used, resulting in ${totalOff} total days off.`;
+    }
+
     const exportBtn = document.getElementById('export-btn');
     if (exportBtn) {
         if (blocks.length === 0) {
