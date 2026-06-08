@@ -202,8 +202,25 @@ let holidayDatasetPromise = null;
 let holidayDatasetFromCache = false;
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
+const MONTH_OFFSETS_NON_LEAP = new Int32Array([0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334]);
+const MONTH_OFFSETS_LEAP = new Int32Array([0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335]);
+
 function isLeapYear(year) {
     return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+}
+
+/**
+ * ⚡ Bolt Optimization: Calculate day-of-year index quickly without Date object instantiation or getTime() timezone math.
+ */
+function getDayOfYearIndex(date, dateStr = null) {
+    const isLeap = isLeapYear(date.getFullYear());
+    const offsets = isLeap ? MONTH_OFFSETS_LEAP : MONTH_OFFSETS_NON_LEAP;
+    if (dateStr) {
+        const m = (dateStr.charCodeAt(5) - 48) * 10 + (dateStr.charCodeAt(6) - 48);
+        const d = (dateStr.charCodeAt(8) - 48) * 10 + (dateStr.charCodeAt(9) - 48);
+        return offsets[m - 1] + d - 1;
+    }
+    return offsets[date.getMonth()] + date.getDate() - 1;
 }
 
 function isValidISODateString(dateStr) {
@@ -1156,13 +1173,15 @@ function ensureBookedDaysIndices(year) {
     if (bookedDates.size === 0) return;
 
     // Populate indices
+    const offsets = isLeap ? MONTH_OFFSETS_LEAP : MONTH_OFFSETS_NON_LEAP;
     bookedDates.forEach(dateStr => {
         // Simple check if dateStr belongs to year
         if (dateStr.startsWith(String(year))) {
-             // Calculate index
-             const date = parseISODateString(dateStr);
-             const diff = date.getTime() - cache.startTs;
-             const idx = Math.round(diff / (1000 * 60 * 60 * 24));
+             // ⚡ Bolt Optimization: Avoid Date allocation and getTime math for day-of-year index
+             const m = (dateStr.charCodeAt(5) - 48) * 10 + (dateStr.charCodeAt(6) - 48);
+             const d = (dateStr.charCodeAt(8) - 48) * 10 + (dateStr.charCodeAt(9) - 48);
+             const idx = offsets[m - 1] + d - 1;
+
              if (idx >= 0 && idx < daysCount) {
                  bookedDaysIndices[idx] = 1;
              }
@@ -1277,9 +1296,8 @@ function getDayType(date, dateStr = null) {
     const cache = dayTypeCache.get(year);
 
     if (cache) {
-        const diff = date.getTime() - cache.startTs;
-        // Use Math.round to handle potential DST shifts (usually 1 hour)
-        const dayIndex = Math.round(diff / (1000 * 60 * 60 * 24));
+        // ⚡ Bolt Optimization: Replace getTime math with fast integer offsets
+        const dayIndex = getDayOfYearIndex(date, dateStr);
 
         if (dayIndex >= 0 && dayIndex < cache.types.length) {
             return cache.types[dayIndex];
@@ -1349,9 +1367,8 @@ function getDayInsight(date, dateStr = null) {
             dayInsightCache.set(year, yearCache);
         }
 
-        const diff = date.getTime() - cache.startTs;
-        // Use Math.round to handle potential DST shifts (usually 1 hour)
-        const idx = Math.round(diff / (1000 * 60 * 60 * 24));
+        // ⚡ Bolt Optimization: Replace getTime math with fast integer offsets
+        const idx = getDayOfYearIndex(date, dateStr);
 
         if (idx >= 0 && idx < cache.types.length) {
             if (yearCache[idx] === undefined) {
