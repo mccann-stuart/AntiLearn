@@ -113,3 +113,7 @@
 ## 2026-06-01 - Replace expensive Date initialization with integer math for leap year checks
 **Learning:** `new Date(year, 1, 29).getMonth() === 1` was used to check for leap years. This creates an unnecessary `Date` object each time, which is roughly 60x slower than simple integer math (`(year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0))`). Since these checks occurred inside repeatedly executed functions, the `Date` initialization overhead added up.
 **Action:** Replace `Date` instantiation with mathematical checks (like `isLeapYear(year)`) when trying to calculate static properties of dates, particularly in hot loops.
+
+## $(date +%Y-%m-%d) - Optimize day-of-year calculations using month offsets
+**Learning:** Instantiating `Date` objects and performing timestamp math (`Math.round(diff / 86400000)`) inside hot loops (like processing 365 days repeatedly during cache initialization or insights generation) causes significant allocation and execution overhead.
+**Action:** Replace `Date` instantiation and math with fast string extraction (`charCodeAt`) and O(1) array lookups using pre-calculated `MONTH_OFFSETS_NON_LEAP` / `MONTH_OFFSETS_LEAP` arrays where `YYYY-MM-DD` strings are already available.

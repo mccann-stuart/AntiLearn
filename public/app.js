@@ -202,6 +202,9 @@ let holidayDatasetPromise = null;
 let holidayDatasetFromCache = false;
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
 
+const MONTH_OFFSETS_NON_LEAP = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+const MONTH_OFFSETS_LEAP = [0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335];
+
 function isLeapYear(year) {
     return year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
 }
@@ -1160,9 +1163,10 @@ function ensureBookedDaysIndices(year) {
         // Simple check if dateStr belongs to year
         if (dateStr.startsWith(String(year))) {
              // Calculate index
-             const date = parseISODateString(dateStr);
-             const diff = date.getTime() - cache.startTs;
-             const idx = Math.round(diff / (1000 * 60 * 60 * 24));
+             const m = (dateStr.charCodeAt(5) - 48) * 10 + (dateStr.charCodeAt(6) - 48);
+             const d = (dateStr.charCodeAt(8) - 48) * 10 + (dateStr.charCodeAt(9) - 48);
+             const offsets = isLeap ? MONTH_OFFSETS_LEAP : MONTH_OFFSETS_NON_LEAP;
+             const idx = offsets[m - 1] + d - 1;
              if (idx >= 0 && idx < daysCount) {
                  bookedDaysIndices[idx] = 1;
              }
@@ -1277,9 +1281,17 @@ function getDayType(date, dateStr = null) {
     const cache = dayTypeCache.get(year);
 
     if (cache) {
-        const diff = date.getTime() - cache.startTs;
-        // Use Math.round to handle potential DST shifts (usually 1 hour)
-        const dayIndex = Math.round(diff / (1000 * 60 * 60 * 24));
+        let dayIndex;
+        if (dateStr && dateStr.length === 10) {
+            const m = (dateStr.charCodeAt(5) - 48) * 10 + (dateStr.charCodeAt(6) - 48);
+            const d = (dateStr.charCodeAt(8) - 48) * 10 + (dateStr.charCodeAt(9) - 48);
+            const offsets = isLeapYear(year) ? MONTH_OFFSETS_LEAP : MONTH_OFFSETS_NON_LEAP;
+            dayIndex = offsets[m - 1] + d - 1;
+        } else {
+            const diff = date.getTime() - cache.startTs;
+            // Use Math.round to handle potential DST shifts (usually 1 hour)
+            dayIndex = Math.round(diff / (1000 * 60 * 60 * 24));
+        }
 
         if (dayIndex >= 0 && dayIndex < cache.types.length) {
             return cache.types[dayIndex];
@@ -1349,9 +1361,17 @@ function getDayInsight(date, dateStr = null) {
             dayInsightCache.set(year, yearCache);
         }
 
-        const diff = date.getTime() - cache.startTs;
-        // Use Math.round to handle potential DST shifts (usually 1 hour)
-        const idx = Math.round(diff / (1000 * 60 * 60 * 24));
+        let idx;
+        if (dateStr && dateStr.length === 10) {
+            const m = (dateStr.charCodeAt(5) - 48) * 10 + (dateStr.charCodeAt(6) - 48);
+            const d = (dateStr.charCodeAt(8) - 48) * 10 + (dateStr.charCodeAt(9) - 48);
+            const offsets = isLeapYear(year) ? MONTH_OFFSETS_LEAP : MONTH_OFFSETS_NON_LEAP;
+            idx = offsets[m - 1] + d - 1;
+        } else {
+            const diff = date.getTime() - cache.startTs;
+            // Use Math.round to handle potential DST shifts (usually 1 hour)
+            idx = Math.round(diff / (1000 * 60 * 60 * 24));
+        }
 
         if (idx >= 0 && idx < cache.types.length) {
             if (yearCache[idx] === undefined) {
