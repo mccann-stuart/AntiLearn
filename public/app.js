@@ -2751,6 +2751,17 @@ function renderStats() {
 
     document.getElementById('days-off').textContent = totalOff;
 
+    const announcer = document.getElementById('stats-announcer');
+    if (announcer) {
+        let announcement = `Plan updated. You have used ${used} out of ${currentAllowance} allowance days, for a total of ${totalOff} days off.`;
+        if (used > currentAllowance) {
+            announcement += ` Warning: You have exceeded your allowance by ${used - currentAllowance} days.`;
+        }
+        if (announcer.textContent !== announcement) {
+            announcer.textContent = announcement;
+        }
+    }
+
     const exportBtn = document.getElementById('export-btn');
     if (exportBtn) {
         if (blocks.length === 0) {
