@@ -1036,6 +1036,7 @@ let dayTypeCacheContext = {
 
 // Cache booked days as indices for fast lookup
 let bookedDaysIndices = null;
+let analyzedPlanCache = null;
 let bookedDaysYear = null;
 
 function invalidateInsightCaches() {
@@ -1049,6 +1050,7 @@ function invalidateInsightCaches() {
         customCount: null
     };
     bookedDaysIndices = null;
+    analyzedPlanCache = null;
 
     // Also clear the fast-path cache
     cachedHolidaysYear = null;
@@ -1067,6 +1069,7 @@ function invalidateInsightCaches() {
 function invalidateBookedDaysCaches() {
     dayInsightCache.clear();
     bookedDaysIndices = null;
+    analyzedPlanCache = null;
 }
 
 /**
@@ -2640,6 +2643,10 @@ function updateUI() {
  * Bolt Optimization: Uses integer-based indices (0-365) instead of Date objects for O(N) performance.
  */
 function analyzeCurrentPlan() {
+    // Bolt Optimization: Cache the deterministic result of analyzeCurrentPlan
+    // because it is called multiple times per UI update cycle (stats, recommendations, etc.)
+    // Avoids redundant O(N) traversal and sorting.
+    if (analyzedPlanCache) return analyzedPlanCache;
     if (bookedDates.size === 0) return [];
 
     // Ensure caches are ready for the current year
@@ -2687,6 +2694,7 @@ function analyzeCurrentPlan() {
     }
 
     blocks.sort((a, b) => b.totalDays - a.totalDays);
+    analyzedPlanCache = blocks;
     return blocks;
 }
 
@@ -2798,7 +2806,8 @@ function renderRecommendations() {
     const container = document.getElementById('recommendations');
     container.textContent = '';
 
-    const blocks = analyzeCurrentPlan();
+    // Bolt Optimization: Spread into new array to prevent sorting from mutating the cache
+    const blocks = [...analyzeCurrentPlan()];
     blocks.sort((a, b) => a.startDate - b.startDate);
     const top3 = blocks.slice(0, 3);
 

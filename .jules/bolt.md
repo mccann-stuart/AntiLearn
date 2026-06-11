@@ -113,3 +113,7 @@
 ## 2026-06-01 - Replace expensive Date initialization with integer math for leap year checks
 **Learning:** `new Date(year, 1, 29).getMonth() === 1` was used to check for leap years. This creates an unnecessary `Date` object each time, which is roughly 60x slower than simple integer math (`(year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0))`). Since these checks occurred inside repeatedly executed functions, the `Date` initialization overhead added up.
 **Action:** Replace `Date` instantiation with mathematical checks (like `isLeapYear(year)`) when trying to calculate static properties of dates, particularly in hot loops.
+
+## 2026-06-11 - Cache Expensive Analysis in Multi-call UI Render Loops
+**Learning:** `analyzeCurrentPlan` was being called multiple times per UI update (stats, recommendations, export checks, core loop). Since its result is deterministic based on `bookedDates`, failing to cache it redundantly executed O(N) array traversals and array sorting on every UI component render.
+**Action:** When a deterministic function is called multiple times by different UI rendering functions during a single update cycle, implement a module-level cache that is only invalidated when the underlying state (e.g., `bookedDates`) changes. Ensure callers that modify the array (like sorting) use a spread copy (`[...cache]`) to prevent cache mutation.
