@@ -488,9 +488,15 @@ function showToast(message, type = 'info') {
     iconSpan.setAttribute('aria-hidden', 'true');
     iconSpan.textContent = icon + ' ';
 
+    const srSpan = document.createElement('span');
+    srSpan.className = 'sr-only';
+    const srText = type === 'success' ? 'Success: ' : type === 'error' ? 'Error: ' : 'Information: ';
+    srSpan.textContent = srText;
+
     const messageNode = document.createTextNode(message);
 
     toast.appendChild(iconSpan);
+    toast.appendChild(srSpan);
     toast.appendChild(messageNode);
 
     container.appendChild(toast);
