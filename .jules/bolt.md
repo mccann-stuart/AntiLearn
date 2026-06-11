@@ -117,3 +117,6 @@
 ## $(date +%Y-%m-%d) - Optimize day-of-year calculations using month offsets
 **Learning:** Instantiating `Date` objects and performing timestamp math (`Math.round(diff / 86400000)`) inside hot loops (like processing 365 days repeatedly during cache initialization or insights generation) causes significant allocation and execution overhead.
 **Action:** Replace `Date` instantiation and math with fast string extraction (`charCodeAt`) and O(1) array lookups using pre-calculated `MONTH_OFFSETS_NON_LEAP` / `MONTH_OFFSETS_LEAP` arrays where `YYYY-MM-DD` strings are already available.
+## 2026-06-11 - Cache Expensive Analysis in Multi-call UI Render Loops
+**Learning:** `analyzeCurrentPlan` was being called multiple times per UI update (stats, recommendations, export checks, core loop). Since its result is deterministic based on `bookedDates`, failing to cache it redundantly executed O(N) array traversals and array sorting on every UI component render.
+**Action:** When a deterministic function is called multiple times by different UI rendering functions during a single update cycle, implement a module-level cache that is only invalidated when the underlying state (e.g., `bookedDates`) changes. Ensure callers that modify the array (like sorting) use a spread copy (`[...cache]`) to prevent cache mutation.

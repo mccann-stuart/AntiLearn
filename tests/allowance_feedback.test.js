@@ -8,6 +8,7 @@ describe('Allowance Feedback Logic', () => {
     // Mock DOM elements required by renderCalendar and showToast
     beforeEach(() => {
         document.body.innerHTML = `
+            <div id="stats-announcer" class="sr-only" aria-live="polite"></div>
             <div id="toast-container"></div>
             <div id="calendar"></div>
             <div id="days-used"></div>
@@ -89,5 +90,28 @@ describe('Allowance Feedback Logic', () => {
 
         const toastContainer = document.getElementById('toast-container');
         expect(toastContainer.innerHTML).toBe('');
+    });
+
+    test('Updates stats announcer when allowance is exceeded', () => {
+        app.setTestState(2023, 'england-wales', [], ['2023-01-02', '2023-01-03', '2023-01-04', '2023-01-05', '2023-01-06'], 'sat-sun', 5);
+        app.renderCalendar();
+
+        const dayElement = document.querySelector('.day[data-date="2023-01-09"]');
+        dayElement.click(); // book 6th day
+
+        const announcer = document.getElementById('stats-announcer');
+        expect(announcer.textContent).toContain('Warning: You have exceeded your allowance by 1 days.');
+    });
+
+    test('Updates stats announcer correctly when under allowance', () => {
+        app.setTestState(2023, 'england-wales', [], ['2023-01-02'], 'sat-sun', 5);
+        app.renderCalendar();
+
+        const dayElement = document.querySelector('.day[data-date="2023-01-03"]');
+        dayElement.click(); // book 2nd day
+
+        const announcer = document.getElementById('stats-announcer');
+        expect(announcer.textContent).toContain('Plan updated. You have used 2 out of 5 allowance days');
+        expect(announcer.textContent).not.toContain('Warning');
     });
 });

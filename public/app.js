@@ -491,9 +491,15 @@ function showToast(message, type = 'info') {
     iconSpan.setAttribute('aria-hidden', 'true');
     iconSpan.textContent = icon + ' ';
 
+    const srSpan = document.createElement('span');
+    srSpan.className = 'sr-only';
+    const srText = type === 'success' ? 'Success: ' : type === 'error' ? 'Error: ' : 'Information: ';
+    srSpan.textContent = srText;
+
     const messageNode = document.createTextNode(message);
 
     toast.appendChild(iconSpan);
+    toast.appendChild(srSpan);
     toast.appendChild(messageNode);
 
     container.appendChild(toast);
@@ -1039,6 +1045,7 @@ let dayTypeCacheContext = {
 
 // Cache booked days as indices for fast lookup
 let bookedDaysIndices = null;
+let analyzedPlanCache = null;
 let bookedDaysYear = null;
 
 function invalidateInsightCaches() {
@@ -1052,6 +1059,7 @@ function invalidateInsightCaches() {
         customCount: null
     };
     bookedDaysIndices = null;
+    analyzedPlanCache = null;
 
     // Also clear the fast-path cache
     cachedHolidaysYear = null;
@@ -1070,6 +1078,7 @@ function invalidateInsightCaches() {
 function invalidateBookedDaysCaches() {
     dayInsightCache.clear();
     bookedDaysIndices = null;
+    analyzedPlanCache = null;
 }
 
 /**
@@ -2660,6 +2669,10 @@ function updateUI() {
  * Bolt Optimization: Uses integer-based indices (0-365) instead of Date objects for O(N) performance.
  */
 function analyzeCurrentPlan() {
+    // Bolt Optimization: Cache the deterministic result of analyzeCurrentPlan
+    // because it is called multiple times per UI update cycle (stats, recommendations, etc.)
+    // Avoids redundant O(N) traversal and sorting.
+    if (analyzedPlanCache) return analyzedPlanCache;
     if (bookedDates.size === 0) return [];
 
     // Ensure caches are ready for the current year
@@ -2707,6 +2720,7 @@ function analyzeCurrentPlan() {
     }
 
     blocks.sort((a, b) => b.totalDays - a.totalDays);
+    analyzedPlanCache = blocks;
     return blocks;
 }
 
@@ -2756,6 +2770,17 @@ function renderStats() {
     usedEl.style.color = '';
 
     document.getElementById('days-off').textContent = totalOff;
+
+    const announcer = document.getElementById('stats-announcer');
+    if (announcer) {
+        let announcement = `Plan updated. You have used ${used} out of ${currentAllowance} allowance days, for a total of ${totalOff} days off.`;
+        if (used > currentAllowance) {
+            announcement += ` Warning: You have exceeded your allowance by ${used - currentAllowance} days.`;
+        }
+        if (announcer.textContent !== announcement) {
+            announcer.textContent = announcement;
+        }
+    }
 
     const exportBtn = document.getElementById('export-btn');
     if (exportBtn) {
@@ -2818,7 +2843,8 @@ function renderRecommendations() {
     const container = document.getElementById('recommendations');
     container.textContent = '';
 
-    const blocks = analyzeCurrentPlan();
+    // Bolt Optimization: Spread into new array to prevent sorting from mutating the cache
+    const blocks = [...analyzeCurrentPlan()];
     blocks.sort((a, b) => a.startDate - b.startDate);
     const top3 = blocks.slice(0, 3);
 
