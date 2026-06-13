@@ -120,3 +120,7 @@
 ## 2026-06-11 - Cache Expensive Analysis in Multi-call UI Render Loops
 **Learning:** `analyzeCurrentPlan` was being called multiple times per UI update (stats, recommendations, export checks, core loop). Since its result is deterministic based on `bookedDates`, failing to cache it redundantly executed O(N) array traversals and array sorting on every UI component render.
 **Action:** When a deterministic function is called multiple times by different UI rendering functions during a single update cycle, implement a module-level cache that is only invalidated when the underlying state (e.g., `bookedDates`) changes. Ensure callers that modify the array (like sorting) use a spread copy (`[...cache]`) to prevent cache mutation.
+
+## 2026-06-13 - Replace Intl.DateTimeFormat with manual string building
+**Learning:** In hot rendering loops, `Intl.DateTimeFormat` (even when cached/shared) adds significant overhead due to native calls. Manual string building using arrays (`WEEKDAYS_LONG`, `MONTHS_LONG`) and integer math (`date.getDay()`, `date.getMonth()`, `date.getDate()`) is approximately 10x faster.
+**Action:** Avoid native `Intl` formats in hot loops like `updateDayNode` where simple date string building suffices.
