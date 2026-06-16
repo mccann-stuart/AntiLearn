@@ -120,3 +120,6 @@
 ## 2026-06-11 - Cache Expensive Analysis in Multi-call UI Render Loops
 **Learning:** `analyzeCurrentPlan` was being called multiple times per UI update (stats, recommendations, export checks, core loop). Since its result is deterministic based on `bookedDates`, failing to cache it redundantly executed O(N) array traversals and array sorting on every UI component render.
 **Action:** When a deterministic function is called multiple times by different UI rendering functions during a single update cycle, implement a module-level cache that is only invalidated when the underlying state (e.g., `bookedDates`) changes. Ensure callers that modify the array (like sorting) use a spread copy (`[...cache]`) to prevent cache mutation.
+## $(date +%Y-%m-%d) - Native Intl Overhead in Hot Paths
+ **Learning:** Native `Intl.DateTimeFormat` has significant initialization and execution overhead even when cached. When executed thousands of times during DOM rendering (e.g., building calendar tooltips), it causes a severe performance bottleneck.
+ **Action:** For performance-critical hot paths, replace `Intl.DateTimeFormat` with manual array lookups (e.g., `WEEKDAYS[date.getDay()]`) and string concatenation, which is ~13-25x faster.
