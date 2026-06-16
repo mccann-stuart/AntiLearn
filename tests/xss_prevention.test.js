@@ -4,7 +4,7 @@ describe('Security: Stored DOM XSS Prevention in Custom Holidays', () => {
 
     beforeEach(() => {
         // Reset DOM
-        document.body.innerHTML = '<div id="custom-holidays-list"></div>';
+        document.body.innerHTML = '<div id="custom-holidays-list" aria-live="polite"></div>';
         // Reset state
         setTestState(2023, 'england-wales', [], []);
     });

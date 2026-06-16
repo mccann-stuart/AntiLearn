@@ -18,7 +18,7 @@ describe('Allowance Feedback Logic', () => {
             <div id="yoy-main"></div>
             <div id="yoy-sub"></div>
             <div id="holiday-data-status"></div>
-            <div id="custom-holidays-list"></div>
+            <div id="custom-holidays-list" aria-live="polite"></div>
         `;
 
         // Reset to a clean state before each test

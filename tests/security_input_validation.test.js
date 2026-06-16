@@ -27,7 +27,7 @@ describe('Security Input Validation', () => {
                 <input type="text" id="custom-name-input" required>
                 <button type="submit" id="add-custom-btn">Add</button>
             </form>
-            <div id="custom-holidays-list"></div>
+            <div id="custom-holidays-list" aria-live="polite"></div>
             <div id="toast-container"></div>
         `;
         // Mock localStorage
@@ -212,7 +212,7 @@ describe('Security Input Validation', () => {
                     <input type="text" id="custom-name-input" required>
                     <button type="submit" id="add-custom-btn">Add</button>
                 </form>
-                <div id="custom-holidays-list"></div>
+                <div id="custom-holidays-list" aria-live="polite"></div>
                 <div id="toast-container"></div>
             `;
 
