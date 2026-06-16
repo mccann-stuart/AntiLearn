@@ -45,14 +45,14 @@ pnpm test
 
 ### Production Deployment
 
-This application is configured for deployment on Cloudflare Pages/Workers:
+This application is configured for deployment on Cloudflare Workers:
 
 ```bash
 # Install Wrangler CLI (if not already installed)
 pnpm add -g wrangler
 
 # Deploy to Cloudflare
-pnpm exec wrangler pages deploy public
+pnpm exec wrangler deploy
 ```
 
 ## Usage
@@ -83,6 +83,8 @@ For local development or manual refreshes, run:
 ```bash
 calendarific=your_key pnpm run populate-kv
 ```
+
+Deploys do not repopulate remote KV automatically. Keep holiday dataset refreshes explicit so a deploy from a machine without the Calendarific key cannot overwrite production KV with a degraded fallback dataset.
 
 In Cloudflare, store the Calendarific key in a Secrets Store secret named `calendarific` and ensure it is bound in `wrangler.toml` via `secrets_store_secrets`.
 
