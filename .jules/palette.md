@@ -44,3 +44,7 @@
 ## 2026-06-10 - Dynamic stats announcement
 **Learning:** When user interactions update dynamic statistics located outside the immediate UI context, they need an explicit human-readable state summary.
 **Action:** Inject a visually hidden (.sr-only) aria-live="polite" region that explicitly announces a human-readable summary of the updated state to screen readers.
+
+## 2026-06-18 - Dynamic List Accessibility
+**Learning:** When custom holidays are added or removed dynamically, screen readers fail to announce the change because the list container lacks an ARIA live region.
+**Action:** Always add `aria-live="polite"` to containers of dynamically updating lists (like `#custom-holidays-list`) to ensure state changes are announced gracefully.
