@@ -2089,11 +2089,9 @@ function findOptimalPlan(year, allowance) {
     // Convert optimized index-based candidates back to full Date objects
     const result = bestCombo.map(c => {
         // startIdx and endIdx are 0-based from Jan 1 of 'year'
-        const startDate = new Date(year, 0, 1);
-        startDate.setDate(startDate.getDate() + c.startIdx);
-
-        const endDate = new Date(year, 0, 1);
-        endDate.setDate(endDate.getDate() + c.endIdx);
+        // ⚡ Bolt Optimization: Use constructor offset instead of .setDate() for faster hydration
+        const startDate = new Date(year, 0, 1 + c.startIdx);
+        const endDate = new Date(year, 0, 1 + c.endIdx);
 
         // Generate the list of booked dates (workdays)
         const bookedDates = [];
@@ -2728,11 +2726,9 @@ function analyzeCurrentPlan() {
  * Helper to convert integer-based block indices back to Date objects.
  */
 function hydrateBlock(blockIndices, year) {
-    const startDate = new Date(year, 0, 1);
-    startDate.setDate(startDate.getDate() + blockIndices.startIdx);
-
-    const endDate = new Date(year, 0, 1);
-    endDate.setDate(endDate.getDate() + blockIndices.endIdx);
+    // ⚡ Bolt Optimization: Use constructor offset instead of .setDate() for faster hydration
+    const startDate = new Date(year, 0, 1 + blockIndices.startIdx);
+    const endDate = new Date(year, 0, 1 + blockIndices.endIdx);
 
     return {
         startDate,
