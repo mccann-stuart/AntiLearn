@@ -1466,8 +1466,8 @@ function isOffByIndex(idx, isOffArray, year) {
         return isOffArray[idx] === 1;
     }
     // Boundary fallback
-    const date = new Date(year, 0, 1);
-    date.setDate(date.getDate() + idx);
+    // Bolt Optimization: Pass offset directly to Date constructor to avoid object allocation and setDate overhead
+    const date = new Date(year, 0, 1 + idx);
     // isDayOff defaults to null bookedSet (which is what generateAllCandidates uses)
     return isDayOff(date);
 }
@@ -1487,8 +1487,8 @@ function calculateInsightByIndex(startIdx, year) {
         // Boundary check
         if (idx < 0 || idx >= daysCount) {
              // Fallback to Date logic for boundary
-             const date = new Date(year, 0, 1);
-             date.setDate(date.getDate() + idx);
+            // Bolt Optimization: Pass offset directly to Date constructor
+            const date = new Date(year, 0, 1 + idx);
              return isDayOff(date, bookedDates);
         }
 
@@ -2089,11 +2089,9 @@ function findOptimalPlan(year, allowance) {
     // Convert optimized index-based candidates back to full Date objects
     const result = bestCombo.map(c => {
         // startIdx and endIdx are 0-based from Jan 1 of 'year'
-        const startDate = new Date(year, 0, 1);
-        startDate.setDate(startDate.getDate() + c.startIdx);
-
-        const endDate = new Date(year, 0, 1);
-        endDate.setDate(endDate.getDate() + c.endIdx);
+        // Bolt Optimization: Pass offset directly to Date constructor
+        const startDate = new Date(year, 0, 1 + c.startIdx);
+        const endDate = new Date(year, 0, 1 + c.endIdx);
 
         // Generate the list of booked dates (workdays)
         const bookedDates = [];
@@ -2108,8 +2106,8 @@ function findOptimalPlan(year, allowance) {
         for (let i = c.startIdx; i <= c.endIdx; i++) {
             if (i >= 0 && i < types.length) {
                 if (types[i] === 'workday') {
-                    const d = new Date(year, 0, 1);
-                    d.setDate(d.getDate() + i);
+                    // Bolt Optimization: Pass offset directly to Date constructor
+                    const d = new Date(year, 0, 1 + i);
                     bookedDates.push(d);
                 }
             }
@@ -2728,11 +2726,9 @@ function analyzeCurrentPlan() {
  * Helper to convert integer-based block indices back to Date objects.
  */
 function hydrateBlock(blockIndices, year) {
-    const startDate = new Date(year, 0, 1);
-    startDate.setDate(startDate.getDate() + blockIndices.startIdx);
-
-    const endDate = new Date(year, 0, 1);
-    endDate.setDate(endDate.getDate() + blockIndices.endIdx);
+    // Bolt Optimization: Pass offset directly to Date constructor
+    const startDate = new Date(year, 0, 1 + blockIndices.startIdx);
+    const endDate = new Date(year, 0, 1 + blockIndices.endIdx);
 
     return {
         startDate,
