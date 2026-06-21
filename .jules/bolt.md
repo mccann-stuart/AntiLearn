@@ -123,3 +123,7 @@
 ## $(date +%Y-%m-%d) - Native Intl Overhead in Hot Paths
  **Learning:** Native `Intl.DateTimeFormat` has significant initialization and execution overhead even when cached. When executed thousands of times during DOM rendering (e.g., building calendar tooltips), it causes a severe performance bottleneck.
  **Action:** For performance-critical hot paths, replace `Intl.DateTimeFormat` with manual array lookups (e.g., `WEEKDAYS[date.getDay()]`) and string concatenation, which is ~13-25x faster.
+
+## 2026-06-20 - Faster Date Initialization from Integer Day-of-Year Offsets
+**Learning:** Passing the day offset directly to the `Date` constructor (e.g., `new Date(year, 0, 1 + offset)`) is significantly faster than instantiating the `Date` object and then calling `setDate`, as the native engine handles day overflow directly without incurring the overhead of mutating an already instantiated object.
+**Action:** Always prefer direct integer offset instantiation when converting a day-of-year index back to a `Date` object.
