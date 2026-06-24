@@ -44,3 +44,7 @@
 ## 2026-06-10 - Dynamic stats announcement
 **Learning:** When user interactions update dynamic statistics located outside the immediate UI context, they need an explicit human-readable state summary.
 **Action:** Inject a visually hidden (.sr-only) aria-live="polite" region that explicitly announces a human-readable summary of the updated state to screen readers.
+
+## 2026-06-24 - Dynamic List Screen Reader Announcements
+**Learning:** When users dynamically add or remove items from a list (e.g., custom holidays) without a page reload, screen reader users miss these structural changes unless the container explicitly announces them. Relying only on success toasts might inform them an action happened, but doesn't connect it to the updated list content.
+**Action:** When creating or modifying dynamic list containers where items are added/removed client-side, always add the `aria-live="polite"` attribute to the container element itself to ensure screen readers naturally announce the DOM updates.
