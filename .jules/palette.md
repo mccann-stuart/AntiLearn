@@ -1,0 +1,56 @@
+## 2024-03-20 - iOS Safe Area Padding & Fullscreen Meta Tags
+**Learning:** iOS devices with notches and bottom home indicators can easily obscure sticky headers and absolutely positioned content. Applying `viewport-fit=cover` isn't enough; CSS `env(safe-area-inset-*)` combined with `max()` functions must be explicitly used to ensure that padding remains consistent whether the device is in portrait, landscape, or on an older screen without a notch. Additionally, adding mobile app tags like `apple-mobile-web-app-capable` prevents the top status bar from clashing with custom themes.
+**Action:** When creating fixed position headers or fullscreen layouts, explicitly include iOS specific meta tags for theme styling and systematically use `padding: max(DEFAULT_PAD, env(safe-area-inset-*))` rather than just a fixed unit, particularly for `.container` and `#sticky-header` type classes.
+
+## 2024-05-15 - Missing Screen Reader Feedback for Clipboard Actions
+**Learning:** Changing button text visually (e.g., to "Copied!") after a clipboard action provides no feedback to screen reader users if `aria-live` is not used. Sighted users see the confirmation, but screen readers only announce the initial button click.
+**Action:** Always provide explicit audible feedback for non-navigational async actions. Triggering an existing toast notification system (which already uses `aria-live="polite"`) is a simple and effective way to ensure accessible feedback for clipboard copies or state saves.
+
+## 2025-03-05 - Missing Screen Reader Context for Grid Cells & Dynamic Elements
+**Learning:** For dynamic grids like calendars, omitting `aria-label` attributes on non-interactive cells (like weekends or holidays) leaves visually impaired users without necessary context, as screen readers will simply read the cell's raw content (e.g., the date number) without explaining its significance. Moreover, any dynamically created components containing emojis must hide those emojis with `aria-hidden` spans or utilize an explicit text-only `aria-label` to prevent screen readers from painfully announcing the literal emoji descriptions before reading the relevant information.
+**Action:** Ensure all grid elements (interactive and non-interactive) have full descriptive text via `aria-label`, and always provide text-only accessible names for components or toast notifications that feature emojis.
+
+## 2025-03-25 - Prevent Errors with Disabled States
+**Learning:** Allowing users to click buttons that inevitably trigger error states (e.g., trying to export a calendar when no days are selected) is a frustrating UX pattern. Instead, buttons that perform actions dependent on other data should be disabled until those prerequisites are met. However, simply disabling a button without explanation can leave users confused.
+**Action:** When adding a disabled state, always provide a `title` attribute (or `aria-description`) explaining *why* the button is disabled and what the user needs to do to enable it. This prevents the error and guides the user toward success.
+
+## 2026-03-29 - Preserving Accessibility When Modifying Button Content
+**Learning:** When temporarily replacing a button's content to indicate a state change (like changing "Share" to "✅ Copied!"), using `.textContent` permanently strips any nested HTML elements. If the original button contained structural elements for accessibility (such as `<span aria-hidden="true">` wrapping an icon/emoji), `.textContent` ruins the component's accessible markup when the original text is restored.
+**Action:** Always use `.innerHTML` rather than `.textContent` to capture, temporarily replace, and restore button content if the button contains nested HTML structure, ensuring that `aria-hidden` spans or SVG elements are properly preserved throughout the interaction.
+
+## 2026-03-31 - Mobile and Keyboard Fallbacks for Tooltips
+**Learning:** Using `title` attributes for tooltips on non-interactive elements (like calendar holidays) completely alienates touch device users and keyboard navigators, as they cannot hover to see the information.
+**Action:** To ensure crucial context from `title` attributes is accessible, make the elements natively focusable (`tabIndex=0`, `role="button"`) and provide an interactive fallback, such as a click/keydown handler that triggers an `aria-live` toast notification with the tooltip content.
+
+## 2026-04-10 - Keyboard Accessibility of Disabled Buttons
+**Learning:** Using the native `disabled` attribute on buttons removes them from the document tab order. This means keyboard-only users and screen readers cannot access explanatory tooltips (like `title` attributes) that explain *why* the button is disabled, creating an inaccessible barrier.
+**Action:** When a disabled button requires an explanatory tooltip, use `aria-disabled="true"` instead of the native `disabled` attribute. Combine this with custom click-event blocking in JavaScript and CSS styling `button[aria-disabled="true"]` to visually indicate the disabled state, while preserving keyboard focusability.
+
+## 2026-04-20 - Preserve Accessible Markup During Temporary Button States
+**Learning:** Replacing a button's entire `textContent` for a temporary state can accidentally remove existing `aria-hidden` icon spans, so the restored button looks correct but regresses its accessible name.
+**Action:** When a button has icon+text markup, update temporary states by rebuilding the same span/text-node structure and restoring the original `aria-label`; do not restore with plain `textContent`.
+
+## 2026-04-20 - Keep Standalone Panels Aligned With Main Content
+**Learning:** A section placed outside the primary `.container` can silently become full-width even when it visually reads as part of the same tool. This is especially noticeable on wide desktop screens.
+**Action:** Any standalone panel that belongs to the main workflow should carry the same `max-width`, responsive width, and box sizing as the main container, or it should be moved into that container.
+
+## 2026-05-18 - Native Date Picker Mobile Snap Behavior
+**Learning:** For better mobile UX on native date inputs (`<input type="date">`), dynamically setting `min` and `max` attributes to the relevant working year boundaries ensures the date picker snaps directly to that year rather than defaulting to the current real-world date. This saves users from having to manually scroll or swipe back/forward months or years when planning for future dates.
+**Action:** When providing a date input that is contextually bound to a specific year or range, always dynamically update its `min` and `max` attributes to match that context to improve native mobile date picker behavior.
+
+## 2026-05-31 - Accessible Dynamic Error States
+**Learning:** When indicating an error state dynamically (e.g., exceeding an allowance quota), relying solely on color changes and `aria-hidden` visual icons fails to convey the error to screen reader users. Screen readers will only read the numerical value without the critical context that it represents an error.
+**Action:** When dynamically injecting visual error indicators (like warning emojis), always pair them with an accompanying `span` utilizing a `.sr-only` class that explicitly articulates the error state (e.g., " (Exceeds allowance)") to ensure full compliance with WCAG guidelines preventing reliance on color alone.
+## 2026-06-10 - Dynamic stats announcement
+**Learning:** When user interactions update dynamic statistics located outside the immediate UI context, they need an explicit human-readable state summary.
+**Action:** Inject a visually hidden (.sr-only) aria-live="polite" region that explicitly announces a human-readable summary of the updated state to screen readers.
+
+## 2026-06-24 - Dynamic List Screen Reader Announcements
+**Learning:** When users dynamically add or remove items from a list (e.g., custom holidays) without a page reload, screen reader users miss these structural changes unless the container explicitly announces them. Relying only on success toasts might inform them an action happened, but doesn't connect it to the updated list content.
+**Action:** When creating or modifying dynamic list containers where items are added/removed client-side, always add the `aria-live="polite"` attribute to the container element itself to ensure screen readers naturally announce the DOM updates.
+## 2026-06-23 - Accessible Dynamic List Updates
+**Learning:** When users dynamically add or remove items from a list (e.g., custom holidays) without a page reload, screen reader users do not receive feedback on the state change unless the container explicitly announces it.
+**Action:** When users dynamically add or remove items from a list (e.g., custom holidays) without a page reload, add the `aria-live="polite"` attribute to the list's container element to ensure screen readers announce the updates gracefully.
+## 2026-06-19 - Dynamic List Announcements
+**Learning:** When users dynamically add or remove items from a list (e.g., custom holidays) without a page reload, screen readers will not automatically announce the updates, leaving visually impaired users without confirmation of their actions.
+**Action:** Add the `aria-live="polite"` attribute to the container element of dynamic lists to ensure screen readers announce the updates gracefully.

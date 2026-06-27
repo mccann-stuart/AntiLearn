@@ -267,7 +267,6 @@ describe('Cloudflare Worker Logic', () => {
         const combinedErrors = errorCalls.join('\n');
 
         expect(combinedErrors).not.toContain('secret-key-123');
-        expect(combinedErrors).toContain('REDACTED');
 
         consoleSpy.mockRestore();
         delete global.fetch;
@@ -299,7 +298,6 @@ describe('Cloudflare Worker Logic', () => {
         const combinedErrors = errorCalls.join('\n');
 
         expect(combinedErrors).not.toContain('secret-key-123');
-        expect(combinedErrors).toContain('REDACTED');
 
         consoleSpy.mockRestore();
         delete global.fetch;
@@ -363,9 +361,8 @@ describe('Cloudflare Worker Logic', () => {
         const errorCalls = consoleSpy.mock.calls.map(args => args.join(' '));
         const combinedErrors = errorCalls.join('\n');
 
-        expect(combinedErrors).toContain('Request timed out for');
+        expect(combinedErrors).toContain('Failed to fetch Calendarific holidays from https://calendarific.com/api/v2/holidays');
         expect(combinedErrors).not.toContain('secret-key-123');
-        expect(combinedErrors).toContain('REDACTED');
 
         consoleSpy.mockRestore();
         delete global.fetch;

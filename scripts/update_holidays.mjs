@@ -24,6 +24,7 @@ const CALENDARIFIC_ENV_KEYS = [
     'CALENDARIFIC_KEY',
     'CALENDARIFIC'
 ];
+const REQUIRE_CALENDARIFIC_FLAG = '--require-calendarific';
 const OUTPUT_PATH = path.join(__dirname, '..', '.wrangler', 'holidays.json');
 const DEV_VARS_PATH = path.join(__dirname, '..', '.dev.vars');
 const DOTENV_PATH = path.join(__dirname, '..', '.env');
@@ -65,6 +66,14 @@ function getCalendarificApiKey() {
         if (value) return value;
     }
     return '';
+}
+
+function requireCalendarificApiKey(apiKey) {
+    if (apiKey) return;
+    throw new Error(
+        'Calendarific API key is required before publishing holiday data to remote KV. ' +
+        'Set calendarific in .dev.vars or set CALENDARIFIC_API_KEY in the environment.'
+    );
 }
 
 loadLocalEnv();
@@ -133,10 +142,14 @@ async function fetchTallyfyHolidays(countryCode, year, options = {}) {
     return fetchTallyfyHolidaysFromBuilder(options.fetchJson || fetchJson, countryCode, year);
 }
 
-async function main() {
+async function main(args = process.argv.slice(2)) {
+    const apiKey = getCalendarificApiKey();
+    if (args.includes(REQUIRE_CALENDARIFIC_FLAG)) {
+        requireCalendarificApiKey(apiKey);
+    }
     console.log('Starting holiday dataset update...');
     const dataset = await buildHolidayDataset({
-        apiKey: getCalendarificApiKey()
+        apiKey
     });
     fs.mkdirSync(path.dirname(OUTPUT_PATH), { recursive: true });
     fs.writeFileSync(OUTPUT_PATH, JSON.stringify(dataset, null, 2));
@@ -162,6 +175,7 @@ export {
     fetchCalendarificHolidays,
     fetchTallyfyHolidays,
     getCalendarificApiKey,
+    requireCalendarificApiKey,
     loadEnvFile,
     buildHolidayDataset,
     normalizeCalendarific,
