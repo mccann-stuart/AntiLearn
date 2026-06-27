@@ -296,6 +296,10 @@ describe('Optimization Logic', () => {
         setTestState(2023, REGIONS.ENGLAND_WALES, []);
     });
 
+    afterEach(() => {
+        setHolidayDatasetForTests(null);
+    });
+
     test('calculateContinuousLeave correctly calculates efficiency', () => {
         // Easter 2023: Fri Apr 7, Mon Apr 10.
         // Taking Apr 3, 4, 5, 6 (4 days) -> Off from Sat Apr 1 to Mon Apr 10.
@@ -346,7 +350,7 @@ describe('Optimization Logic', () => {
         const plan = findOptimalPlan(2023, 25);
 
         expect(plan.length).toBeGreaterThan(0);
-        expect(plan.length).toBeLessThanOrEqual(3); // Top 3 breaks
+        expect(plan.length).toBeLessThanOrEqual(6);
 
         let totalLeaveUsed = 0;
         plan.forEach(block => {
@@ -361,12 +365,106 @@ describe('Optimization Logic', () => {
             });
         });
 
-        expect(totalLeaveUsed).toBeLessThanOrEqual(25);
+        expect(totalLeaveUsed).toBe(25);
 
         // Ensure efficiency is good (at least > 2 for optimal planning around holidays)
         // Easter usually gives > 2
         const bestBlock = plan.sort((a, b) => b.efficiency - a.efficiency)[0];
         expect(bestBlock.efficiency).toBeGreaterThan(1.5);
+    });
+
+    test.each([
+        [REGIONS.ENGLAND_WALES],
+        [REGIONS.SCOTLAND],
+        [REGIONS.NORTHERN_IRELAND]
+    ])('findOptimalPlan uses the full annual allowance for %s without one year-end cluster', (region) => {
+        const year = 2025;
+        setTestState(year, region, [], [], 'sat-sun', 25);
+
+        const plan = findOptimalPlan(year, 25);
+        const totalLeaveUsed = plan.reduce((sum, block) => sum + block.leaveDaysUsed, 0);
+        const largestBlock = Math.max(...plan.map(block => block.leaveDaysUsed));
+        const decemberLeave = plan
+            .filter(block => block.startDate.getMonth() === 11 || block.endDate.getMonth() === 11)
+            .reduce((sum, block) => sum + block.leaveDaysUsed, 0);
+
+        expect(totalLeaveUsed).toBe(25);
+        expect(plan.length).toBeLessThanOrEqual(6);
+        expect(largestBlock).toBeLessThanOrEqual(10);
+        expect(decemberLeave).toBeLessThan(25);
+        plan.forEach(block => {
+            expect(block.startDate.getFullYear()).toBe(year);
+            expect(block.endDate.getFullYear()).toBe(year);
+        });
+    });
+
+    test.each([
+        [REGIONS.QATAR],
+        [REGIONS.SAUDI_ARABIA],
+        [REGIONS.UAE],
+        [REGIONS.CANADA],
+        [REGIONS.US_CA]
+    ])('findOptimalPlan uses full default allowance for dataset-backed location %s', (region) => {
+        const year = 2026;
+        const dataset = {
+            updatedAt: '2026-test',
+            locations: {
+                QA: {
+                    years: {
+                        '2026': [
+                            { date: '2026-01-01', name: 'New Year' },
+                            { date: '2026-03-31', name: 'Eid' }
+                        ]
+                    }
+                },
+                SA: {
+                    years: {
+                        '2026': [
+                            { date: '2026-02-22', name: 'Founding Day' },
+                            { date: '2026-09-23', name: 'National Day' }
+                        ]
+                    }
+                },
+                AE: {
+                    years: {
+                        '2026': [
+                            { date: '2026-01-01', name: 'New Year' },
+                            { date: '2026-12-02', name: 'National Day' }
+                        ]
+                    }
+                },
+                CA: {
+                    years: {
+                        '2026': [
+                            { date: '2026-07-01', name: 'Canada Day' },
+                            { date: '2026-12-25', name: 'Christmas' }
+                        ]
+                    }
+                },
+                'US-CA': {
+                    years: {
+                        '2026': [
+                            { date: '2026-01-01', name: 'New Year' },
+                            { date: '2026-07-04', name: 'Independence Day' }
+                        ]
+                    }
+                }
+            }
+        };
+        setHolidayDatasetForTests(dataset);
+        setTestState(year, region, [], [], undefined, 25);
+
+        const plan = findOptimalPlan(year, 25);
+        const totalLeaveUsed = plan.reduce((sum, block) => sum + block.leaveDaysUsed, 0);
+
+        expect(totalLeaveUsed).toBe(25);
+        expect(plan.length).toBeLessThanOrEqual(6);
+        expect(Math.max(...plan.map(block => block.leaveDaysUsed))).toBeLessThanOrEqual(10);
+        plan.forEach(block => {
+            expect(block.startDate.getFullYear()).toBe(year);
+            expect(block.endDate.getFullYear()).toBe(year);
+        });
+
     });
 
     test('findOptimalPlan works with small allowances', () => {
