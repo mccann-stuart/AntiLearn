@@ -80,7 +80,7 @@ The application uses a simple but effective algorithm to find the best leave com
 1.  **Holiday Data**: It starts with a list of UK bank holidays, plus a dataset-backed holiday catalog for Qatar, the UAE, Saudi Arabia, Canada, and all 50 U.S. states.
 2.  **Candidate Generation**: It iterates through every workday of the year and calculates the potential time off for various leave durations (e.g., taking 3, 4, 5 days off).
 3.  **Efficiency Scoring**: Each potential leave block is scored based on its efficiency (total days off / leave days used).
-4.  **Combination Finding**: The algorithm then searches for the best combination of up to three non-overlapping leave blocks that fit within your allowance, prioritizing the combination that uses the most of your allowance while maximizing your total time off.
+4.  **Combination Finding**: The algorithm then searches for a balanced annual combination of non-overlapping leave blocks that fit within the selected year, prioritising full allowance use before maximising total time off.
 
 ## Holiday Data Refresh
 

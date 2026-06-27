@@ -182,8 +182,7 @@ describe('Security Input Validation', () => {
             bookedDates: Array.from({ length: MAX_BOOKED_DATES }, (_, i) => {
                 const year = 2020 + Math.floor(i / 365);
                 const dayOfYear = i % 365;
-                const d = new Date(year, 0, 1);
-                d.setDate(d.getDate() + dayOfYear);
+                const d = new Date(Date.UTC(year, 0, 1 + dayOfYear));
                 return d.toISOString().split('T')[0];
             })
         };
