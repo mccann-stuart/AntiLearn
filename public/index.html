@@ -41,110 +41,110 @@
 
 <body>
     <a href="#calendar-year-title" class="skip-link">Skip to calendar</a>
-    <div class="container">
-        <div id="sticky-placeholder"></div>
-        <div id="sticky-header">
-            <header>
-                <div class="header-content">
-                    <div class="title-group">
-                        <h1>Vacation Maximiser</h1>
-                        <p class="subtitle">Maximum time off.</p>
-                    </div>
+    <div class="app-shell">
+        <header class="planner-bar">
+            <div class="brand-group">
+                <h1>Vacation Maximiser</h1>
+            </div>
 
-                    <div class="selectors-row">
-                        <div class="year-group">
-                            <label for="year-select">Select Year:</label>
-                            <select id="year-select">
-                                <!-- Years are dynamically populated by JavaScript -->
-                            </select>
-                        </div>
-
-                        <div class="location-group">
-                            <label for="location-select">Location:</label>
-                            <select id="location-select">
-                                <!-- Options are populated by JavaScript -->
-                            </select>
-                        </div>
-
-                        <div class="weekend-group">
-                            <label for="weekend-select">Weekend:</label>
-                            <select id="weekend-select">
-                                <option value="sat-sun">Sat/Sun</option>
-                                <option value="fri-sat">Fri/Sat</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div id="holiday-data-status" class="holiday-data-status" aria-live="polite"></div>
+            <div class="selectors-row" aria-label="Planner settings">
+                <div class="control-group year-group">
+                    <label for="year-select">Year</label>
+                    <select id="year-select">
+                        <!-- Years are dynamically populated by JavaScript -->
+                    </select>
                 </div>
-            </header>
 
-            <div class="stats-container">
-                <div class="stat-card">
+                <div class="control-group location-group">
+                    <label for="location-select">Location</label>
+                    <select id="location-select">
+                        <!-- Options are populated by JavaScript -->
+                    </select>
+                </div>
+
+                <div class="control-group weekend-group">
+                    <label for="weekend-select">Weekend</label>
+                    <select id="weekend-select">
+                        <option value="sat-sun">Sat/Sun</option>
+                        <option value="fri-sat">Fri/Sat</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="stats-container" aria-label="Planner summary">
+                <div class="stat-card allowance-card">
+                    <label class="stat-label" for="allowance-input">Allowance</label>
                     <div class="stat-value">
                         <input type="number" id="allowance-input" value="25" min="1" max="365"
                             aria-label="Annual Leave Allowance" inputmode="numeric" pattern="[0-9]*">
                     </div>
-                    <label class="stat-label" for="allowance-input">Allowance</label>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value" id="days-used">0</div>
                     <div class="stat-label">Days Used</div>
+                    <div class="stat-value" id="days-used">0</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value" id="days-off">0</div>
                     <div class="stat-label">Total Days Off</div>
+                    <div class="stat-value" id="days-off">0</div>
+                </div>
+            </div>
+        </header>
+
+        <main class="container">
+            <div id="holiday-data-status" class="holiday-data-status" aria-live="polite"></div>
+
+            <section class="top-workbench" aria-label="Recommended breaks and actions">
+                <div class="recommendations-section">
+                    <h2 class="rec-title">Top 3 Smartest Breaks</h2>
+                    <div class="recommendations" id="recommendations">
+                        <!-- Recommendations will be injected here -->
+                    </div>
+                </div>
+
+                <div class="controls">
+                    <button id="export-btn">📅 Export to Calendar</button>
+                    <button id="share-btn">🔗 Copy Share Link</button>
+                    <button id="reset-btn" class="btn-danger">Reset Plan</button>
+                </div>
+            </section>
+
+            <section class="calendar-section" aria-labelledby="calendar-year-title">
+                <h2 class="calendar-title" id="calendar-year-title" tabindex="-1">2025 Calendar</h2>
+                <div class="calendar-grid" id="calendar">
+                    <!-- Calendar will be injected here -->
+                </div>
+            </section>
+
+            <div class="insights-grid">
+                <div class="insight-card">
+                    <div class="insight-label">Year-over-Year Insight</div>
+                    <div class="insight-main" id="yoy-main">Calculating...</div>
+                    <div class="insight-sub" id="yoy-sub"></div>
+                </div>
+                <div class="insight-card legend-card">
+                    <div class="insight-label">Heatmap Legend</div>
+                    <div class="legend-items">
+                        <div class="legend-item"><span class="legend-swatch heat-high"></span>High (≥3x)</div>
+                        <div class="legend-item"><span class="legend-swatch heat-mid"></span>Medium (2–2.9x)</div>
+                        <div class="legend-item"><span class="legend-swatch heat-low"></span>Low (&lt;2x)</div>
+                        <div class="legend-item"><span class="legend-swatch bridge"></span>Bridge Day</div>
+                    </div>
                 </div>
             </div>
 
-            <div class="recommendations-section">
-                <h2 class="rec-title">Top 3 Smartest Breaks</h2>
-                <div class="recommendations" id="recommendations">
-                    <!-- Recommendations will be injected here -->
+            <section class="custom-holidays-section">
+                <h3>Custom Public Holidays</h3>
+                <form id="custom-holiday-form" class="custom-holiday-inputs">
+                    <input type="date" id="custom-date-input" aria-label="Custom holiday date" required>
+                    <input type="text" id="custom-name-input" placeholder="Holiday Name (e.g. My Birthday)"
+                        aria-label="Custom holiday name" autocapitalize="words" maxlength="50" required>
+                    <button type="submit" id="add-custom-btn" aria-label="Add custom holiday">Add</button>
+                </form>
+                <div id="custom-holidays-list" class="custom-list">
+                    <!-- Custom holidays added will appear here -->
                 </div>
-            </div>
-        </div>
-
-        <div class="calendar-section">
-            <h2 class="calendar-title" id="calendar-year-title" tabindex="-1">2025 Calendar</h2>
-            <div class="calendar-grid" id="calendar">
-                <!-- Calendar will be injected here -->
-            </div>
-        </div>
-
-        <div class="insights-grid">
-            <div class="insight-card">
-                <div class="insight-label">Year-over-Year Insight</div>
-                <div class="insight-main" id="yoy-main">Calculating...</div>
-                <div class="insight-sub" id="yoy-sub"></div>
-            </div>
-            <div class="insight-card legend-card">
-                <div class="insight-label">Heatmap Legend</div>
-                <div class="legend-items">
-                    <div class="legend-item"><span class="legend-swatch heat-high"></span>High (≥3x)</div>
-                    <div class="legend-item"><span class="legend-swatch heat-mid"></span>Medium (2–2.9x)</div>
-                    <div class="legend-item"><span class="legend-swatch heat-low"></span>Low (&lt;2x)</div>
-                    <div class="legend-item"><span class="legend-swatch bridge"></span>Bridge Day</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="controls">
-            <button id="export-btn">📅 Export to Calendar</button>
-            <button id="share-btn">🔗 Copy Share Link</button>
-            <button id="reset-btn" class="btn-danger">Reset Plan</button>
-        </div>
-    </div>
-    <div class="custom-holidays-section">
-        <h3>Custom Public Holidays</h3>
-        <form id="custom-holiday-form" class="custom-holiday-inputs">
-            <input type="date" id="custom-date-input" aria-label="Custom holiday date" required>
-            <input type="text" id="custom-name-input" placeholder="Holiday Name (e.g. My Birthday)"
-                aria-label="Custom holiday name" autocapitalize="words" maxlength="50" required>
-            <button type="submit" id="add-custom-btn" aria-label="Add custom holiday">Add</button>
-        </form>
-        <div id="custom-holidays-list" class="custom-list">
-            <!-- Custom holidays added will appear here -->
-        </div>
+            </section>
+        </main>
     </div>
     <div id="toast-container" aria-live="polite"></div>
     <script src="app.js"></script>
