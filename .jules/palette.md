@@ -45,6 +45,9 @@
 **Learning:** When user interactions update dynamic statistics located outside the immediate UI context, they need an explicit human-readable state summary.
 **Action:** Inject a visually hidden (.sr-only) aria-live="polite" region that explicitly announces a human-readable summary of the updated state to screen readers.
 
+## 2026-06-23 - Accessible Dynamic List Updates
+**Learning:** When users dynamically add or remove items from a list (e.g., custom holidays) without a page reload, screen reader users do not receive feedback on the state change unless the container explicitly announces it.
+**Action:** When users dynamically add or remove items from a list (e.g., custom holidays) without a page reload, add the `aria-live="polite"` attribute to the list's container element to ensure screen readers announce the updates gracefully.
 ## 2026-06-19 - Dynamic List Announcements
 **Learning:** When users dynamically add or remove items from a list (e.g., custom holidays) without a page reload, screen readers will not automatically announce the updates, leaving visually impaired users without confirmation of their actions.
 **Action:** Add the `aria-live="polite"` attribute to the container element of dynamic lists to ensure screen readers announce the updates gracefully.
