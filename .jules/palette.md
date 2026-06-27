@@ -48,3 +48,9 @@
 ## 2026-06-24 - Dynamic List Screen Reader Announcements
 **Learning:** When users dynamically add or remove items from a list (e.g., custom holidays) without a page reload, screen reader users miss these structural changes unless the container explicitly announces them. Relying only on success toasts might inform them an action happened, but doesn't connect it to the updated list content.
 **Action:** When creating or modifying dynamic list containers where items are added/removed client-side, always add the `aria-live="polite"` attribute to the container element itself to ensure screen readers naturally announce the DOM updates.
+## 2026-06-23 - Accessible Dynamic List Updates
+**Learning:** When users dynamically add or remove items from a list (e.g., custom holidays) without a page reload, screen reader users do not receive feedback on the state change unless the container explicitly announces it.
+**Action:** When users dynamically add or remove items from a list (e.g., custom holidays) without a page reload, add the `aria-live="polite"` attribute to the list's container element to ensure screen readers announce the updates gracefully.
+## 2026-06-19 - Dynamic List Announcements
+**Learning:** When users dynamically add or remove items from a list (e.g., custom holidays) without a page reload, screen readers will not automatically announce the updates, leaving visually impaired users without confirmation of their actions.
+**Action:** Add the `aria-live="polite"` attribute to the container element of dynamic lists to ensure screen readers announce the updates gracefully.
