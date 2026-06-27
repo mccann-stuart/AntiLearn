@@ -1473,13 +1473,33 @@ function calculateContinuousLeave(startDate, leaveDaysToUse, bookedSet = null) {
     };
 }
 
+const MAX_ANNUAL_PLAN_BLOCKS = 6;
+const MIN_ANNUAL_PLAN_BLOCK_LEAVE_DAYS = 10;
+
+function getAnnualPlannerLimits(allowance) {
+    const safeAllowance = Math.max(0, Math.floor(allowance || 0));
+    const maxBlocks = Math.min(MAX_ANNUAL_PLAN_BLOCKS, safeAllowance);
+    if (maxBlocks === 0) {
+        return { maxBlocks: 0, maxLeaveDaysPerBlock: 0 };
+    }
+
+    return {
+        maxBlocks,
+        maxLeaveDaysPerBlock: Math.max(
+            MIN_ANNUAL_PLAN_BLOCK_LEAVE_DAYS,
+            Math.ceil(safeAllowance / maxBlocks)
+        )
+    };
+}
+
 /**
- * Generates and deduplicates all reasonable leave candidates.
+ * Generates all reasonable leave candidates for the selected year.
  * @param {number} year The year to plan for.
  * @param {number} allowance The number of leave days available.
- * @returns {Array<Object>} List of unique candidate blocks.
+ * @param {Object} [options] Optional candidate generation limits.
+ * @returns {Array<Object>} List of candidate blocks.
  */
-function generateAllCandidates(year, allowance) {
+function generateAllCandidates(year, allowance, options = {}) {
     // Ensure cache is ready for the requested year
     ensureDayTypeCache(year);
     const types = dayTypeCache.get(year).types;
@@ -1545,22 +1565,41 @@ function generateAllCandidates(year, allowance) {
 
     const uniqueCandidates = [];
     const numWorkdays = workdayIndices.length;
+    const segmentCount = Math.max(1, options.segmentCount || MAX_ANNUAL_PLAN_BLOCKS);
+    const segmentSize = daysCount / segmentCount;
+    const maxLeaveDaysPerBlock = Math.max(
+        1,
+        Math.min(
+            allowance,
+            options.maxLeaveDaysPerBlock || allowance
+        )
+    );
 
     for (let k = 0; k < numWorkdays; k++) {
         const firstBookedIdx = workdayIndices[k];
         const realStart = expansionStart[firstBookedIdx];
 
         // Max possible length is limited by allowance AND remaining workdays
-        const maxL = Math.min(allowance, numWorkdays - k);
+        const maxL = Math.min(maxLeaveDaysPerBlock, allowance, numWorkdays - k);
 
         for (let len = 1; len <= maxL; len++) {
             const lastBookedIdx = workdayIndices[k + len - 1];
             const realEnd = expansionEnd[lastBookedIdx];
 
-            const totalDaysOff = realEnd - realStart + 1;
+            const displayStart = Math.max(realStart, 0);
+            const displayEnd = Math.min(realEnd, daysCount - 1);
+            const totalDaysOff = displayEnd - displayStart + 1;
+            const midpoint = (displayStart + displayEnd) / 2;
+            const segmentIndex = Math.max(0, Math.min(
+                segmentCount - 1,
+                Math.floor(midpoint / segmentSize)
+            ));
             uniqueCandidates.push({
                 startIdx: realStart,
                 endIdx: realEnd,
+                displayStartIdx: displayStart,
+                displayEndIdx: displayEnd,
+                segmentIndex,
                 startDate: realStart, // for findBestCombination sorting (index)
                 endDate: realEnd,     // for findBestCombination overlap check (index)
                 leaveDaysUsed: len,
@@ -1574,57 +1613,75 @@ function generateAllCandidates(year, allowance) {
 }
 
 /**
- * Selects the top candidates based on efficiency and duration.
+ * Selects the candidate pool used by the annual planner.
  * @param {Array<Object>} candidates List of all candidates.
+ * @param {number} allowance The number of leave days available.
  * @returns {Array<Object>} Filtered list of top candidates.
  */
-function selectTopCandidates(candidates) {
-    // Bolt Optimization: Replace double array slicing and sorting with a single mutable copy
-    // and secondary sort criteria (startIdx) to guarantee stable cross-browser sorting and exact parity
-    // with V8's native stable sort behavior. ~25% performance improvement in candidate selection.
+function selectTopCandidates(candidates, allowance) {
+    if (allowance <= 40) {
+        return candidates;
+    }
+
     const sorted = candidates.slice();
     const finalCandidates = [];
     const finalSeen = new Set();
+    const globalLimit = Math.min(800, sorted.length);
 
-    // Sort by efficiency (primary) and startIdx (tie-breaker for stability)
-    sorted.sort((a, b) => (b.efficiency - a.efficiency) || (a.startIdx - b.startIdx));
-
-    const limitEff = Math.min(100, sorted.length);
-    for (let i = 0; i < limitEff; i++) {
-        const c = sorted[i];
-        const key = (c.startIdx << 16) | c.endIdx;
+    function addCandidate(c) {
+        const key = `${c.startIdx}:${c.endIdx}:${c.leaveDaysUsed}`;
         if (!finalSeen.has(key)) {
             finalSeen.add(key);
             finalCandidates.push(c);
         }
+    }
+
+    // Sort by efficiency (primary) and startIdx (tie-breaker for stability)
+    sorted.sort((a, b) => (b.efficiency - a.efficiency) || (a.startIdx - b.startIdx));
+
+    for (let i = 0; i < globalLimit; i++) {
+        addCandidate(sorted[i]);
     }
 
     // Sort the same array by duration (primary) and startIdx (tie-breaker)
     sorted.sort((a, b) => (b.totalDaysOff - a.totalDaysOff) || (a.startIdx - b.startIdx));
 
-    const limitDur = Math.min(50, sorted.length);
-    for (let i = 0; i < limitDur; i++) {
-        const c = sorted[i];
-        const key = (c.startIdx << 16) | c.endIdx;
-        if (!finalSeen.has(key)) {
-            finalSeen.add(key);
-            finalCandidates.push(c);
-        }
+    for (let i = 0; i < globalLimit; i++) {
+        addCandidate(sorted[i]);
     }
 
-    finalCandidates.sort((a, b) => (b.efficiency - a.efficiency) || (a.startIdx - b.startIdx));
+    const monthlyBuckets = Array.from({ length: 12 }, () => []);
+    candidates.forEach((candidate) => {
+        const month = Math.max(0, Math.min(11, Math.floor(candidate.displayStartIdx / 31)));
+        monthlyBuckets[month].push(candidate);
+    });
+
+    monthlyBuckets.forEach((bucket) => {
+        bucket.sort((a, b) => (b.efficiency - a.efficiency) || (a.startIdx - b.startIdx));
+        bucket.slice(0, 80).forEach(addCandidate);
+
+        bucket.sort((a, b) => (b.totalDaysOff - a.totalDaysOff) || (a.startIdx - b.startIdx));
+        bucket.slice(0, 80).forEach(addCandidate);
+    });
+
+    finalCandidates.sort((a, b) =>
+        (a.startDate - b.startDate) ||
+        (a.endDate - b.endDate) ||
+        (a.leaveDaysUsed - b.leaveDaysUsed)
+    );
     return finalCandidates;
 }
 
 /**
- * Finds the best combination of 1, 2, or 3 leave blocks that maximize days off.
+ * Finds the best non-overlapping annual combination while using as much allowance as possible.
  * @param {Array<Object>} candidates Top candidates to choose from.
  * @param {number} allowance Total leave allowance.
+ * @param {number} maxBlocks Maximum number of year segments to fill.
  * @returns {Array<Object>} The best combination of blocks.
  */
-function findBestCombination(candidates, allowance) {
+function findBestCombination(candidates, allowance, maxBlocks = 3) {
     const bestCombo = [];
-    if (candidates.length == 0 || allowance <= 0) {
+    if (candidates.length == 0 || allowance <= 0 || maxBlocks <= 0) {
         return bestCombo;
     }
 
@@ -1645,102 +1702,92 @@ function findBestCombination(candidates, allowance) {
         nextCompatible[i] = j;
     }
 
-    // DP State: dp[i][k][w] = Max Total Days Off
+    const SEGMENT_COUNT = Math.min(12, Math.max(1, maxBlocks));
+    const MASK_COUNT = 1 << SEGMENT_COUNT;
+
+    // DP State: dp[i][mask][w] = max current-year days off using exactly w leave days
     // i: index in sortedCandidates (0..N)
-    // k: number of items to pick (0..3)
-    // w: allowance used (0..allowance)
-    // Flattened array: [i * ROW_SIZE + k * SIZE_W + w]
-    const K_MAX = 3;
+    // mask: filled year segments, which keeps default plans distributed across the year
+    // w: exact leave days to spend
+    // Flattened array: [i * ROW_SIZE + mask * SIZE_W + w]
     const W_MAX = allowance;
     const SIZE_W = W_MAX + 1;
-    const SIZE_K = K_MAX + 1;
-    const ROW_SIZE = SIZE_K * SIZE_W;
+    const ROW_SIZE = MASK_COUNT * SIZE_W;
 
     // Bolt Optimization: Fill is very fast natively in V8
     // Initialize with -1 (representing invalid/unreachable)
     const memo = new Int32Array((N + 1) * ROW_SIZE).fill(-1);
 
-    // Base case: i=N (no candidates left).
-    // If k=0, totalOff=0. Else -1 (remain default).
-    for (let w = 0; w <= W_MAX; w++) {
-        memo[N * ROW_SIZE + 0 * SIZE_W + w] = 0;
+    // Base case: no candidates left can spend exactly 0 leave days.
+    for (let mask = 0; mask < MASK_COUNT; mask++) {
+        memo[N * ROW_SIZE + mask * SIZE_W + 0] = 0;
     }
 
     // Fill DP table backwards
     for (let i = N - 1; i >= 0; i--) {
-        for (let k = 0; k <= K_MAX; k++) {
+        const candidate = sortedCandidates[i];
+        const segmentIndex = Math.max(0, Math.min(
+            SEGMENT_COUNT - 1,
+            typeof candidate.segmentIndex === 'number' ? candidate.segmentIndex : 0
+        ));
+        const segmentBit = 1 << segmentIndex;
+
+        for (let mask = 0; mask < MASK_COUNT; mask++) {
             for (let w = 0; w <= W_MAX; w++) {
                 // Option 1: Skip candidate i
-                let res = memo[(i + 1) * ROW_SIZE + k * SIZE_W + w];
+                let res = memo[(i + 1) * ROW_SIZE + mask * SIZE_W + w];
 
-                // Option 2: Take candidate i (if allowed)
-                if (k > 0) {
-                    const cost = sortedCandidates[i].leaveDaysUsed;
+                // Option 2: Take candidate i if its year segment is still unused.
+                if ((mask & segmentBit) === 0) {
+                    const cost = candidate.leaveDaysUsed;
                     if (w >= cost) {
                         const nextI = nextCompatible[i];
-                        const prevVal = memo[nextI * ROW_SIZE + (k - 1) * SIZE_W + (w - cost)];
+                        const nextMask = mask | segmentBit;
+                        const prevVal = memo[nextI * ROW_SIZE + nextMask * SIZE_W + (w - cost)];
 
                         if (prevVal !== -1) {
-                            const currentVal = sortedCandidates[i].totalDaysOff + prevVal;
+                            const currentVal = candidate.totalDaysOff + prevVal;
                             if (currentVal > res) {
                                 res = currentVal;
                             }
                         }
                     }
                 }
-                memo[i * ROW_SIZE + k * SIZE_W + w] = res;
+                memo[i * ROW_SIZE + mask * SIZE_W + w] = res;
             }
         }
     }
 
-    // Find the best combination by score
-    let foundK = -1;
+    // Find the plan that spends the most allowance, then maximises current-year days off.
     let foundW = -1;
-
-    // Helper to compute score
-    function computeScore(totalOff, totalLeave) {
-        if (totalLeave == 0) return -1;
-        const efficiency = totalOff / totalLeave;
-        return (totalOff * 1000) + (efficiency * 10) - totalLeave;
-    }
-
-    // Prioritize 3 blocks, then 2, then 1 (matching original behavior)
-    for (let k = 3; k >= 1; k--) {
-        let localBestScore = -1;
-        let localBestW = -1;
-
-        for (let w = 1; w <= W_MAX; w++) {
-            const totalOff = memo[0 * ROW_SIZE + k * SIZE_W + w];
-            if (totalOff > 0) {
-                const s = computeScore(totalOff, w);
-                if (s > localBestScore) {
-                    localBestScore = s;
-                    localBestW = w;
-                }
-            }
-        }
-
-        if (localBestScore > -1) {
-            foundK = k;
-            foundW = localBestW;
-            break; // Stop as we prioritize higher k
+    for (let w = W_MAX; w >= 1; w--) {
+        if (memo[0 * ROW_SIZE + 0 * SIZE_W + w] > 0) {
+            foundW = w;
+            break;
         }
     }
 
     // Reconstruct solution
-    if (foundK != -1) {
+    if (foundW != -1) {
         let curI = 0;
-        let curK = foundK;
+        let curMask = 0;
         let curW = foundW;
 
-        while (curK > 0 && curI < N) {
-            const skippedVal = memo[(curI + 1) * ROW_SIZE + curK * SIZE_W + curW];
+        while (curW > 0 && curI < N) {
+            const skippedVal = memo[(curI + 1) * ROW_SIZE + curMask * SIZE_W + curW];
 
             let takenVal = -2;
             const cand = sortedCandidates[curI];
-            if (cand.leaveDaysUsed <= curW) {
+            const segmentIndex = Math.max(0, Math.min(
+                SEGMENT_COUNT - 1,
+                typeof cand.segmentIndex === 'number' ? cand.segmentIndex : 0
+            ));
+            const segmentBit = 1 << segmentIndex;
+
+            if ((curMask & segmentBit) === 0 && cand.leaveDaysUsed <= curW) {
                 const nextI = nextCompatible[curI];
-                const prevVal = memo[nextI * ROW_SIZE + (curK - 1) * SIZE_W + (curW - cand.leaveDaysUsed)];
+                const nextMask = curMask | segmentBit;
+                const prevVal = memo[nextI * ROW_SIZE + nextMask * SIZE_W + (curW - cand.leaveDaysUsed)];
                 if (prevVal != -1) {
                     takenVal = cand.totalDaysOff + prevVal;
                 }
@@ -1750,8 +1797,8 @@ function findBestCombination(candidates, allowance) {
             if (takenVal != -2 && takenVal >= skippedVal) {
                 bestCombo.push(cand);
                 curI = nextCompatible[curI];
+                curMask |= segmentBit;
                 curW -= cand.leaveDaysUsed;
-                curK -= 1;
             } else {
                 curI++;
             }
@@ -1763,18 +1810,27 @@ function findBestCombination(candidates, allowance) {
 }
 
 function findOptimalPlan(year, allowance) {
-    const uniqueCandidates = generateAllCandidates(year, allowance);
-    const topCandidates = selectTopCandidates(uniqueCandidates);
-    const bestCombo = findBestCombination(topCandidates, allowance);
+    const limits = getAnnualPlannerLimits(allowance);
+    const uniqueCandidates = generateAllCandidates(year, allowance, {
+        maxLeaveDaysPerBlock: limits.maxLeaveDaysPerBlock,
+        segmentCount: limits.maxBlocks || MAX_ANNUAL_PLAN_BLOCKS
+    });
+    const topCandidates = selectTopCandidates(uniqueCandidates, allowance);
+    const cache = dayTypeCache.get(year);
+    const workdayCount = cache
+        ? cache.types.reduce((count, type) => count + (type === 'workday' ? 1 : 0), 0)
+        : allowance;
+    const targetAllowance = Math.min(allowance, workdayCount);
+    const bestCombo = findBestCombination(topCandidates, targetAllowance, limits.maxBlocks);
 
     // Convert optimized index-based candidates back to full Date objects
     return bestCombo.map(c => {
         // startIdx and endIdx are 0-based from Jan 1 of 'year'
         const startDate = new Date(year, 0, 1);
-        startDate.setDate(startDate.getDate() + c.startIdx);
+        startDate.setDate(startDate.getDate() + c.displayStartIdx);
 
         const endDate = new Date(year, 0, 1);
-        endDate.setDate(endDate.getDate() + c.endIdx);
+        endDate.setDate(endDate.getDate() + c.displayEndIdx);
 
         // Generate the list of booked dates (workdays)
         const bookedDates = [];
