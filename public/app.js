@@ -2424,7 +2424,6 @@ function init() {
         resetToOptimal();
     }
 
-    initScrollHandler();
     renderCustomHolidays();
 }
 
@@ -2527,30 +2526,6 @@ function renderCustomHolidays() {
 
         tag.appendChild(btn);
         list.appendChild(tag);
-    });
-}
-
-/**
- * Sets up a scroll listener to handle the sticky header's appearance.
- */
-function initScrollHandler() {
-    const threshold = 100; // Scroll threshold
-    let ticking = false;
-
-    function handleScroll() {
-        if (window.scrollY > threshold && !document.body.classList.contains('scrolled')) {
-            document.body.classList.add('scrolled');
-        } else if (window.scrollY <= threshold && document.body.classList.contains('scrolled')) {
-            document.body.classList.remove('scrolled');
-        }
-        ticking = false;
-    }
-
-    window.addEventListener('scroll', () => {
-        if (!ticking) {
-            window.requestAnimationFrame(handleScroll);
-            ticking = true;
-        }
     });
 }
 
