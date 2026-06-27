@@ -3,7 +3,10 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#1a1a1a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Vacation Maximiser - Smart Annual Leave Planning</title>
 
     <!-- SEO Meta Tags -->
@@ -96,6 +99,8 @@
                 </div>
             </div>
 
+            <div id="stats-announcer" class="sr-only" aria-live="polite"></div>
+
             <div class="recommendations-section">
                 <h2 class="rec-title">Top 3 Smartest Breaks</h2>
                 <div class="recommendations" id="recommendations">
@@ -129,9 +134,9 @@
         </div>
 
         <div class="controls">
-            <button id="export-btn">📅 Export to Calendar</button>
-            <button id="share-btn">🔗 Copy Share Link</button>
-            <button id="reset-btn" class="btn-danger">Reset Plan</button>
+            <button id="export-btn" aria-label="Export to Calendar"><span aria-hidden="true">📅</span> Export to Calendar</button>
+            <button id="share-btn" aria-label="Copy Share Link"><span aria-hidden="true">🔗</span> Copy Share Link</button>
+            <button id="reset-btn" class="btn-danger" aria-label="Reset to Optimal"><span aria-hidden="true">✨</span> Reset to Optimal</button>
         </div>
     </div>
     <div class="custom-holidays-section">
@@ -142,7 +147,7 @@
                 aria-label="Custom holiday name" autocapitalize="words" maxlength="50" required>
             <button type="submit" id="add-custom-btn" aria-label="Add custom holiday">Add</button>
         </form>
-        <div id="custom-holidays-list" class="custom-list">
+        <div id="custom-holidays-list" class="custom-list" aria-live="polite">
             <!-- Custom holidays added will appear here -->
         </div>
     </div>

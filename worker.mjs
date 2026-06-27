@@ -55,9 +55,13 @@ function applySecurityHeaders(response, pathname) {
         "upgrade-insecure-requests;"
     );
 
-    const cacheControl = getCacheControl(pathname);
-    if (cacheControl && !newHeaders.has('Cache-Control')) {
-        newHeaders.set('Cache-Control', cacheControl);
+    if (response.status >= 400) {
+        newHeaders.set('Cache-Control', 'no-store');
+    } else {
+        const cacheControl = getCacheControl(pathname);
+        if (cacheControl && !newHeaders.has('Cache-Control')) {
+            newHeaders.set('Cache-Control', cacheControl);
+        }
     }
 
     return new Response(response.body, {
@@ -142,12 +146,13 @@ async function resolveSecretBinding(binding, secretName) {
             const value = await binding.get();
             if (typeof value === 'string') return value;
         } catch (e) {
-            // Ignore and try alternate access patterns
+            console.warn('Failed to access secret via direct get().');
         }
         try {
             const value = await binding.get(secretName);
             if (typeof value === 'string') return value;
         } catch (e) {
+            console.warn('Failed to access secret via get(name).');
             return '';
         }
     }
@@ -179,6 +184,8 @@ async function refreshHolidayDataset(env) {
     await env.HOLIDAY_DATA.put(HOLIDAY_DATA_KEY, JSON.stringify(dataset));
     console.log('Holiday dataset saved to KV.');
 }
+
+export { resolveSecretBinding };
 
 export default {
     async fetch(request, env) {
