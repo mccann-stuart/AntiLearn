@@ -8,7 +8,7 @@ This document outlines the strategic plan for the next major development epics t
 *   Security hardening: share/localStorage payloads reject impossible dates, fractional allowances, and fractional years before they can affect optimizer, stats, or export output.
 *   UI polish: copied share-button states keep emoji hidden from assistive names, compact allowance display supports three-digit values, and the custom holiday panel now aligns with the main content width.
 *   Tests: Jest suite covers application logic, dataset building, worker configuration, security headers, XSS prevention, plan decoding, and share-button accessibility behavior.
-*   Pending: half-day leave, custom work schedules, and school holidays overlay.
+*   Pending: half-day leave, custom work schedules, school holidays overlay, and accent colour customization.
 
 ## Epic 1: Regional Support & Customization (Completed)
 **Goal:** Expand the user base by supporting specific holidays for different UK regions and international locations, and allowing user-specific customization.
@@ -100,10 +100,10 @@ This document outlines the strategic plan for the next major development epics t
 *   **Feature: "Best Time for Group"**
     *   Algorithmically suggest the best dates for a group trip based on everyone's allowances and constraints.
 
-## Epic 9: UI Personalization (Planned)
+## Epic 9: UI Personalization (In Progress)
 **Goal:** Allow users to customize the look and feel of the application.
 
-*   **Feature: Dark Mode**
+*   **Feature: Dark Mode (Completed)**
     *   Implement a system-aware dark theme.
     *   Add a manual toggle to switch between light and dark modes.
 *   **Feature: Theme Customization**
