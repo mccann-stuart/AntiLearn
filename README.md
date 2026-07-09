@@ -15,10 +15,11 @@ A simple web application to help you find the most efficient way to use your ann
 *   **Export to Calendar**: Download an iCal (.ics) file for your booked leave blocks.
 *   **Persistent Plans**: Saves your plan to `localStorage` and restores it on return visits.
 *   **Share Your Plan**: Generate a unique link to share your optimized leave schedule with others.
+*   **Light and Dark Themes**: Follows your system appearance by default, with a remembered manual toggle.
 
 ## Status (as of 2026-04-20)
 
-*   Core optimizer, multi-location holiday logic, custom holidays, export, heatmap, year-over-year insights, and shareable plans are implemented in `public/app.js`.
+*   Core optimizer, multi-location holiday logic, custom holidays, export, heatmap, year-over-year insights, shareable plans, and system-aware themes are implemented.
 *   Frontend is static in `public/` and runs without a backend.
 *   International Support: Active for Qatar, UAE, Saudi Arabia, Canada, and all 50 U.S. states using automated data refreshes.
 *   Security hardening: Share/localStorage plan payloads now validate real calendar dates and integer allowance/year values before reaching optimizer or export paths.
@@ -111,7 +112,7 @@ We are constantly working to improve the Vacation Maximiser. Here are some of th
 
 *   **Progressive Web App (PWA)**: Support for offline capability, installability, and service workers.
 *   **Team Collaboration**: Functionality to overlay multiple shared plans for group coordination and finding common free time.
-*   **UI Personalization**: Dark mode support and further theme customization.
+*   **UI Personalization**: Further theme customization.
 
 For a detailed breakdown of our development plan, please see [roadmap.md](roadmap.md).
 

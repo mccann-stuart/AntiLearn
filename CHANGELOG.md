@@ -4,6 +4,7 @@
 
 ### Highlights
 
+- Added a system-aware light and dark theme with an accessible, remembered manual toggle.
 - Hardened shared plan and localStorage ingestion by requiring real `YYYY-MM-DD` calendar dates plus integer allowance/year values before state is applied.
 - Preserved accessible share-button icon markup when the button temporarily changes to the copied state.
 - Tightened UI layout by constraining the custom holiday panel to the main content width and preventing compact allowance clipping.
