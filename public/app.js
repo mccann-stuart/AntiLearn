@@ -617,7 +617,10 @@ async function loadHolidayDataset(force = false) {
 
         if (typeof fetch === 'function') {
             try {
-                const response = await fetch(HOLIDAY_DATA_URL, { cache: 'no-store' });
+                const response = await fetch(HOLIDAY_DATA_URL, {
+                    method: 'GET',
+                    cache: 'no-store'
+                });
                 if (response.ok) {
                     data = await response.json();
                 }
@@ -658,6 +661,27 @@ async function loadHolidayDataset(force = false) {
     })();
 
     return holidayDatasetPromise;
+}
+
+/**
+ * Secret manual refresh command for the server-backed holiday dataset.
+ */
+function handleHolidayDatasetRefreshShortcut(event) {
+    const isRefreshShortcut = event &&
+        typeof event.key === 'string' &&
+        event.key.toLowerCase() === 'd' &&
+        event.ctrlKey &&
+        !event.altKey &&
+        !event.metaKey &&
+        !event.shiftKey &&
+        !event.repeat;
+
+    if (!isRefreshShortcut) return;
+
+    event.preventDefault();
+    void loadHolidayDataset(true).catch((error) => {
+        console.error(`Failed to manually refresh holiday data from "${HOLIDAY_DATA_URL}":`, error);
+    });
 }
 
 /**
@@ -2213,6 +2237,8 @@ function renderLocationSelectOptions() {
  * Initializes the application, sets up event listeners, and performs the initial render.
  */
 function init() {
+    document.addEventListener('keydown', handleHolidayDatasetRefreshShortcut);
+
     // Load saved state if available
     const savedState = loadState();
     let shouldRestoreFromSaved = false;
@@ -3305,7 +3331,8 @@ if (typeof module !== 'undefined' && module.exports) {
         analyzeCurrentPlan,
         toggleDateBooking,
         handleDayClick,
-        handleDayKeyDown
+        handleDayKeyDown,
+        handleHolidayDatasetRefreshShortcut
     };
 }
 

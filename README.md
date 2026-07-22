@@ -15,10 +15,11 @@ A simple web application to help you find the most efficient way to use your ann
 *   **Export to Calendar**: Download an iCal (.ics) file for your booked leave blocks.
 *   **Persistent Plans**: Saves your plan to `localStorage` and restores it on return visits.
 *   **Share Your Plan**: Generate a unique link to share your optimized leave schedule with others.
+*   **Light and Dark Themes**: Follows your system appearance by default, with a remembered manual toggle.
 
 ## Status (as of 2026-04-20)
 
-*   Core optimizer, multi-location holiday logic, custom holidays, export, heatmap, year-over-year insights, and shareable plans are implemented in `public/app.js`.
+*   Core optimizer, multi-location holiday logic, custom holidays, export, heatmap, year-over-year insights, shareable plans, and system-aware themes are implemented.
 *   Frontend is static in `public/` and runs without a backend.
 *   International Support: Active for Qatar, UAE, Saudi Arabia, Canada, and all 50 U.S. states using automated data refreshes.
 *   Security hardening: Share/localStorage plan payloads now validate real calendar dates and integer allowance/year values before reaching optimizer or export paths.
@@ -86,6 +87,8 @@ The application uses a simple but effective algorithm to find the best leave com
 
 The Cloudflare Worker schedules a weekly refresh to rebuild the dataset-backed holiday catalog from Calendarific and Tallyfy. Canada and the Gulf countries use country-level data, while each U.S. state combines a shared U.S. national baseline with a state-specific Calendarific overlay. The latest dataset is stored in KV and served directly from KV, and the browser keeps a cached copy as a fallback if the network request fails.
 
+Calendarific requests run with bounded concurrency and retry HTTP 429 responses with backoff. Each build records request success metrics. If fewer than 90% of the expected Calendarific requests succeed, scheduled and manual publication fail without writing KV, leaving the last-good dataset in place.
+
 For local development or manual refreshes, run:
 
 ```bash
@@ -95,6 +98,8 @@ calendarific=your_key pnpm run populate-kv
 Deploys do not repopulate remote KV automatically. Keep holiday dataset refreshes explicit so a deploy from a machine without the Calendarific key cannot overwrite production KV with a degraded fallback dataset.
 
 In Cloudflare, store the Calendarific key in a Secrets Store secret named `calendarific` and ensure it is bound in `wrangler.toml` via `secrets_store_secrets`.
+
+If a refresh reports HTTP 401 or 429 failures, confirm the configured secret and inspect the Calendarific dashboard for the key's plan and remaining request quota before retrying.
 
 For local dev, prefer adding `calendarific=...` to `.dev.vars` (and keep it out of git).
 
@@ -111,7 +116,7 @@ We are constantly working to improve the Vacation Maximiser. Here are some of th
 
 *   **Progressive Web App (PWA)**: Support for offline capability, installability, and service workers.
 *   **Team Collaboration**: Functionality to overlay multiple shared plans for group coordination and finding common free time.
-*   **UI Personalization**: Dark mode support and further theme customization.
+*   **UI Personalization**: Further theme customization.
 
 For a detailed breakdown of our development plan, please see [roadmap.md](roadmap.md).
 
