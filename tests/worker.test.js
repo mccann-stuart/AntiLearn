@@ -300,6 +300,58 @@ describe('Cloudflare Worker Logic', () => {
         delete global.fetch;
     });
 
+    test('should start the full cron refresh from an authorised manual request', async () => {
+        global.fetch = jest.fn().mockResolvedValue({
+            ok: true,
+            status: 200,
+            headers: { get: () => null },
+            json: () => Promise.resolve({ response: { holidays: [] }, holidays: [] })
+        });
+
+        const envWithSecrets = {
+            ...env,
+            CALENDARIFIC_API_KEY: 'secret-key-123',
+            HOLIDAY_DATA: {
+                get: jest.fn().mockResolvedValue(null),
+                put: jest.fn()
+            }
+        };
+        let capturedPromise;
+        const ctx = {
+            waitUntil: (promise) => { capturedPromise = promise; }
+        };
+        const request = new Request('https://example.com/api/refresh-holidays', {
+            method: 'POST',
+            headers: {
+                'Origin': 'https://example.com',
+                'Sec-Fetch-Site': 'same-origin',
+                'X-Holiday-Refresh': 'full-cron'
+            }
+        });
+
+        const response = await worker.fetch(request, envWithSecrets, ctx);
+        const body = JSON.parse(await response.text());
+        await capturedPromise;
+
+        expect(response.status).toBe(202);
+        expect(body.status).toBe('accepted');
+        expect(body.triggeredAt).toEqual(expect.any(String));
+        expect(envWithSecrets.HOLIDAY_DATA.put).toHaveBeenCalledWith(
+            'holiday-refresh-manual-lock',
+            expect.any(String),
+            { expirationTtl: 600 }
+        );
+        expect(envWithSecrets.HOLIDAY_DATA.put).toHaveBeenCalledWith(
+            'holidays',
+            expect.any(String)
+        );
+        expect(consoleLogSpy).toHaveBeenCalledWith(
+            'Manual cron trigger finished successfully.'
+        );
+
+        delete global.fetch;
+    });
+
     test('should redact API key in logs when Calendarific fetch fails', async () => {
         const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
         const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});

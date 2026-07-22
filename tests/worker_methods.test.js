@@ -66,7 +66,7 @@ describe('Cloudflare Worker Method Restriction', () => {
         };
     });
 
-    const createRequest = (url, method = 'GET') => new Request(url, { method });
+    const createRequest = (url, method = 'GET', headers = {}) => new Request(url, { method, headers });
     const createResponse = (body = 'content', headers = {}) => {
         return new Response(body, {
             status: 200,
@@ -119,5 +119,51 @@ describe('Cloudflare Worker Method Restriction', () => {
         const response = await worker.fetch(request, env);
         expect(response.status).toBe(405);
         expect(response.headers.get('Cache-Control')).toBe('no-store');
+    });
+
+    test('should allow only POST for the manual cron trigger route', async () => {
+        const request = createRequest('https://example.com/api/refresh-holidays', 'GET');
+
+        const response = await worker.fetch(request, env, {});
+
+        expect(response.status).toBe(405);
+        expect(response.headers.get('Allow')).toBe('POST');
+    });
+
+    test('should reject a manual cron trigger without same-origin browser headers', async () => {
+        const request = createRequest(
+            'https://example.com/api/refresh-holidays',
+            'POST',
+            { 'X-Holiday-Refresh': 'full-cron' }
+        );
+        const ctx = { waitUntil: jest.fn() };
+
+        const response = await worker.fetch(request, env, ctx);
+
+        expect(response.status).toBe(403);
+        expect(response.headers.get('Cache-Control')).toBe('no-store');
+        expect(ctx.waitUntil).not.toHaveBeenCalled();
+    });
+
+    test('should rate-limit a repeated manual cron trigger', async () => {
+        env.HOLIDAY_DATA.get.mockResolvedValue(JSON.stringify({
+            triggeredAt: '2026-07-22T18:00:00.000Z'
+        }));
+        const request = createRequest(
+            'https://example.com/api/refresh-holidays',
+            'POST',
+            {
+                'Origin': 'https://example.com',
+                'Sec-Fetch-Site': 'same-origin',
+                'X-Holiday-Refresh': 'full-cron'
+            }
+        );
+        const ctx = { waitUntil: jest.fn() };
+
+        const response = await worker.fetch(request, env, ctx);
+
+        expect(response.status).toBe(429);
+        expect(response.headers.get('Retry-After')).toBe('600');
+        expect(ctx.waitUntil).not.toHaveBeenCalled();
     });
 });

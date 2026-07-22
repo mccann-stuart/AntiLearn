@@ -1,5 +1,6 @@
 /** @jest-environment jsdom */
 
+jest.useFakeTimers();
 require('../public/app.js');
 
 describe('holiday dataset refresh shortcut', () => {
@@ -10,10 +11,8 @@ describe('holiday dataset refresh shortcut', () => {
         document.body.innerHTML = '<div id="toast-container"></div>';
         global.fetch = jest.fn().mockResolvedValue({
             ok: true,
-            json: jest.fn().mockResolvedValue({
-                updatedAt: '2026-07-19',
-                locations: {}
-            })
+            status: 202,
+            json: jest.fn().mockResolvedValue({ status: 'accepted' })
         });
     });
 
@@ -27,7 +26,7 @@ describe('holiday dataset refresh shortcut', () => {
         global.fetch = originalFetch;
     });
 
-    test('Ctrl+D forces a fresh GET and confirms completion', async () => {
+    test('Ctrl+D starts the full cron refresh and confirms acceptance', async () => {
         const event = new KeyboardEvent('keydown', {
             key: 'd',
             ctrlKey: true,
@@ -38,25 +37,28 @@ describe('holiday dataset refresh shortcut', () => {
 
         expect(event.defaultPrevented).toBe(true);
         expect(global.fetch).toHaveBeenCalledTimes(1);
-        expect(global.fetch).toHaveBeenCalledWith('/data/holidays.json', {
-            method: 'GET',
-            cache: 'no-store'
+        expect(global.fetch).toHaveBeenCalledWith('/api/refresh-holidays', {
+            method: 'POST',
+            headers: {
+                'X-Holiday-Refresh': 'full-cron'
+            }
         });
 
         expect(document.querySelector('.toast.info').textContent)
-            .toContain('Refreshing holiday data…');
+            .toContain('Starting full holiday refresh…');
 
         await jest.advanceTimersByTimeAsync(0);
 
         expect(document.querySelector('.toast.success').textContent)
-            .toContain('Holiday data refreshed. Updated 2026-07-19.');
+            .toContain('Full holiday refresh triggered. The cron job is running.');
     });
 
-    test('reports a failed holiday request', async () => {
+    test('reports a failed cron trigger request', async () => {
         const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
         global.fetch.mockResolvedValue({
             ok: false,
-            status: 503
+            status: 503,
+            json: jest.fn().mockResolvedValue({ error: 'Holiday refresh service unavailable.' })
         });
 
         document.dispatchEvent(new KeyboardEvent('keydown', {
@@ -68,13 +70,42 @@ describe('holiday dataset refresh shortcut', () => {
         await jest.advanceTimersByTimeAsync(0);
 
         expect(document.querySelector('.toast.error').textContent)
-            .toContain('Holiday data refresh failed. Please try again.');
+            .toContain('Full holiday refresh could not be started. Please try again.');
         expect(consoleError).toHaveBeenCalledWith(
-            'Failed to manually refresh holiday data from "/data/holidays.json":',
+            'Failed to trigger full holiday refresh via "/api/refresh-holidays":',
             expect.objectContaining({
-                message: 'GET "/data/holidays.json" failed with HTTP 503'
+                message: 'Holiday refresh service unavailable.',
+                status: 503
             })
         );
+
+        consoleError.mockRestore();
+    });
+
+    test('reports a recent or running cron trigger without retrying', async () => {
+        const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+        global.fetch.mockResolvedValue({
+            ok: false,
+            status: 429,
+            json: jest.fn().mockResolvedValue({
+                error: 'Holiday refresh already running or recently triggered.'
+            })
+        });
+
+        document.dispatchEvent(new KeyboardEvent('keydown', {
+            key: 'd',
+            ctrlKey: true,
+            cancelable: true
+        }));
+
+        await jest.advanceTimersByTimeAsync(0);
+
+        const messages = Array.from(document.querySelectorAll('.toast.info'))
+            .map(toast => toast.textContent);
+        expect(messages).toContain(
+            'ℹ️ Information: Holiday refresh is already running or was triggered recently.'
+        );
+        expect(global.fetch).toHaveBeenCalledTimes(1);
 
         consoleError.mockRestore();
     });
