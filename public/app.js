@@ -604,6 +604,7 @@ function clearState() {
 // --- HOLIDAY DATASET ---
 
 const HOLIDAY_DATA_URL = '/data/holidays.json';
+const HOLIDAY_REFRESH_URL = '/api/refresh-holidays';
 const holidayDataWarnings = new Set();
 
 /**
@@ -630,6 +631,41 @@ async function fetchHolidayDatasetFromServer() {
     }
 
     return data;
+}
+
+/**
+ * Starts the Worker's full scheduled holiday refresh pipeline.
+ */
+async function triggerHolidayRefreshCron() {
+    if (typeof fetch !== 'function') {
+        throw new Error('The Fetch API is unavailable');
+    }
+
+    const response = await fetch(HOLIDAY_REFRESH_URL, {
+        method: 'POST',
+        headers: {
+            'X-Holiday-Refresh': 'full-cron'
+        }
+    });
+
+    let result = null;
+    try {
+        result = await response.json();
+    } catch (e) {
+        result = null;
+    }
+
+    if (!response.ok) {
+        const error = new Error(
+            result && result.error
+                ? result.error
+                : `POST "${HOLIDAY_REFRESH_URL}" failed with HTTP ${response.status}`
+        );
+        error.status = response.status;
+        throw error;
+    }
+
+    return result;
 }
 
 /**
@@ -706,15 +742,16 @@ function handleHolidayDatasetRefreshShortcut(event) {
     if (!isRefreshShortcut) return;
 
     event.preventDefault();
-    showToast('Refreshing holiday data…', 'info');
-    void fetchHolidayDatasetFromServer().then((data) => {
-        applyHolidayDataset(data, false);
-        const updatedAt = data.updatedAt || data.generatedAt;
-        const updatedLabel = updatedAt ? ` Updated ${String(updatedAt).slice(0, 10)}.` : '';
-        showToast(`Holiday data refreshed.${updatedLabel}`, 'success');
+    showToast('Starting full holiday refresh…', 'info');
+    void triggerHolidayRefreshCron().then(() => {
+        showToast('Full holiday refresh triggered. The cron job is running.', 'success');
     }).catch((error) => {
-        showToast('Holiday data refresh failed. Please try again.', 'error');
-        console.error(`Failed to manually refresh holiday data from "${HOLIDAY_DATA_URL}":`, error);
+        if (error && error.status === 429) {
+            showToast('Holiday refresh is already running or was triggered recently.', 'info');
+        } else {
+            showToast('Full holiday refresh could not be started. Please try again.', 'error');
+        }
+        console.error(`Failed to trigger full holiday refresh via "${HOLIDAY_REFRESH_URL}":`, error);
     });
 }
 

@@ -7,6 +7,11 @@ import {
 const IMAGE_EXTENSIONS_REGEX = /\.(ico|png|jpg|jpeg|svg|webp)$/;
 const JSON_EXTENSIONS_REGEX = /\.json$/;
 const HOLIDAY_DATA_KEY = 'holidays';
+const MANUAL_REFRESH_PATH = '/api/refresh-holidays';
+const MANUAL_REFRESH_HEADER = 'X-Holiday-Refresh';
+const MANUAL_REFRESH_HEADER_VALUE = 'full-cron';
+const MANUAL_REFRESH_LOCK_KEY = 'holiday-refresh-manual-lock';
+const MANUAL_REFRESH_COOLDOWN_SECONDS = 600;
 const MAX_FETCH_ATTEMPTS = 3;
 const MAX_RETRY_DELAY_MS = 60000;
 const RETRY_BASE_DELAY_MS = 1000;
@@ -106,7 +111,75 @@ async function handleHolidayDataRequest(env) {
     });
 }
 
-async function handleRequest(request, env) {
+function jsonResponse(payload, status, headers = {}) {
+    return new Response(JSON.stringify(payload), {
+        status,
+        headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+            'Cache-Control': 'no-store',
+            ...headers
+        }
+    });
+}
+
+function isAllowedManualRefreshRequest(request, url) {
+    // The marker forces a CORS preflight for cross-site scripts. This is a CSRF
+    // and accidental-use guard for the hidden shortcut, not user authentication.
+    const origin = request.headers.get('Origin');
+    const fetchSite = request.headers.get('Sec-Fetch-Site');
+    const refreshHeader = request.headers.get(MANUAL_REFRESH_HEADER);
+
+    return origin === url.origin &&
+        (!fetchSite || fetchSite === 'same-origin') &&
+        refreshHeader === MANUAL_REFRESH_HEADER_VALUE;
+}
+
+async function handleManualHolidayRefreshRequest(request, url, env, ctx) {
+    if (request.method !== 'POST') {
+        return new Response('Method Not Allowed', {
+            status: 405,
+            headers: {
+                'Allow': 'POST',
+                'Content-Type': 'text/plain; charset=utf-8',
+                'Cache-Control': 'no-store'
+            }
+        });
+    }
+
+    if (!isAllowedManualRefreshRequest(request, url)) {
+        return jsonResponse({ error: 'Manual holiday refresh request rejected.' }, 403);
+    }
+
+    if (!env.HOLIDAY_DATA || !ctx || typeof ctx.waitUntil !== 'function') {
+        return jsonResponse({ error: 'Holiday refresh service unavailable.' }, 503);
+    }
+
+    const activeRefresh = await env.HOLIDAY_DATA.get(MANUAL_REFRESH_LOCK_KEY);
+    if (activeRefresh) {
+        return jsonResponse(
+            { error: 'Holiday refresh already running or recently triggered.' },
+            429,
+            { 'Retry-After': String(MANUAL_REFRESH_COOLDOWN_SECONDS) }
+        );
+    }
+
+    const triggeredAt = new Date().toISOString();
+    await env.HOLIDAY_DATA.put(
+        MANUAL_REFRESH_LOCK_KEY,
+        JSON.stringify({ triggeredAt }),
+        { expirationTtl: MANUAL_REFRESH_COOLDOWN_SECONDS }
+    );
+    ctx.waitUntil(runHolidayRefresh(env, 'Manual cron trigger'));
+
+    return jsonResponse({ status: 'accepted', triggeredAt }, 202);
+}
+
+async function handleRequest(request, env, ctx) {
+    const url = new URL(request.url);
+    if (url.pathname === MANUAL_REFRESH_PATH) {
+        return handleManualHolidayRefreshRequest(request, url, env, ctx);
+    }
+
     if (request.method !== 'GET' && request.method !== 'HEAD') {
         return new Response('Method Not Allowed', {
             status: 405,
@@ -118,7 +191,6 @@ async function handleRequest(request, env) {
         });
     }
 
-    const url = new URL(request.url);
     if (url.pathname === '/data/holidays.json') {
         return handleHolidayDataRequest(env);
     }
@@ -237,12 +309,22 @@ async function refreshHolidayDataset(env) {
     console.log('Holiday dataset saved to KV.');
 }
 
+function runHolidayRefresh(env, triggerName) {
+    console.log(`${triggerName} started: Refreshing holiday dataset...`);
+    return refreshHolidayDataset(env).then(() => {
+        console.log(`${triggerName} finished successfully.`);
+    }).catch((error) => {
+        console.error(`${triggerName} failed: ${error.message || String(error)}`);
+        throw error;
+    });
+}
+
 export { fetchJson, resolveSecretBinding };
 
 export default {
-    async fetch(request, env) {
+    async fetch(request, env, ctx) {
         try {
-            const response = await handleRequest(request, env);
+            const response = await handleRequest(request, env, ctx);
             const pathname = new URL(request.url).pathname;
             return applySecurityHeaders(response, pathname);
         } catch (error) {
@@ -263,12 +345,6 @@ export default {
         }
     },
     async scheduled(event, env, ctx) {
-        console.log('Cron trigger started: Refreshing holiday dataset...');
-        ctx.waitUntil(refreshHolidayDataset(env).then(() => {
-            console.log('Cron trigger finished successfully.');
-        }).catch(err => {
-            console.error(`Cron trigger failed: ${err.message || String(err)}`);
-            throw err;
-        }));
+        ctx.waitUntil(runHolidayRefresh(env, 'Cron trigger'));
     }
 };
