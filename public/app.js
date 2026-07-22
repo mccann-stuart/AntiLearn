@@ -607,6 +607,51 @@ const HOLIDAY_DATA_URL = '/data/holidays.json';
 const holidayDataWarnings = new Set();
 
 /**
+ * Requests the latest holiday dataset without using the browser cache.
+ */
+async function fetchHolidayDatasetFromServer() {
+    if (typeof fetch !== 'function') {
+        throw new Error('The Fetch API is unavailable');
+    }
+
+    const response = await fetch(HOLIDAY_DATA_URL, {
+        method: 'GET',
+        cache: 'no-store'
+    });
+
+    if (!response.ok) {
+        const status = response.status ? ` with HTTP ${response.status}` : '';
+        throw new Error(`GET "${HOLIDAY_DATA_URL}" failed${status}`);
+    }
+
+    const data = await response.json();
+    if (!data) {
+        throw new Error(`GET "${HOLIDAY_DATA_URL}" returned an empty JSON response`);
+    }
+
+    return data;
+}
+
+/**
+ * Applies a loaded holiday dataset and refreshes affected UI state.
+ */
+function applyHolidayDataset(data, fromCache) {
+    holidayDataset = data;
+    holidayDatasetFromCache = fromCache;
+    try {
+        localStorage.setItem(HOLIDAY_DATA_STORAGE_KEY, JSON.stringify(data));
+    } catch (e) {
+        // Ignore cache failures
+    }
+    clearHolidaysCache();
+    invalidateInsightCaches();
+    renderHolidayDataStatus();
+    if (isDatasetLocation(currentRegion) && typeof document !== 'undefined') {
+        updateUI();
+    }
+}
+
+/**
  * Loads the holiday dataset from the server (or local cache).
  */
 async function loadHolidayDataset(force = false) {
@@ -617,13 +662,7 @@ async function loadHolidayDataset(force = false) {
 
         if (typeof fetch === 'function') {
             try {
-                const response = await fetch(HOLIDAY_DATA_URL, {
-                    method: 'GET',
-                    cache: 'no-store'
-                });
-                if (response.ok) {
-                    data = await response.json();
-                }
+                data = await fetchHolidayDatasetFromServer();
             } catch (e) {
                 data = null;
             }
@@ -642,19 +681,7 @@ async function loadHolidayDataset(force = false) {
         }
 
         if (data) {
-            holidayDataset = data;
-            holidayDatasetFromCache = fromCache;
-            try {
-                localStorage.setItem(HOLIDAY_DATA_STORAGE_KEY, JSON.stringify(data));
-            } catch (e) {
-                // Ignore cache failures
-            }
-            clearHolidaysCache();
-            invalidateInsightCaches();
-            renderHolidayDataStatus();
-            if (isDatasetLocation(currentRegion) && typeof document !== 'undefined') {
-                updateUI();
-            }
+            applyHolidayDataset(data, fromCache);
         }
 
         return holidayDataset;
@@ -679,7 +706,14 @@ function handleHolidayDatasetRefreshShortcut(event) {
     if (!isRefreshShortcut) return;
 
     event.preventDefault();
-    void loadHolidayDataset(true).catch((error) => {
+    showToast('Refreshing holiday data…', 'info');
+    void fetchHolidayDatasetFromServer().then((data) => {
+        applyHolidayDataset(data, false);
+        const updatedAt = data.updatedAt || data.generatedAt;
+        const updatedLabel = updatedAt ? ` Updated ${String(updatedAt).slice(0, 10)}.` : '';
+        showToast(`Holiday data refreshed.${updatedLabel}`, 'success');
+    }).catch((error) => {
+        showToast('Holiday data refresh failed. Please try again.', 'error');
         console.error(`Failed to manually refresh holiday data from "${HOLIDAY_DATA_URL}":`, error);
     });
 }

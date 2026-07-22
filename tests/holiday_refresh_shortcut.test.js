@@ -6,17 +6,28 @@ describe('holiday dataset refresh shortcut', () => {
     const originalFetch = global.fetch;
 
     beforeEach(() => {
+        jest.useFakeTimers();
+        document.body.innerHTML = '<div id="toast-container"></div>';
         global.fetch = jest.fn().mockResolvedValue({
             ok: true,
-            json: jest.fn().mockResolvedValue({ locations: {} })
+            json: jest.fn().mockResolvedValue({
+                updatedAt: '2026-07-19',
+                locations: {}
+            })
         });
+    });
+
+    afterEach(() => {
+        jest.clearAllTimers();
+        jest.useRealTimers();
+        document.body.innerHTML = '';
     });
 
     afterAll(() => {
         global.fetch = originalFetch;
     });
 
-    test('Ctrl+D forces a fresh GET of the holiday dataset', () => {
+    test('Ctrl+D forces a fresh GET and confirms completion', async () => {
         const event = new KeyboardEvent('keydown', {
             key: 'd',
             ctrlKey: true,
@@ -31,6 +42,41 @@ describe('holiday dataset refresh shortcut', () => {
             method: 'GET',
             cache: 'no-store'
         });
+
+        expect(document.querySelector('.toast.info').textContent)
+            .toContain('Refreshing holiday data…');
+
+        await jest.advanceTimersByTimeAsync(0);
+
+        expect(document.querySelector('.toast.success').textContent)
+            .toContain('Holiday data refreshed. Updated 2026-07-19.');
+    });
+
+    test('reports a failed holiday request', async () => {
+        const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+        global.fetch.mockResolvedValue({
+            ok: false,
+            status: 503
+        });
+
+        document.dispatchEvent(new KeyboardEvent('keydown', {
+            key: 'd',
+            ctrlKey: true,
+            cancelable: true
+        }));
+
+        await jest.advanceTimersByTimeAsync(0);
+
+        expect(document.querySelector('.toast.error').textContent)
+            .toContain('Holiday data refresh failed. Please try again.');
+        expect(consoleError).toHaveBeenCalledWith(
+            'Failed to manually refresh holiday data from "/data/holidays.json":',
+            expect.objectContaining({
+                message: 'GET "/data/holidays.json" failed with HTTP 503'
+            })
+        );
+
+        consoleError.mockRestore();
     });
 
     test.each([
@@ -49,5 +95,6 @@ describe('holiday dataset refresh shortcut', () => {
 
         expect(event.defaultPrevented).toBe(false);
         expect(global.fetch).not.toHaveBeenCalled();
+        expect(document.querySelector('.toast')).toBeNull();
     });
 });
