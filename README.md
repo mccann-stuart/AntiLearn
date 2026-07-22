@@ -87,6 +87,8 @@ The application uses a simple but effective algorithm to find the best leave com
 
 The Cloudflare Worker schedules a weekly refresh to rebuild the dataset-backed holiday catalog from Calendarific and Tallyfy. Canada and the Gulf countries use country-level data, while each U.S. state combines a shared U.S. national baseline with a state-specific Calendarific overlay. The latest dataset is stored in KV and served directly from KV, and the browser keeps a cached copy as a fallback if the network request fails.
 
+Calendarific requests run with bounded concurrency and retry HTTP 429 responses with backoff. Each build records request success metrics. If fewer than 90% of the expected Calendarific requests succeed, scheduled and manual publication fail without writing KV, leaving the last-good dataset in place.
+
 For local development or manual refreshes, run:
 
 ```bash
@@ -96,6 +98,8 @@ calendarific=your_key pnpm run populate-kv
 Deploys do not repopulate remote KV automatically. Keep holiday dataset refreshes explicit so a deploy from a machine without the Calendarific key cannot overwrite production KV with a degraded fallback dataset.
 
 In Cloudflare, store the Calendarific key in a Secrets Store secret named `calendarific` and ensure it is bound in `wrangler.toml` via `secrets_store_secrets`.
+
+If a refresh reports HTTP 401 or 429 failures, confirm the configured secret and inspect the Calendarific dashboard for the key's plan and remaining request quota before retrying.
 
 For local dev, prefer adding `calendarific=...` to `.dev.vars` (and keep it out of git).
 

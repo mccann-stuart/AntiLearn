@@ -1,8 +1,15 @@
-import { buildHolidayDataset as buildSharedHolidayDataset, redactUrl } from './lib/holiday_dataset_builder.mjs';
+import {
+    assertCalendarificPublicationSafe,
+    buildHolidayDataset as buildSharedHolidayDataset,
+    redactUrl
+} from './lib/holiday_dataset_builder.mjs';
 
 const IMAGE_EXTENSIONS_REGEX = /\.(ico|png|jpg|jpeg|svg|webp)$/;
 const JSON_EXTENSIONS_REGEX = /\.json$/;
 const HOLIDAY_DATA_KEY = 'holidays';
+const MAX_FETCH_ATTEMPTS = 3;
+const MAX_RETRY_DELAY_MS = 60000;
+const RETRY_BASE_DELAY_MS = 1000;
 const CALENDARIFIC_ENV_KEYS = [
     'calendarific',
     'CALENDARIFIC_API_KEY',
@@ -118,24 +125,60 @@ async function handleRequest(request, env) {
     return env.ASSETS.fetch(request);
 }
 
-async function fetchJson(url) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+function getRetryDelayMs(response, attempt) {
+    const retryAfter = response.headers && typeof response.headers.get === 'function'
+        ? response.headers.get('Retry-After')
+        : null;
 
-    try {
-        const response = await fetch(url, { signal: controller.signal });
-        if (!response.ok) {
-            throw new Error(`Request failed with status ${response.status}`);
+    if (retryAfter) {
+        const seconds = Number(retryAfter);
+        const retryAt = Date.parse(retryAfter);
+        const requestedDelay = Number.isFinite(seconds)
+            ? seconds * 1000
+            : retryAt - Date.now();
+        if (Number.isFinite(requestedDelay) && requestedDelay >= 0) {
+            return Math.min(requestedDelay, MAX_RETRY_DELAY_MS);
         }
-        return await response.json();
-    } catch (error) {
-        if (error.name === 'AbortError') {
-            throw new Error(`Request timed out for ${redactUrl(url)}`);
-        }
-        throw error;
-    } finally {
-        clearTimeout(timeoutId);
     }
+
+    return Math.min(RETRY_BASE_DELAY_MS * (2 ** (attempt - 1)), MAX_RETRY_DELAY_MS);
+}
+
+function wait(delayMs) {
+    return new Promise(resolve => setTimeout(resolve, delayMs));
+}
+
+async function fetchJson(url) {
+    for (let attempt = 1; attempt <= MAX_FETCH_ATTEMPTS; attempt += 1) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+        try {
+            const response = await fetch(url, { signal: controller.signal });
+            if (response.status === 429 && attempt < MAX_FETCH_ATTEMPTS) {
+                const retryDelayMs = getRetryDelayMs(response, attempt);
+                console.warn(
+                    `Request to ${redactUrl(url)} returned status 429. ` +
+                    `Retrying in ${retryDelayMs}ms (attempt ${attempt + 1}/${MAX_FETCH_ATTEMPTS}).`
+                );
+                await wait(retryDelayMs);
+                continue;
+            }
+            if (!response.ok) {
+                throw new Error(`Request failed with status ${response.status}`);
+            }
+            return await response.json();
+        } catch (error) {
+            if (error?.name === 'AbortError') {
+                throw new Error(`Request timed out for ${redactUrl(url)}`);
+            }
+            throw error;
+        } finally {
+            clearTimeout(timeoutId);
+        }
+    }
+
+    throw new Error(`Request failed after ${MAX_FETCH_ATTEMPTS} attempts`);
 }
 
 async function resolveSecretBinding(binding, secretName) {
@@ -178,14 +221,23 @@ async function buildHolidayDataset(env) {
 }
 
 async function refreshHolidayDataset(env) {
-    if (!env.HOLIDAY_DATA) return;
+    if (!env.HOLIDAY_DATA) {
+        throw new Error('Holiday data store not configured; existing dataset was not changed.');
+    }
     const dataset = await buildHolidayDataset(env);
+    try {
+        assertCalendarificPublicationSafe(dataset);
+    } catch (error) {
+        console.warn(error.message || String(error));
+        throw error;
+    }
+
     console.log('Holiday dataset built successfully. Saving to KV...');
     await env.HOLIDAY_DATA.put(HOLIDAY_DATA_KEY, JSON.stringify(dataset));
     console.log('Holiday dataset saved to KV.');
 }
 
-export { resolveSecretBinding };
+export { fetchJson, resolveSecretBinding };
 
 export default {
     async fetch(request, env) {
@@ -216,6 +268,7 @@ export default {
             console.log('Cron trigger finished successfully.');
         }).catch(err => {
             console.error(`Cron trigger failed: ${err.message || String(err)}`);
+            throw err;
         }));
     }
 };
