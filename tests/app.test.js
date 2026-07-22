@@ -3,6 +3,7 @@ const {
     toLocalISOString,
     getEasterDate,
     getUKHolidays,
+    getUSFederalHolidays,
     isWeekend,
     isHoliday,
     getHolidayName,
@@ -263,6 +264,49 @@ describe('Holiday Calculations', () => {
         setTestState(2026, REGIONS.US_CA, []);
         expect(getHolidayName(new Date(2026, 0, 1))).toBe('New Year Override');
         expect(getHolidayName(new Date(2026, 2, 31))).toBe('Cesar Chavez Day');
+
+        setHolidayDatasetForTests(null);
+    });
+
+    test('U.S. federal holidays remain available when a state dataset year is empty', () => {
+        setHolidayDatasetForTests({
+            updatedAt: '2026-07-19',
+            locations: {
+                'US-MO': {
+                    name: 'Missouri',
+                    years: { '2027': [] }
+                }
+            }
+        });
+        setTestState(2027, REGIONS.US_MO, []);
+
+        expect(getUSFederalHolidays(2027)).toHaveLength(12);
+        expect(getHolidayName(new Date(2027, 6, 5))).toBe('Independence Day');
+        expect(getHolidayName(new Date(2027, 11, 24))).toBe('Christmas Day');
+
+        setHolidayDatasetForTests(null);
+    });
+
+    test('U.S. provider and state holidays override the calculated federal fallback by date', () => {
+        setHolidayDatasetForTests({
+            updatedAt: '2027-test',
+            locations: {
+                'US-MO': {
+                    name: 'Missouri',
+                    years: {
+                        '2027': [
+                            { date: '2027-07-05', name: 'Provider Independence Day' },
+                            { date: '2027-05-08', name: 'Truman Day' }
+                        ]
+                    }
+                }
+            }
+        });
+        setTestState(2027, REGIONS.US_MO, []);
+
+        expect(getHolidayName(new Date(2027, 6, 5))).toBe('Provider Independence Day');
+        expect(getHolidayName(new Date(2027, 4, 8))).toBe('Truman Day');
+        expect(getHolidayName(new Date(2027, 11, 24))).toBe('Christmas Day');
 
         setHolidayDatasetForTests(null);
     });
