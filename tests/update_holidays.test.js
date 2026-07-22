@@ -2,6 +2,8 @@ let normalizeCalendarific;
 let normalizeTallyfy;
 let mergeHolidayLists;
 let buildHolidayDataset;
+let fetchCalendarificHolidays;
+let requireCalendarificSuccessRate;
 
 beforeAll(async () => {
     const mod = await import('../scripts/update_holidays.mjs');
@@ -9,7 +11,9 @@ beforeAll(async () => {
         normalizeCalendarific,
         normalizeTallyfy,
         mergeHolidayLists,
-        buildHolidayDataset
+        buildHolidayDataset,
+        fetchCalendarificHolidays,
+        requireCalendarificSuccessRate
     } = mod);
 });
 
@@ -205,6 +209,44 @@ describe('update_holidays.mjs', () => {
         expect(combinedErrors).not.toContain(apiKey);
     });
 
+    test('fetchCalendarificHolidays logs and propagates the HTTP status', async () => {
+        const logger = { error: jest.fn() };
+        const fetchJsonMock = jest.fn().mockRejectedValue(
+            new Error('Request failed with status 429')
+        );
+
+        await expect(fetchCalendarificHolidays('secret-api-key-123', 'US', 2026, {
+            fetchJson: fetchJsonMock,
+            logger
+        })).rejects.toThrow('Calendarific fetch failed: Request failed with status 429');
+
+        expect(logger.error).toHaveBeenCalledWith(
+            expect.stringContaining('Request failed with status 429')
+        );
+        expect(logger.error.mock.calls.flat().join(' ')).not.toContain('secret-api-key-123');
+    });
+
+    test('requireCalendarificSuccessRate rejects a degraded dataset before publication', () => {
+        const degradedDataset = {
+            sources: {
+                calendarific: {
+                    requests: {
+                        expected: 330,
+                        attempted: 330,
+                        succeeded: 0,
+                        failed: 330,
+                        skipped: 0
+                    },
+                    successRate: 0
+                }
+            }
+        };
+
+        expect(() => requireCalendarificSuccessRate(degradedDataset)).toThrow(
+            'below the 90.0% publication threshold. Existing KV dataset retained.'
+        );
+    });
+
     test('buildHolidayDataset merges U.S. national baseline with state overlays once per year', async () => {
         const year = 2026;
         let usNationalRequestCount = 0;
@@ -273,6 +315,15 @@ describe('update_holidays.mjs', () => {
             years: [year]
         });
 
+        expect(dataset.sources.calendarific.requests).toEqual({
+            expected: 55,
+            attempted: 55,
+            succeeded: 55,
+            failed: 0,
+            skipped: 0
+        });
+        expect(dataset.sources.calendarific.successRate).toBe(1);
+
         expect(usNationalRequestCount).toBe(1);
         expect(dataset.locations.CA.years[String(year)]).toEqual(
             expect.arrayContaining([
@@ -340,6 +391,15 @@ describe('update_holidays.mjs', () => {
             logger: console,
             years: [year]
         });
+
+        expect(dataset.sources.calendarific.requests).toEqual({
+            expected: 55,
+            attempted: 55,
+            succeeded: 54,
+            failed: 1,
+            skipped: 0
+        });
+        expect(dataset.sources.calendarific.successRate).toBe(54 / 55);
 
         const texasHolidays = dataset.locations['US-TX'].years[String(year)];
         expect(texasHolidays).toEqual(

@@ -46,6 +46,7 @@ if (typeof Response === 'undefined') {
 
 describe('Cloudflare Worker Logic', () => {
     let worker;
+    let fetchJson;
     let env;
     let mockFetch;
     let consoleLogSpy;
@@ -53,6 +54,7 @@ describe('Cloudflare Worker Logic', () => {
     beforeAll(async () => {
         const workerModule = await import('../worker.mjs');
         worker = workerModule.default;
+        fetchJson = workerModule.fetchJson;
     });
 
     beforeEach(() => {
@@ -242,8 +244,65 @@ describe('Cloudflare Worker Logic', () => {
         expect(response.headers.get('X-Frame-Options')).toBe('DENY');
     });
 
+    test('should retry a 429 response without logging the API key', async () => {
+        const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+        global.fetch = jest.fn()
+            .mockResolvedValueOnce({
+                ok: false,
+                status: 429,
+                headers: { get: () => '0' }
+            })
+            .mockResolvedValueOnce({
+                ok: true,
+                status: 200,
+                headers: { get: () => null },
+                json: () => Promise.resolve({ response: { holidays: [] } })
+            });
+
+        await expect(fetchJson(
+            'https://calendarific.com/api/v2/holidays?api_key=secret-key-123'
+        )).resolves.toEqual({ response: { holidays: [] } });
+
+        expect(global.fetch).toHaveBeenCalledTimes(2);
+        expect(consoleWarnSpy.mock.calls.flat().join(' ')).toContain('status 429');
+        expect(consoleWarnSpy.mock.calls.flat().join(' ')).not.toContain('secret-key-123');
+
+        consoleWarnSpy.mockRestore();
+        delete global.fetch;
+    });
+
+    test('should publish when Calendarific requests meet the success threshold', async () => {
+        global.fetch = jest.fn().mockResolvedValue({
+            ok: true,
+            status: 200,
+            headers: { get: () => null },
+            json: () => Promise.resolve({ response: { holidays: [] }, holidays: [] })
+        });
+
+        const envWithSecrets = {
+            ...env,
+            CALENDARIFIC_API_KEY: 'secret-key-123',
+            HOLIDAY_DATA: {
+                put: jest.fn()
+            }
+        };
+        let capturedPromise;
+        const ctx = {
+            waitUntil: (promise) => { capturedPromise = promise; }
+        };
+
+        await worker.scheduled({}, envWithSecrets, ctx);
+        await capturedPromise;
+
+        expect(envWithSecrets.HOLIDAY_DATA.put).toHaveBeenCalledTimes(1);
+        expect(consoleLogSpy).toHaveBeenCalledWith('Cron trigger finished successfully.');
+
+        delete global.fetch;
+    });
+
     test('should redact API key in logs when Calendarific fetch fails', async () => {
         const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
         global.fetch = jest.fn().mockRejectedValue(new Error('Network error with https://api.calendarific.com/?api_key=secret-key-123'));
 
         const envWithSecrets = {
@@ -260,20 +319,25 @@ describe('Cloudflare Worker Logic', () => {
         };
 
         await worker.scheduled({}, envWithSecrets, ctx);
-        await capturedPromise;
+        await expect(capturedPromise).rejects.toThrow('below the 90.0% publication threshold');
 
         expect(consoleSpy).toHaveBeenCalled();
         const errorCalls = consoleSpy.mock.calls.map(args => args.join(' '));
         const combinedErrors = errorCalls.join('\n');
 
         expect(combinedErrors).not.toContain('secret-key-123');
+        expect(envWithSecrets.HOLIDAY_DATA.put).not.toHaveBeenCalled();
+        expect(consoleLogSpy).not.toHaveBeenCalledWith('Cron trigger finished successfully.');
+        expect(consoleWarnSpy.mock.calls.flat().join(' ')).toContain('Existing KV dataset retained.');
 
         consoleSpy.mockRestore();
+        consoleWarnSpy.mockRestore();
         delete global.fetch;
     });
 
     test('should redact all occurrences of API key in logs', async () => {
         const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
         // Simulate error message with repeated API key
         global.fetch = jest.fn().mockRejectedValue(new Error('Failed to fetch from https://api.calendarific.com/?api_key=secret-key-123 because secret-key-123 is invalid'));
 
@@ -291,15 +355,17 @@ describe('Cloudflare Worker Logic', () => {
         };
 
         await worker.scheduled({}, envWithSecrets, ctx);
-        await capturedPromise;
+        await expect(capturedPromise).rejects.toThrow('below the 90.0% publication threshold');
 
         expect(consoleSpy).toHaveBeenCalled();
         const errorCalls = consoleSpy.mock.calls.map(args => args.join(' '));
         const combinedErrors = errorCalls.join('\n');
 
         expect(combinedErrors).not.toContain('secret-key-123');
+        expect(envWithSecrets.HOLIDAY_DATA.put).not.toHaveBeenCalled();
 
         consoleSpy.mockRestore();
+        consoleWarnSpy.mockRestore();
         delete global.fetch;
     });
 
@@ -363,6 +429,7 @@ describe('Cloudflare Worker Logic', () => {
 
         expect(combinedErrors).toContain('Failed to fetch Calendarific holidays from https://calendarific.com/api/v2/holidays');
         expect(combinedErrors).not.toContain('secret-key-123');
+        expect(envWithSecrets.HOLIDAY_DATA.put).toHaveBeenCalledTimes(1);
 
         consoleSpy.mockRestore();
         delete global.fetch;

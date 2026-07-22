@@ -5,6 +5,7 @@ import path from 'path';
 import https from 'https';
 import { fileURLToPath } from 'url';
 import {
+    assertCalendarificPublicationSafe,
     buildHolidayDataset as buildSharedHolidayDataset,
     fetchCalendarificHolidays as fetchCalendarificHolidaysFromBuilder,
     fetchTallyfyHolidays as fetchTallyfyHolidaysFromBuilder
@@ -76,6 +77,10 @@ function requireCalendarificApiKey(apiKey) {
     );
 }
 
+function requireCalendarificSuccessRate(dataset) {
+    assertCalendarificPublicationSafe(dataset);
+}
+
 loadLocalEnv();
 
 function fetchJsonWithHttps(url) {
@@ -144,13 +149,17 @@ async function fetchTallyfyHolidays(countryCode, year, options = {}) {
 
 async function main(args = process.argv.slice(2)) {
     const apiKey = getCalendarificApiKey();
-    if (args.includes(REQUIRE_CALENDARIFIC_FLAG)) {
+    const requiresCalendarific = args.includes(REQUIRE_CALENDARIFIC_FLAG);
+    if (requiresCalendarific) {
         requireCalendarificApiKey(apiKey);
     }
     console.log('Starting holiday dataset update...');
     const dataset = await buildHolidayDataset({
         apiKey
     });
+    if (requiresCalendarific) {
+        requireCalendarificSuccessRate(dataset);
+    }
     fs.mkdirSync(path.dirname(OUTPUT_PATH), { recursive: true });
     fs.writeFileSync(OUTPUT_PATH, JSON.stringify(dataset, null, 2));
     console.log(`Holiday dataset written to ${OUTPUT_PATH}`);
@@ -176,6 +185,7 @@ export {
     fetchTallyfyHolidays,
     getCalendarificApiKey,
     requireCalendarificApiKey,
+    requireCalendarificSuccessRate,
     loadEnvFile,
     buildHolidayDataset,
     normalizeCalendarific,
