@@ -782,30 +782,104 @@ function getDatasetLocationYears(location) {
     return null;
 }
 
+function isUSLocation(location) {
+    const config = getLocationConfig(location);
+    return Boolean(config && config.countryCode === 'US');
+}
+
+function toUTCISOString(date) {
+    return date.toISOString().slice(0, 10);
+}
+
+function getUSObservedDate(year, month, day) {
+    const date = new Date(Date.UTC(year, month, day));
+    const dayOfWeek = date.getUTCDay();
+
+    if (dayOfWeek === 6) {
+        date.setUTCDate(date.getUTCDate() - 1);
+    } else if (dayOfWeek === 0) {
+        date.setUTCDate(date.getUTCDate() + 1);
+    }
+
+    return date;
+}
+
+function getUSNthWeekdayOfMonth(year, month, dayOfWeek, occurrence) {
+    const firstDay = new Date(Date.UTC(year, month, 1));
+    const offset = (dayOfWeek - firstDay.getUTCDay() + 7) % 7;
+    return new Date(Date.UTC(year, month, 1 + offset + ((occurrence - 1) * 7)));
+}
+
+function getUSLastWeekdayOfMonth(year, month, dayOfWeek) {
+    const lastDay = new Date(Date.UTC(year, month + 1, 0));
+    const offset = (lastDay.getUTCDay() - dayOfWeek + 7) % 7;
+    lastDay.setUTCDate(lastDay.getUTCDate() - offset);
+    return lastDay;
+}
+
+function createUSFederalHoliday(date, name) {
+    return { date: toUTCISOString(date), name };
+}
+
+/**
+ * Returns observed U.S. federal holidays that fall within a calendar year.
+ * Keep this browser fallback aligned with lib/us_federal_holidays.mjs so a
+ * stale or empty KV entry cannot remove the shared federal baseline.
+ */
+function getUSFederalHolidays(year) {
+    const candidates = [
+        createUSFederalHoliday(getUSObservedDate(year, 0, 1), "New Year's Day"),
+        createUSFederalHoliday(getUSNthWeekdayOfMonth(year, 0, 1, 3), 'Birthday of Martin Luther King, Jr.'),
+        createUSFederalHoliday(getUSNthWeekdayOfMonth(year, 1, 1, 3), "Washington's Birthday"),
+        createUSFederalHoliday(getUSLastWeekdayOfMonth(year, 4, 1), 'Memorial Day'),
+        createUSFederalHoliday(getUSObservedDate(year, 5, 19), 'Juneteenth National Independence Day'),
+        createUSFederalHoliday(getUSObservedDate(year, 6, 4), 'Independence Day'),
+        createUSFederalHoliday(getUSNthWeekdayOfMonth(year, 8, 1, 1), 'Labor Day'),
+        createUSFederalHoliday(getUSNthWeekdayOfMonth(year, 9, 1, 2), 'Columbus Day'),
+        createUSFederalHoliday(getUSObservedDate(year, 10, 11), 'Veterans Day'),
+        createUSFederalHoliday(getUSNthWeekdayOfMonth(year, 10, 4, 4), 'Thanksgiving Day'),
+        createUSFederalHoliday(getUSObservedDate(year, 11, 25), 'Christmas Day'),
+        createUSFederalHoliday(getUSObservedDate(year + 1, 0, 1), "New Year's Day")
+    ];
+    const yearPrefix = `${year}-`;
+
+    return candidates
+        .filter(holiday => holiday.date.startsWith(yearPrefix))
+        .sort((a, b) => a.date.localeCompare(b.date));
+}
+
 function getDatasetHolidays(year, location) {
     const years = getDatasetLocationYears(location);
     const list = years ? years[String(year)] : null;
+    const providerHolidays = Array.isArray(list)
+        ? list
+            .filter(item =>
+                item &&
+                typeof item.date === 'string' && DATE_REGEX.test(item.date) &&
+                typeof item.name === 'string'
+            )
+            .map(item => ({ date: item.date, name: item.name }))
+        : [];
+    const fallbackHolidays = isUSLocation(location) ? getUSFederalHolidays(year) : [];
 
-    if (!Array.isArray(list) || list.length === 0) {
+    if (providerHolidays.length === 0 && fallbackHolidays.length === 0) {
         warnHolidayDataUnavailable(location, year);
         return [];
     }
 
-    return list
-        .filter(item =>
-            item &&
-            typeof item.date === 'string' && DATE_REGEX.test(item.date) &&
-            typeof item.name === 'string'
-        )
-        .map(item => ({
-            date: item.date,
-            name: item.name
-        }));
+    const holidaysByDate = new Map(fallbackHolidays.map(holiday => [holiday.date, holiday]));
+    providerHolidays.forEach(holiday => holidaysByDate.set(holiday.date, holiday));
+    return Array.from(holidaysByDate.values()).sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function hasDatasetHolidayDataForYear(location, year) {
+    const years = getDatasetLocationYears(location);
+    return Boolean(years && Array.isArray(years[String(year)]) && years[String(year)].length > 0);
 }
 
 function hasHolidayDataForYear(location, year) {
-    const years = getDatasetLocationYears(location);
-    return Boolean(years && Array.isArray(years[String(year)]) && years[String(year)].length > 0);
+    return hasDatasetHolidayDataForYear(location, year) ||
+        (isUSLocation(location) && getUSFederalHolidays(year).length > 0);
 }
 
 function warnHolidayDataUnavailable(location, year) {
@@ -827,6 +901,11 @@ function renderHolidayDataStatus() {
 
     if (!isDatasetLocation(currentRegion)) {
         statusEl.textContent = '';
+        return;
+    }
+
+    if (!hasDatasetHolidayDataForYear(currentRegion, currentYear) && isUSLocation(currentRegion)) {
+        statusEl.textContent = `Using calculated U.S. federal holidays for ${currentYear}; state-specific holiday data unavailable.`;
         return;
     }
 
@@ -1519,7 +1598,6 @@ function getLongestBlockDays(plan) {
  */
 function getYearComparison(year, allowance) {
     if (isDatasetLocation(currentRegion)) {
-        if (!holidayDataset) return null;
         if (!hasHolidayDataForYear(currentRegion, year) || !hasHolidayDataForYear(currentRegion, year - 1)) {
             return null;
         }
@@ -3344,6 +3422,7 @@ if (typeof module !== 'undefined' && module.exports) {
         toLocalISOString,
         getEasterDate,
         getUKHolidays,
+        getUSFederalHolidays,
         isWeekend,
         isHoliday,
         getHolidayName,

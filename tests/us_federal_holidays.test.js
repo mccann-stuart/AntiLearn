@@ -1,4 +1,5 @@
 let getUsFederalHolidays;
+const { getUSFederalHolidays } = require('../public/app.js');
 
 beforeAll(async () => {
     ({ getUsFederalHolidays } = await import('../lib/us_federal_holidays.mjs'));
@@ -37,5 +38,13 @@ describe('U.S. federal holiday fallback', () => {
         expect(holidays).not.toEqual(expect.arrayContaining([
             expect.objectContaining({ date: '2026-07-04', name: 'Independence Day' })
         ]));
+    });
+
+    test('keeps the browser fallback aligned with the dataset builder', () => {
+        for (let year = 2026; year <= 2031; year += 1) {
+            expect(getUSFederalHolidays(year)).toEqual(
+                getUsFederalHolidays(year).map(({ date, name }) => ({ date, name }))
+            );
+        }
     });
 });
