@@ -342,6 +342,10 @@ describe('update_holidays.mjs', () => {
                 expect.objectContaining({ date: `${year}-11-26`, name: 'Thanksgiving' })
             ])
         );
+        expect(californiaHolidays).toEqual(expect.arrayContaining([
+            expect.objectContaining({ date: `${year}-06-19`, name: 'Juneteenth National Independence Day' }),
+            expect.objectContaining({ date: `${year}-09-07`, name: 'Labor Day' })
+        ]));
     });
 
     test('buildHolidayDataset keeps U.S. national holidays when a state overlay fetch fails', async () => {
@@ -405,8 +409,34 @@ describe('update_holidays.mjs', () => {
         expect(texasHolidays).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({ date: `${year}-01-01`, name: 'New Year' }),
-                expect.objectContaining({ date: `${year}-11-26`, name: 'Thanksgiving' })
+                expect.objectContaining({ date: `${year}-11-26`, name: 'Thanksgiving' }),
+                expect.objectContaining({ date: `${year}-12-25`, name: 'Christmas Day' })
             ])
         );
+    });
+
+    test('buildHolidayDataset supplies federal holidays when U.S. providers return empty future years', async () => {
+        const year = 2027;
+        const fetchJsonMock = jest.fn().mockResolvedValue({
+            response: { holidays: [] },
+            holidays: []
+        });
+
+        const dataset = await buildHolidayDataset({
+            fetchJson: fetchJsonMock,
+            apiKey: 'secret-api-key-123',
+            logger: console,
+            years: [year]
+        });
+        const missouriHolidays = dataset.locations['US-MO'].years[String(year)];
+
+        expect(dataset.sources.calendarific.successRate).toBe(1);
+        expect(missouriHolidays).toHaveLength(12);
+        expect(missouriHolidays).toEqual(expect.arrayContaining([
+            expect.objectContaining({ date: '2027-01-01', name: "New Year's Day" }),
+            expect.objectContaining({ date: '2027-07-05', name: 'Independence Day' }),
+            expect.objectContaining({ date: '2027-12-24', name: 'Christmas Day' }),
+            expect.objectContaining({ date: '2027-12-31', name: "New Year's Day" })
+        ]));
     });
 });

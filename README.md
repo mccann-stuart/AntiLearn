@@ -85,7 +85,7 @@ The application uses a simple but effective algorithm to find the best leave com
 
 ## Holiday Data Refresh
 
-The Cloudflare Worker schedules a weekly refresh to rebuild the dataset-backed holiday catalog from Calendarific and Tallyfy. Canada and the Gulf countries use country-level data, while each U.S. state combines a shared U.S. national baseline with a state-specific Calendarific overlay. The latest dataset is stored in KV and served directly from KV, and the browser keeps a cached copy as a fallback if the network request fails.
+The Cloudflare Worker schedules a weekly refresh to rebuild the dataset-backed holiday catalog from Calendarific and Tallyfy. Canada and the Gulf countries use country-level data, while each U.S. state combines a calculated federal-holiday baseline with provider data and a state-specific Calendarific overlay. The calculated baseline keeps future U.S. years usable when providers return successful but empty responses. The latest dataset is stored in KV and served directly from KV, and the browser keeps a cached copy as a fallback if the network request fails.
 
 Calendarific requests run with bounded concurrency and retry HTTP 429 responses with backoff. Each build records request success metrics. If fewer than 90% of the expected Calendarific requests succeed, scheduled and manual publication fail without writing KV, leaving the last-good dataset in place.
 
