@@ -1,0 +1,3 @@
+# Keep this override aligned with package.json for npm installs.
+overrides:
+  miniflare>undici: 8.12.2

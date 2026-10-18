@@ -41,10 +41,14 @@ open public/index.html
 
 ### Tests
 
+Development requires Node.js `^22.22.2 || ^24.15.0 || >=26.0.0` for the current jsdom dependency.
+
 ```bash
 npm install
 npm test
 ```
+
+Both npm and pnpm lockfiles are maintained. Keep the Miniflare Undici overrides in `package.json` and `pnpm-workspace.yaml` aligned when updating dependencies.
 
 Production dependency audit:
 
